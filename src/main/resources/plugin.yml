@@ -1,0 +1,10 @@
+name: EffectiveSpigot
+version: 'ALPHA-0.1.0'
+main: ru.hukm.effectiveSpigot.EffectiveSpigot
+api-version: '1.21'
+authors: [ huKM ]
+load: STARTUP
+commands:
+    effectiveGive:
+        description: Command for get a custom items from plugins
+        usage: /<command> <item_id>
