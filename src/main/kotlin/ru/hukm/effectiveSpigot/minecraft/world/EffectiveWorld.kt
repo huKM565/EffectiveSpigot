@@ -5,6 +5,8 @@ import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.Block
 import ru.hukm.effectiveSpigot.EffectiveSpigot
+import ru.hukm.effectiveSpigot.EffectiveSpigot.Companion.instance
+import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA;
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA.EffectiveChunkCursor
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlock
@@ -13,6 +15,12 @@ class EffectiveWorld private constructor(val name: String) {
     val effectiveChunkSoA = EffectiveChunkSoA()
 
     companion object {
+        object EffectiveWorldModule: IModule {
+            override fun init() {
+                instance.server.pluginManager.registerEvents(EffectiveWorldEvents(), instance)
+            }
+        }
+
         val effectiveWorlds = arrayListOf<EffectiveWorld>()
 
         fun getOrCreateInstance(world: World): EffectiveWorld {

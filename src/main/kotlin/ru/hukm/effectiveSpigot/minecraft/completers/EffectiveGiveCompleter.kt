@@ -5,7 +5,7 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
-import ru.hukm.effectiveSpigot.minecraft.item.EffectiveItem
+import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
 
 class EffectiveGiveCompleter : TabCompleter {

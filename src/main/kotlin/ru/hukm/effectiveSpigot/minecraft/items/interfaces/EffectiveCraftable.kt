@@ -1,4 +1,4 @@
-package ru.hukm.effectiveSpigot.minecraft.item.interfaces
+package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
 import org.bukkit.Bukkit
 import org.bukkit.Material

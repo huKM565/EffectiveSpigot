@@ -4,10 +4,10 @@ import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.config.ConfigModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
-import ru.hukm.effectiveSpigot.minecraft.item.interfaces.EffectiveFoundableAndDropable
-import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorldModule
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
 import ru.hukm.effectiveSpigot.minecraft.nms.interfaces.INmsModule
 import ru.hukm.effectiveSpigot.minecraft.nms.v1_21_6.NmsModuleV1_21_6
+import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
 import ru.hukm.effectiveSpigot.utils.debug.Debugger
 
 class EffectiveSpigot : JavaPlugin() {
@@ -24,7 +24,7 @@ class EffectiveSpigot : JavaPlugin() {
 
         val modulesList: List<IModule> = listOf<IModule>(
             ConfigModule,
-            EffectiveWorldModule,
+            EffectiveWorld.Companion.EffectiveWorldModule,
             EffectiveFoundableAndDropable.getModule()
         )
     }

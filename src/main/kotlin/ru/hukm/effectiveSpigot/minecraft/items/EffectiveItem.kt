@@ -1,4 +1,4 @@
-package ru.hukm.effectiveSpigot.minecraft.item
+package ru.hukm.effectiveSpigot.minecraft.items
 
 import net.md_5.bungee.api.ChatColor
 import org.bukkit.Material
@@ -9,8 +9,8 @@ import org.bukkit.loot.LootTables
 import org.bukkit.persistence.PersistentDataType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.minecraft.EffectivePersistentDataContainer
-import ru.hukm.effectiveSpigot.minecraft.item.interfaces.EffectiveCraftable
-import ru.hukm.effectiveSpigot.minecraft.item.interfaces.EffectiveFoundableAndDropable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveCraftable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
 
 abstract class EffectiveItem {
     companion object {
