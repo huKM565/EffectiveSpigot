@@ -1,4 +1,4 @@
-package ru.hukm.effectiveSpigot.minecraft
+package ru.hukm.effectiveSpigot.minecraft.utils
 
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemStack
@@ -8,9 +8,9 @@ import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.util.*
+import java.util.Base64
 
-object EffectivePersistentDataContainer {
+object EffectiveDataContainerUtils {
     fun <Z, T> getContainerValue(item: ItemStack, key: NamespacedKey, type: PersistentDataType<T?, Z?>): Z? {
         try {
             return item.itemMeta!!.persistentDataContainer.get<T?, Z?>(key, type)

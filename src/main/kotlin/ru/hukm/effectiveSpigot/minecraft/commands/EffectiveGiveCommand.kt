@@ -1,19 +1,21 @@
 package ru.hukm.effectiveSpigot.minecraft.commands
 
 import org.bukkit.Bukkit
+import org.bukkit.ChatColor
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
+import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 
 
 class EffectiveGiveCommand : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String?>): Boolean {
         if (args.size < 2) {
-            sender.sendMessage("Использование: /egive <селектор> <имя_ресурса>")
+            sender.sendMessage("Usage: /egive <selector> <item_name>")
             return true
         }
-
 
         val selector = args[0]!!
         val namespacedKeyName = args[1]!!
@@ -38,8 +40,14 @@ class EffectiveGiveCommand : CommandExecutor {
             return true
         }
 
+        val item = EffectiveItem.getItemByNamespacedKey(namespacedKeyName)
+        if (item == null) {
+            sender.sendMessage(ChatColor.RED.toString() + "Error: item is not found")
+            return true
+        }
+
         for (target in targets) {
-            target.sendMessage("Привет!")
+            EffectiveInventoryUtils.giveItem(item, target)
         }
 
         return true

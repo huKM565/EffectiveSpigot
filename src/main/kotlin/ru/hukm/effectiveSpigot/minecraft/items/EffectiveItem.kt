@@ -8,24 +8,28 @@ import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.loot.LootTables
 import org.bukkit.persistence.PersistentDataType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.minecraft.EffectivePersistentDataContainer
+import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveCraftable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
 
 abstract class EffectiveItem {
     companion object {
-        val ITEM_KEY = NamespacedKey(EffectiveSpigot.instance, "item")
-        val NAMESPACED_KEY_TO_ITEM = hashMapOf<String, EffectiveItem>()
+        private val ITEM_KEY = NamespacedKey(EffectiveSpigot.instance, "item")
+        private val namespacedKeyToItem = hashMapOf<String, EffectiveItem>()
 
         fun equalByMaterial(item1: ItemStack, item2: ItemStack): Boolean {
             return item1.type == item2.type
         }
 
         fun equalByNamespacedKey(item1: ItemStack, item2: ItemStack): Boolean {
-            val itemValue1 = EffectivePersistentDataContainer.getContainerValue(item1, ITEM_KEY, PersistentDataType.STRING) ?: return false
-            val itemValue2 = EffectivePersistentDataContainer.getContainerValue(item2, ITEM_KEY, PersistentDataType.STRING) ?: return false
+            val itemValue1 = EffectiveDataContainerUtils.getContainerValue(item1, ITEM_KEY, PersistentDataType.STRING) ?: return false
+            val itemValue2 = EffectiveDataContainerUtils.getContainerValue(item2, ITEM_KEY, PersistentDataType.STRING) ?: return false
 
             return itemValue1 == itemValue2
+        }
+
+        fun getItemByNamespacedKey(namespacedKey: String): ItemStack?{
+            return namespacedKeyToItem[namespacedKey]?.createItemStack()
         }
 
         fun getGrayLore(lines: List<String>): List<String> {
@@ -35,10 +39,10 @@ abstract class EffectiveItem {
 
     init {
         val namespacedName = getNamespacedName()
-        if (NAMESPACED_KEY_TO_ITEM.containsKey(namespacedName)) {
+        if (namespacedKeyToItem.containsKey(namespacedName)) {
             throw IllegalArgumentException("Item with namespaced name '$namespacedName' is already registered")
         }
-        NAMESPACED_KEY_TO_ITEM[namespacedName] = this
+        namespacedKeyToItem[namespacedName] = this
     }
 
     fun createItemStack() = createItemStack(1)
@@ -49,7 +53,7 @@ abstract class EffectiveItem {
         val meta = item.itemMeta ?: return item
         editMeta(meta)
         item.itemMeta = meta
-        EffectivePersistentDataContainer.setContainerValue(item, ITEM_KEY, PersistentDataType.STRING, getNamespacedName())
+        EffectiveDataContainerUtils.setContainerValue(item, ITEM_KEY, PersistentDataType.STRING, getNamespacedName())
         return item
     }
 
