@@ -8,14 +8,16 @@ import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.loot.LootTables
 import org.bukkit.persistence.PersistentDataType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveCraftable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.InteractCallback
 
 abstract class EffectiveItem {
     companion object {
         private val ITEM_KEY = NamespacedKey(EffectiveSpigot.instance, "item")
-        private val namespacedKeyToItem = hashMapOf<String, EffectiveItem>()
+        val namespacedKeyToItem = hashMapOf<String, EffectiveItem>()
 
         fun equalByMaterial(item1: ItemStack, item2: ItemStack): Boolean {
             return item1.type == item2.type
@@ -28,12 +30,36 @@ abstract class EffectiveItem {
             return itemValue1 == itemValue2
         }
 
-        fun getItemByNamespacedKey(namespacedKey: String): ItemStack?{
+        fun getItemByNamespacedKey(namespacedKey: String): ItemStack? {
             return namespacedKeyToItem[namespacedKey]?.createItemStack()
+        }
+
+        fun getNamespacedKeyByItem(item: ItemStack): String? {
+            for (key in namespacedKeyToItem.keys) {
+                val effectiveItem = namespacedKeyToItem[key]!!
+
+                if(equalByMaterial(effectiveItem.createItemStack(), item)) {
+                    return key
+                }
+            }
+
+            return null
         }
 
         fun getGrayLore(lines: List<String>): List<String> {
             return lines.map { ChatColor.GRAY.toString() + it }
+        }
+
+        fun makeShapelessCraftable(item: ItemStack, ingredients: List<Material>, namespacedKey: NamespacedKey, useVariants: Boolean = true) {
+            EffectiveCraftable.registerShapelessCraft(item, ingredients, EffectiveSpigot.instance, namespacedKey.toString(), useVariants)
+        }
+
+        fun makeShapedCraftable(item: ItemStack, shape: ArrayList<String>, ingredients: Map<Char, Material>, namespacedKey: NamespacedKey, useVariants: Boolean = true) {
+            EffectiveCraftable.registerShapedCraft(item, shape, ingredients, EffectiveSpigot.instance, namespacedKey.toString(), useVariants)
+        }
+
+        fun makeFoundableAndDropable(item: ItemStack, dropChance: Double, lootTables: List<LootTables>) {
+            EffectiveFoundableAndDropable.register(EffectiveFoundableAndDropable.Data(item, dropChance, lootTables as ArrayList<LootTables>))
         }
     }
 
@@ -58,6 +84,10 @@ abstract class EffectiveItem {
     }
 
     fun equalByNamespacedKey(item: ItemStack) = equalByNamespacedKey(createItemStack(), item)
+
+    fun makeClickable(click: EffectiveClickable.Click, callback: InteractCallback, ifRightClickOpenContainer: Boolean = false) {
+        EffectiveClickable.register(createItemStack(), click, callback, ifRightClickOpenContainer)
+    }
 
     fun makeShapelessCraftable(ingredients: List<Material>, useVariants: Boolean = true) {
         EffectiveCraftable.registerShapelessCraft(createItemStack(), ingredients, EffectiveSpigot.instance, getNamespacedName(), useVariants)

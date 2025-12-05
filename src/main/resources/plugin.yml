@@ -5,6 +5,6 @@ api-version: '1.21'
 authors: [ huKM ]
 load: STARTUP
 commands:
-    effectiveGive:
+    egive:
         description: Command for get a custom items from plugins
-        usage: /<command> <item_id>
+        usage: /<command> <item_id> <count>

@@ -1,6 +1,8 @@
 package ru.hukm.effectiveSpigot.minecraft.utils
 
+import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
@@ -30,5 +32,28 @@ object EffectiveInventoryUtils {
         }
 
         return true
+    }
+
+    fun getItemFromEquipmentSlot(player: Player, slot: EquipmentSlot): ItemStack? {
+        return when (slot) {
+            EquipmentSlot.HAND -> player.inventory.itemInMainHand
+            EquipmentSlot.OFF_HAND -> player.inventory.itemInOffHand
+            EquipmentSlot.HEAD -> player.inventory.helmet
+            EquipmentSlot.CHEST -> player.inventory.chestplate
+            EquipmentSlot.LEGS -> player.inventory.leggings
+            EquipmentSlot.FEET -> player.inventory.boots
+            else -> null
+        }
+    }
+
+    fun getUsedItemFromHands(player: Player): ItemStack? {
+        val inventory = player.inventory
+
+        val mainItem = inventory.itemInMainHand
+        val offItem = inventory.itemInOffHand
+
+        if (mainItem.type != Material.AIR) return mainItem
+
+        return offItem
     }
 }

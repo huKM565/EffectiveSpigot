@@ -12,13 +12,14 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 
 class EffectiveGiveCommand : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String?>): Boolean {
-        if (args.size < 2) {
-            sender.sendMessage("Usage: /egive <selector> <item_name>")
+        if (args.size < 3) {
+            sender.sendMessage("Usage: /egive <selector> <item_name> <count>")
             return true
         }
 
         val selector = args[0]!!
         val namespacedKeyName = args[1]!!
+        val count = args[2]!!.toInt()
         val targets = ArrayList<Player>()
 
         try {
@@ -47,7 +48,9 @@ class EffectiveGiveCommand : CommandExecutor {
         }
 
         for (target in targets) {
-            EffectiveInventoryUtils.giveItem(item, target)
+            for(i in 0..count) {
+                EffectiveInventoryUtils.giveItem(item, target)
+            }
         }
 
         return true

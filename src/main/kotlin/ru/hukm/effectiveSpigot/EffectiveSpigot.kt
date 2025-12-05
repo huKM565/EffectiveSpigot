@@ -4,6 +4,8 @@ import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.config.ConfigModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
 import ru.hukm.effectiveSpigot.minecraft.nms.interfaces.INmsModule
 import ru.hukm.effectiveSpigot.minecraft.nms.v1_21_6.NmsModuleV1_21_6
@@ -25,12 +27,16 @@ class EffectiveSpigot : JavaPlugin() {
         val modulesList: List<IModule> = listOf<IModule>(
             ConfigModule,
             EffectiveWorld.Companion.EffectiveWorldModule,
-            EffectiveFoundableAndDropable.getModule()
+            EffectiveFoundableAndDropable.getModule(),
+            EffectiveClickable.getModule()
         )
     }
 
     override fun onEnable() {
         instance = this
+
+        getCommand("egive")!!.setExecutor(EffectiveGiveCommand())
+
         modulesList.forEach { it.init() }
         initNmsModule()
 

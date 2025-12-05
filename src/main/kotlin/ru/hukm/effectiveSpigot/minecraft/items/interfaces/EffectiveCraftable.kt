@@ -95,7 +95,6 @@ interface EffectiveCraftable {
                     shapedRecipe.setIngredient(EffectiveAlphabets.UPPERCASE_ENGLISH[j], combination[j])
                 }
 
-                Bukkit.getServer().addRecipe(shapedRecipe)
             }
 
         }
@@ -149,8 +148,6 @@ interface EffectiveCraftable {
                 combination.forEach { material ->
                     shapelessRecipe.addIngredient(material)
                 }
-
-                Bukkit.getServer().addRecipe(shapelessRecipe)
             }
         }
     }

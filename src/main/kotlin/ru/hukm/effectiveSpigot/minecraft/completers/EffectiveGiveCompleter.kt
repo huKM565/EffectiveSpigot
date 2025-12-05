@@ -20,7 +20,11 @@ class EffectiveGiveCompleter : TabCompleter {
         }
 
         if (args.size == 2) {
-            return EffectiveItem.NAMESPACED_KEY_TO_ITEM.keys.toList()
+            return EffectiveItem.namespacedKeyToItem.keys.toList()
+        }
+
+        if (args.size == 3) {
+            return listOf("<count>")
         }
 
         return null
