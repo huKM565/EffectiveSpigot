@@ -67,6 +67,14 @@
         </resources>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>EffectiveSpigot</id>
+            <name>EffectiveSpigot</name>
+            <url>https://maven.pkg.github.com/huKM565/EffectiveSpigot</url>
+        </repository>
+    </distributionManagement>
+
     <repositories>
         <repository>
             <id>spigotmc-repo</id>
