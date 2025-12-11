@@ -30,6 +30,7 @@ class EffectiveSpigot : JavaPlugin() {
             EffectiveFoundableAndDropable.getModule(),
             EffectiveClickable.getModule()
         )
+
     }
 
     override fun onEnable() {
@@ -39,6 +40,10 @@ class EffectiveSpigot : JavaPlugin() {
 
         modulesList.forEach { it.init() }
         initNmsModule()
+
+        Bukkit.getScheduler().runTaskTimer(this, Runnable {
+            EffectiveClickable.resetPlayerUUIDInteractedWithEntity()
+        }, 0, 1)
 
 //        Bukkit.getScheduler().runTaskTimer(this, Runnable {
 //            println("Найдено ${EffectiveWorld.findBlocksByMaterial(Material.ACACIA_STAIRS, Bukkit.getWorlds()[0]).count()}")

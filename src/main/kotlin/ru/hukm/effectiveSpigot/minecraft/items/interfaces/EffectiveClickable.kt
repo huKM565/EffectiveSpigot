@@ -1,12 +1,12 @@
 package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
+import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.Container
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.player.PlayerInteractAtEntityEvent
@@ -16,8 +16,9 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
+import java.util.UUID
 
-typealias InteractCallback = (Player, ItemStack, Block?, Entity?) -> Unit
+typealias InteractCallback = (EffectiveClickable.EventsCallOptions) -> Unit
 
 interface EffectiveClickable {
     enum class Click { LEFT, RIGHT }
@@ -29,8 +30,21 @@ interface EffectiveClickable {
         val ifRightClickOpenContainer: Boolean = false
     )
 
+    data class EventsCallOptions(
+        val player: Player,
+        val item: ItemStack,
+        val click: Click,
+        val clickedBlock: Block?,
+        val clickedEntity: Entity?,
+    )
+
     companion object{
         private val clickableItems = arrayListOf<Data>()
+        private val playerUUIDInteractedWithEntity = arrayListOf<UUID>()
+
+        fun resetPlayerUUIDInteractedWithEntity() {
+            playerUUIDInteractedWithEntity.clear()
+        }
 
         internal fun getModule(): IModule {
             return object : IModule {
@@ -49,25 +63,24 @@ interface EffectiveClickable {
             ))
         }
 
-        fun tryCall(item: ItemStack?, action: Action, clickedBlock: Block?, clickedEntity: Entity?, player: Player): Boolean {
-            val item = item ?: return false
-            val key = EffectiveItem.getNamespacedKeyByItem(item)
+        fun tryCall(eventsCallOptions: EventsCallOptions): Boolean {
+            val item = eventsCallOptions.item
+
+            if (item.type == Material.AIR) return false
 
             for (clickableItem in clickableItems) {
-                val isEqual = if(key == null) {
-                    EffectiveItem.equalByMaterial(clickableItem.item, item)
-                }else EffectiveItem.equalByNamespacedKey(clickableItem.item, item)
+                val isEqual = EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(clickableItem.item, item)
 
                 if (isEqual) {
-                    if (clickableItem.click == Click.RIGHT && (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK)) {
-                        if (clickedBlock is Container && clickableItem.ifRightClickOpenContainer) {
+                    if (clickableItem.click == Click.RIGHT) {
+                        if (eventsCallOptions.clickedBlock is Container && !clickableItem.ifRightClickOpenContainer) {
                             return false
                         } else {
-                            clickableItem.callback(player, item, clickedBlock, clickedEntity)
+                            clickableItem.callback(eventsCallOptions)
                             return true
                         }
-                    }else if(clickableItem.click == Click.LEFT && (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK)) {
-                        clickableItem.callback(player, item, clickedBlock, clickedEntity)
+                    }else if(clickableItem.click == Click.LEFT) {
+                        clickableItem.callback(eventsCallOptions)
                         return true
                     }
 
@@ -82,14 +95,16 @@ interface EffectiveClickable {
     class Events() : Listener {
         @EventHandler
         fun onPlayerInteractEvent(event: PlayerInteractEvent) {
-            if (tryCall(event.item, event.action, event.clickedBlock, null, event.player)) {
+            if (playerUUIDInteractedWithEntity.contains(event.player.uniqueId)) return
+            if (tryCall(EventsCallOptions(event.player, event.item ?: ItemStack(Material.AIR), Click.RIGHT, event.clickedBlock, null))) {
                 event.isCancelled = true
             }
         }
 
         @EventHandler
         fun onPlayerInteractWithEntity(event: PlayerInteractAtEntityEvent) {
-            if (tryCall(EffectiveInventoryUtils.getItemFromEquipmentSlot(event.player, event.hand), Action.RIGHT_CLICK_AIR, null , event.rightClicked, event.player)) {
+            playerUUIDInteractedWithEntity.add(event.player.uniqueId)
+            if (tryCall(EventsCallOptions(event.player, EffectiveInventoryUtils.getItemFromEquipmentSlot(event.player, event.hand) ?: ItemStack(Material.AIR), Click.RIGHT, null , event.rightClicked))) {
                 event.isCancelled = true
             }
         }
@@ -98,9 +113,9 @@ interface EffectiveClickable {
         fun onPlayerHitEntity(event: EntityDamageByEntityEvent) {
             if (
                 event.damager is Player &&
-                event.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK &&
-                tryCall(EffectiveInventoryUtils.getUsedItemFromHands(event.damager as Player), Action.RIGHT_CLICK_AIR, null, event.entity, event.damager as Player)) {
-                event.isCancelled = true
+                event.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                ) {
+                tryCall(EventsCallOptions(event.damager as Player, EffectiveInventoryUtils.getUsedItemFromHands(event.damager as Player) ?: ItemStack(Material.AIR), Click.LEFT, null, event.entity))
             }
         }
     }

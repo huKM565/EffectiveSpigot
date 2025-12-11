@@ -5,6 +5,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
 object EffectiveInventoryUtils {
     fun isFullInventory(inventory: Inventory): Boolean {
@@ -55,5 +56,20 @@ object EffectiveInventoryUtils {
         if (mainItem.type != Material.AIR) return mainItem
 
         return offItem
+    }
+
+    fun getItemFromAnotherHandByItemInHand(player: Player, item: ItemStack): ItemStack? {
+        val inventory = player.inventory
+
+        val mainItem = inventory.itemInMainHand
+        val offItem = inventory.itemInOffHand
+
+        if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(mainItem, item)) {
+            return offItem
+        }else if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(offItem, item)) {
+            return mainItem
+        }
+
+        return null
     }
 }

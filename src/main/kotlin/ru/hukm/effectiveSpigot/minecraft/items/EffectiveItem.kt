@@ -30,6 +30,21 @@ abstract class EffectiveItem {
             return itemValue1 == itemValue2
         }
 
+        fun equalByNamespacedKeyIfExistElseByMaterial(item1: ItemStack, item2: ItemStack): Boolean {
+            val key1 = getNamespacedKeyByItem(item1)
+            val key2 = getNamespacedKeyByItem(item2)
+
+            if (key1 != null && key2 != null){
+                return equalByNamespacedKey(item1, item2)
+            }
+
+            if (key1 == key2) {
+                return equalByMaterial(item1, item2)
+            }
+
+            return false
+        }
+
         fun getItemByNamespacedKey(namespacedKey: String): ItemStack? {
             return namespacedKeyToItem[namespacedKey]?.createItemStack()
         }

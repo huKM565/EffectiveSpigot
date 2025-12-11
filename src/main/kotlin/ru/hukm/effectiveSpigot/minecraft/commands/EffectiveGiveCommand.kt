@@ -48,7 +48,7 @@ class EffectiveGiveCommand : CommandExecutor {
         }
 
         for (target in targets) {
-            for(i in 0..count) {
+            for(i in 0 until count) {
                 EffectiveInventoryUtils.giveItem(item, target)
             }
         }
