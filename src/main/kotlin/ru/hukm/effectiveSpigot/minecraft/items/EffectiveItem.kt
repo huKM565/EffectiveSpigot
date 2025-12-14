@@ -19,18 +19,18 @@ abstract class EffectiveItem {
         private val ITEM_KEY = NamespacedKey(EffectiveSpigot.instance, "item")
         val namespacedKeyToItem = hashMapOf<String, EffectiveItem>()
 
-        fun equalByMaterial(item1: ItemStack, item2: ItemStack): Boolean {
-            return item1.type == item2.type
+        fun equalByMaterial(item1: ItemStack?, item2: ItemStack?): Boolean {
+            return item1?.type == item2?.type
         }
 
-        fun equalByNamespacedKey(item1: ItemStack, item2: ItemStack): Boolean {
-            val itemValue1 = EffectiveDataContainerUtils.getContainerValue(item1, ITEM_KEY, PersistentDataType.STRING) ?: return false
-            val itemValue2 = EffectiveDataContainerUtils.getContainerValue(item2, ITEM_KEY, PersistentDataType.STRING) ?: return false
+        fun equalByNamespacedKey(item1: ItemStack?, item2: ItemStack?): Boolean {
+            val itemValue1 = getNamespacedKeyByItem(item1) ?: return false
+            val itemValue2 = getNamespacedKeyByItem(item2) ?: return false
 
             return itemValue1 == itemValue2
         }
 
-        fun equalByNamespacedKeyIfExistElseByMaterial(item1: ItemStack, item2: ItemStack): Boolean {
+        fun equalByNamespacedKeyIfExistElseByMaterial(item1: ItemStack?, item2: ItemStack?): Boolean {
             val key1 = getNamespacedKeyByItem(item1)
             val key2 = getNamespacedKeyByItem(item2)
 
@@ -49,7 +49,7 @@ abstract class EffectiveItem {
             return namespacedKeyToItem[namespacedKey]?.createItemStack()
         }
 
-        fun getNamespacedKeyByItem(item: ItemStack): String? {
+        fun getNamespacedKeyByItem(item: ItemStack?): String? {
             for (key in namespacedKeyToItem.keys) {
                 val effectiveItem = namespacedKeyToItem[key]!!
 

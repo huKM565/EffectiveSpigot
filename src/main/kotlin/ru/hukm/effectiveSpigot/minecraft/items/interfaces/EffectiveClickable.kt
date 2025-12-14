@@ -18,7 +18,7 @@ import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 import java.util.UUID
 
-typealias InteractCallback = (EffectiveClickable.EventsCallOptions) -> Unit
+typealias InteractCallback = (EffectiveClickable.EventsCallOptions) -> Boolean
 
 interface EffectiveClickable {
     enum class Click { LEFT, RIGHT }
@@ -73,15 +73,13 @@ interface EffectiveClickable {
 
                 if (isEqual) {
                     if (clickableItem.click == Click.RIGHT) {
-                        if (eventsCallOptions.clickedBlock is Container && !clickableItem.ifRightClickOpenContainer) {
-                            return false
+                        return if (eventsCallOptions.clickedBlock is Container && !clickableItem.ifRightClickOpenContainer) {
+                            false
                         } else {
                             clickableItem.callback(eventsCallOptions)
-                            return true
                         }
                     }else if(clickableItem.click == Click.LEFT) {
-                        clickableItem.callback(eventsCallOptions)
-                        return true
+                        return clickableItem.callback(eventsCallOptions)
                     }
 
                     break

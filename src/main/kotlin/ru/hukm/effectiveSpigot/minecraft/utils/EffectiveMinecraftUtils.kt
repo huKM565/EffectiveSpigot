@@ -7,6 +7,6 @@ import org.bukkit.entity.Player
 
 object EffectiveMinecraftUtils {
     fun sendMessageToActionBar(player: Player, message: String, color: ChatColor) {
-        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(message, color))
+        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color.toString() + message))
     }
 }
