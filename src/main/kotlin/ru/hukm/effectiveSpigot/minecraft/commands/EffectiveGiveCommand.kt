@@ -13,6 +13,11 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 
 class EffectiveGiveCommand : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
+        if (!sender.hasPermission("effectivespigot.command.egive")) {
+            sender.sendMessage(LanguageModule.getMessage("commands.egive.no_permission"))
+            return true
+        }
+
         if (args.size < 3) {
             sender.sendMessage(LanguageModule.getMessage("commands.egive.usage"))
             return true

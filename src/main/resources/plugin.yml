@@ -8,3 +8,4 @@ commands:
     egive:
         description: Command for get a custom items from plugins
         usage: /<command> <item_id> <count>
+        permission: effectivespigot.command.egive

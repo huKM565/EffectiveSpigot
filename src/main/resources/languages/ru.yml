@@ -1,6 +1,7 @@
 commands:
   egive:
     usage: "&cИспользование: /egive <селектор> <название_предмета> <количество>"
+    no_permission: "&cУ вас недостаточно прав на выполнение этой команды!"
     player_not_found: "&cИгроки не найдены."
     item_not_found: "&cОшибка: предмет %s не найден"
     success: "&aВыдано %d шт. %s игроку %s"
@@ -19,3 +20,5 @@ errors:
   loot:
     chance_out_of_range: "Шанс должен быть от 0.0 до 1.0"
     amounts_both_required: "Оба значения minAmount и maxAmount должны быть установлены или оба должны быть null"
+  cooldown:
+    wait: "Подождите еще %.1f сек."
