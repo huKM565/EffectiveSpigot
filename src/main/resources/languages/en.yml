@@ -1,0 +1,21 @@
+commands:
+  egive:
+    usage: "&cUsage: /egive <selector> <item_name> <count>"
+    player_not_found: "&cPlayers not found."
+    item_not_found: "&cError: item %s is not found"
+    success: "&aGiven %d of %s to %s"
+
+errors:
+  items:
+    already_registered: "Item with namespaced name '%s' is already registered"
+  crafts:
+    tag_invalid_material: "Tag contains %s, but Material is required"
+    list_invalid_material: "List must contain Materials. Provided: %s"
+    ingredient_empty: "Ingredient cannot be empty"
+    ingredient_invalid_type: "Ingredient must be Material, Tag<Material> or List<Material>. Provided: %s"
+  world:
+    chunk_not_loaded: "Chunk %d, %d in world %s is not loaded"
+    chunk_wrong_world: "Chunk %d, %d is in world %s, not in %s"
+  loot:
+    chance_out_of_range: "Chance must be between 0.0 and 1.0"
+    amounts_both_required: "Both minAmount and maxAmount must be set or both must be null"

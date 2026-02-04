@@ -3,139 +3,47 @@ package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.Tag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.ShapedRecipe
 import org.bukkit.inventory.ShapelessRecipe
 import org.bukkit.plugin.Plugin
+import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.utils.EffectiveAlphabets
 import ru.hukm.effectiveSpigot.utils.EffectiveCombinator
 
 interface EffectiveCraftable {
     companion object {
-        private val materialVariants: HashMap<String, ArrayList<Material>>
-            get() = hashMapOf<String, ArrayList<Material>>(
-                "planks" to getMaterialsContainsChars("planks")
-            )
-
-        fun getMaterialsContainsChars(chars: String) = Material.values().filter { it.name.lowercase().contains(chars) } as ArrayList
-
-        fun registerShapedCraft(
+        fun addShapelessCraft(
             result: ItemStack,
-            shape: ArrayList<String>,
-            ingredients: Map<Char, Material>,
+            ingredients: List<Any>,
             plugin: Plugin,
             name: String,
-            useMaterialVariants: Boolean = true
         ) {
-            if (!useMaterialVariants) {
-                val shapedRecipe = ShapedRecipe(NamespacedKey(plugin, name), result)
-                shapedRecipe.shape(*shape.toTypedArray())
-
-                ingredients.forEach { (char, material) ->
-                    shapedRecipe.setIngredient(char, material)
-                }
-
-                Bukkit.getServer().addRecipe(shapedRecipe)
-                return
-            }
-
-            var lettersIndex = 0
-            val variants: HashMap<Char, ArrayList<Material>> = hashMapOf();
-            for (i in 0 until shape.size) {
-                val str = shape[i]
-
-                for (char in str) {
-                    for (pair in materialVariants) {
-                        if (ingredients[char] != null && ingredients[char]!!.name.lowercase().contains(pair.key)) {
-                            while (true) {
-                                if (!shape.all { it.contains(EffectiveAlphabets.UPPERCASE_ENGLISH[lettersIndex]) } ) {
-                                    shape[i] = str.replace(char, EffectiveAlphabets.UPPERCASE_ENGLISH[lettersIndex])
-                                    variants.put(EffectiveAlphabets.UPPERCASE_ENGLISH[i], pair.value)
-                                    break;
-                                } else lettersIndex++
-                            }
+            val newIngredients = ingredients.map { ingredient ->
+                when (ingredient) {
+                    is Material -> listOf(ingredient)
+                    is Tag<*> -> {
+                        val firstElement = ingredient.values.firstOrNull()
+                        if (firstElement != null && firstElement !is Material) {
+                            throw ClassCastException(LanguageModule.getMessage("errors.tag_invalid_material", firstElement::class.simpleName ?: "unknown"))
                         }
+                        @Suppress("UNCHECKED_CAST")
+                        (ingredient as Tag<Material>).values.toList()
                     }
-                }
-            }
-
-            val newMaterialShape = arrayListOf<ArrayList<Material>>()
-
-            shape.forEach {
-                for (char in it) {
-                    when {
-                        ingredients[char] != null -> {
-                            newMaterialShape.add(arrayListOf(ingredients[char]!!))
+                    is List<*> -> {
+                        if (ingredient.isNotEmpty() && ingredient.first() !is Material) {
+                            throw IllegalArgumentException(LanguageModule.getMessage("errors.list_invalid_material", ingredient.first()!!::class.simpleName ?: "unknown"))
                         }
-                        variants[char] != null -> {
-                            newMaterialShape.add(variants[char]!!)
+
+                        if (ingredient.isEmpty()) {
+                            throw IllegalArgumentException(LanguageModule.getMessage("errors.ingredient_empty"))
                         }
-                        else -> {
-                            newMaterialShape.add(arrayListOf(Material.AIR))
-                        }
+
+                        @Suppress("UNCHECKED_CAST")
+                        ingredient as List<Material>
                     }
-                }
-            }
-
-            val combinations = EffectiveCombinator.getAllCombinations(newMaterialShape)
-
-            for (i in combinations.indices) {
-                val combination = combinations[i]
-
-                val newShape = arrayOf<String>(
-                    "ABC",
-                    "DEF",
-                    "GHI"
-                )
-
-                val shapedRecipe = ShapedRecipe(NamespacedKey(plugin, name + i), result)
-                shapedRecipe.shape(*newShape)
-
-                for (j in 0 until 8) {
-                    shapedRecipe.setIngredient(EffectiveAlphabets.UPPERCASE_ENGLISH[j], combination[j])
-                }
-
-                Bukkit.addRecipe(shapedRecipe)
-            }
-
-        }
-
-        fun registerShapelessCraft(
-            result: ItemStack,
-            ingredients: List<Material>,
-            plugin: Plugin,
-            name: String,
-            useMaterialVariants: Boolean = true
-        ) {
-            if(!useMaterialVariants) {
-                val shapelessRecipe = ShapelessRecipe(NamespacedKey(plugin, name), result)
-
-                ingredients.forEach { material ->
-                    shapelessRecipe.addIngredient(material)
-                }
-
-                Bukkit.getServer().addRecipe(shapelessRecipe)
-                return
-            }
-
-            val newIngredients = ArrayList(ingredients.filter {
-                var pass = true
-                for (pair in materialVariants) {
-                    if (it.name.lowercase().contains(pair.key)) {
-                        pass = false
-                        break
-                    }
-                }
-
-                pass
-            } ).map { arrayListOf<Material>(it) } .toMutableList() as ArrayList<ArrayList<Material>>
-
-            for (ingredient in ingredients) {
-                for (pair in materialVariants) {
-                    if (ingredient.name.lowercase().contains(pair.key)) {
-                        newIngredients.add(pair.value)
-                        break
-                    }
+                    else -> throw IllegalArgumentException(LanguageModule.getMessage("errors.ingredient_invalid_type", ingredient::class.simpleName ?: "unknown"))
                 }
             }
 

@@ -2,6 +2,7 @@ package ru.hukm.effectiveSpigot.minecraft.utils
 
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemStack
+import org.bukkit.persistence.PersistentDataContainer
 import org.bukkit.persistence.PersistentDataHolder
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.io.BukkitObjectInputStream
@@ -11,80 +12,101 @@ import java.io.ByteArrayOutputStream
 import java.util.Base64
 
 object EffectiveDataContainerUtils {
-    fun <Z, T> getContainerValue(item: ItemStack, key: NamespacedKey, type: PersistentDataType<T?, Z?>): Z? {
+    fun <Z : Any, T : Any> getContainerValue(item: ItemStack, key: NamespacedKey, type: PersistentDataType<T, Z>): Z? {
         try {
-            return item.itemMeta!!.persistentDataContainer.get<T?, Z?>(key, type)
+            return item.itemMeta?.persistentDataContainer?.get(key, type)
         } catch (_: NullPointerException) {
         }
         return null
     };
 
-    fun <Z, T> getContainerValue(
+    fun <Z : Any, T : Any> getContainerValue(
         holder: PersistentDataHolder,
         key: NamespacedKey,
-        type: PersistentDataType<T?, Z?>
+        type: PersistentDataType<T, Z>
     ): Z? {
         try {
-            return holder.persistentDataContainer.get<T?, Z?>(key, type)
+            return holder.persistentDataContainer.get(key, type)
         } catch (_: NullPointerException) { }
         return null
     };
 
 
-    fun <Z, T> setContainerValue(
+    fun <Z : Any, T : Any> setContainerValue(
         item: ItemStack,
         key: NamespacedKey,
-        type: PersistentDataType<T?, Z?>,
+        type: PersistentDataType<T, Z>,
         value: Z?
     ): ItemStack {
-        val meta = item.itemMeta
-        val container = meta!!.persistentDataContainer
+        val meta = item.itemMeta ?: return item
+        val container = meta.persistentDataContainer
 
-        container.set(key, type, value!!)
+        if (value == null) {
+            container.remove(key)
+        } else {
+            container.set(key, type, value)
+        }
         item.itemMeta = meta
 
         return item
     };
 
-    fun <Z, T> setContainerValue(
+    fun <Z : Any, T : Any> setContainerValue(
+        container: PersistentDataContainer,
+        key: NamespacedKey,
+        type: PersistentDataType<T, Z>,
+        value: Z?
+    ) {
+        if (value == null) {
+            container.remove(key)
+        } else {
+            container.set(key, type, value)
+        }
+    };
+
+    fun <Z : Any, T : Any> setContainerValue(
         holder: PersistentDataHolder,
         key: NamespacedKey,
-        type: PersistentDataType<T?, Z?>,
+        type: PersistentDataType<T, Z>,
         value: Z?
     ) {
         val container = holder.persistentDataContainer
-        container.set<T?, Z?>(key, type, value!!)
+        if (value == null) {
+            container.remove(key)
+        } else {
+            container.set(key, type, value)
+        }
     };
 
 
-    fun <Z, T> hasContainerValue(item: ItemStack, key: NamespacedKey, type: PersistentDataType<Z?, T?>): Boolean {
-        return item.itemMeta!!.persistentDataContainer.has<Z?, T?>(key, type)
+    fun <Z : Any, T : Any> hasContainerValue(item: ItemStack, key: NamespacedKey, type: PersistentDataType<T, Z>): Boolean {
+        return item.itemMeta?.persistentDataContainer?.has(key, type) ?: false
     }
 
-    fun <Z, T> hasContainerValue(
+    fun <Z : Any, T : Any> hasContainerValue(
         holder: PersistentDataHolder,
         key: NamespacedKey,
-        type: PersistentDataType<Z?, T?>
+        type: PersistentDataType<T, Z>
     ): Boolean {
-        return holder.persistentDataContainer.has<Z?, T?>(key, type)
+        return holder.persistentDataContainer.has(key, type)
     }
 
 
     fun <Z> base64GetContainerValue(item: ItemStack, key: NamespacedKey, clazz: Class<Z?>): Z? {
-        return base64Deserialize<Z?>(getContainerValue<String?, String?>(item, key, PersistentDataType.STRING), clazz)
+        return base64Deserialize<Z?>(getContainerValue(item, key, PersistentDataType.STRING), clazz)
     }
 
     fun <Z> base64GetContainerValue(holder: PersistentDataHolder, key: NamespacedKey, clazz: Class<Z?>): Z? {
-        return base64Deserialize<Z?>(getContainerValue<String?, String?>(holder, key, PersistentDataType.STRING), clazz)
+        return base64Deserialize<Z?>(getContainerValue(holder, key, PersistentDataType.STRING), clazz)
     }
 
 
     fun <Z> base64SetContainerValue(item: ItemStack, key: NamespacedKey, value: Z?): ItemStack {
-        return setContainerValue<String?, String?>(item, key, PersistentDataType.STRING, base64Serialize(value))
+        return setContainerValue(item, key, PersistentDataType.STRING, base64Serialize(value))
     }
 
     fun <Z> base64SetContainerValue(holder: PersistentDataHolder, key: NamespacedKey, value: Z?) {
-        setContainerValue<String?, String?>(holder, key, PersistentDataType.STRING, base64Serialize(value))
+        setContainerValue(holder, key, PersistentDataType.STRING, base64Serialize(value))
     }
 
 

@@ -13,18 +13,18 @@ class EffectiveGiveCompleter : TabCompleter {
         sender: CommandSender,
         command: Command,
         label: String,
-        args: Array<out String?>
-    ): List<String?>? {
+        args: Array<out String>
+    ): MutableList<String>? {
         if (args.size == 1) {
-            return listOf("@a", "@p") + Bukkit.getOnlinePlayers().map(Player::getName)
+            return (listOf("@a", "@p") + Bukkit.getOnlinePlayers().map(Player::getName)).toMutableList()
         }
 
         if (args.size == 2) {
-            return EffectiveItem.namespacedKeyToItem.keys.toList()
+            return EffectiveItem.namespacedKeyToItem.keys.toMutableList()
         }
 
         if (args.size == 3) {
-            return listOf("<count>")
+            return mutableListOf("<count>")
         }
 
         return null

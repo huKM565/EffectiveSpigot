@@ -15,24 +15,16 @@ object EffectiveInventoryUtils {
         return true
     }
 
-    fun tryGiveItem(item: ItemStack, player: Player): Boolean {
+    fun tryGiveItem(item: ItemStack, player: Player): HashMap<Int, ItemStack> {
         val inventory: Inventory = player.inventory
-
-        if (!isFullInventory(inventory)) {
-            inventory.addItem(item)
-            return true
-        }
-
-        return false
+        return inventory.addItem(item)
     }
 
     fun giveItem(item: ItemStack, player: Player): Boolean {
-        if (!tryGiveItem(item, player)) {
-            player.world.dropItem(player.location, item)
-            return false
-        }
+        val leftOver = tryGiveItem(item, player)
+        leftOver.values.forEach { player.world.dropItem(player.location, it) }
 
-        return true
+        return leftOver.isEmpty()
     }
 
     fun getItemFromEquipmentSlot(player: Player, slot: EquipmentSlot): ItemStack? {
@@ -71,5 +63,15 @@ object EffectiveInventoryUtils {
         }
 
         return null
+    }
+
+    fun getHandThatHoldItem(player: Player, item: ItemStack): EquipmentSlot? {
+        return if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(player.inventory.itemInMainHand, item)) {
+            EquipmentSlot.HAND
+        } else if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(player.inventory.itemInOffHand, item)) {
+            EquipmentSlot.OFF_HAND
+        } else {
+            null
+        }
     }
 }

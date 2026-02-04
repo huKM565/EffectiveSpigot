@@ -6,6 +6,7 @@ import org.bukkit.World
 import org.bukkit.block.Block
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.EffectiveSpigot.Companion.instance
+import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA;
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA.EffectiveChunkCursor
@@ -84,8 +85,8 @@ class EffectiveWorld private constructor(val name: String) {
     }
 
     fun tryUploadChunk(chunk: Chunk) {
-        if(!chunk.isLoaded) throw IllegalArgumentException("Chunk ${chunk.x}, ${chunk.z} in world $name is not loaded")
-        if(EffectiveWorldParser.worldToString(chunk.world) != name) throw IllegalArgumentException("Chunk ${chunk.x}, ${chunk.z} is in world ${chunk.world.name}, not in $name")
+        if(!chunk.isLoaded) throw IllegalArgumentException(LanguageModule.getMessage("errors.chunk_not_loaded", chunk.x, chunk.z, name))
+        if(EffectiveWorldParser.worldToString(chunk.world) != name) throw IllegalArgumentException(LanguageModule.getMessage("errors.chunk_wrong_world", chunk.x, chunk.z, chunk.world.name, name))
 
         val cursor = effectiveChunkSoA.find(chunk.x, chunk.z)?.apply {
             this.setLoad(true, effectiveChunkSoA)

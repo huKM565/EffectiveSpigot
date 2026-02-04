@@ -1,12 +1,17 @@
 package ru.hukm.effectiveSpigot
 
 import org.bukkit.Bukkit
+import org.bukkit.Material
+import org.bukkit.NamespacedKey
+import org.bukkit.Tag
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.config.ConfigModule
+import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
 import ru.hukm.effectiveSpigot.minecraft.nms.interfaces.INmsModule
 import ru.hukm.effectiveSpigot.minecraft.nms.v1_21_6.NmsModuleV1_21_6
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
@@ -24,11 +29,13 @@ class EffectiveSpigot : JavaPlugin() {
             nmsModule = NmsModuleV1_21_6()
         }
 
-        val modulesList: List<IModule> = listOf<IModule>(
+        val modulesList: List<IModule> = listOf(
             ConfigModule,
+            LanguageModule,
             EffectiveWorld.Companion.EffectiveWorldModule,
             EffectiveFoundableAndDropable.getModule(),
-            EffectiveClickable.getModule()
+            EffectiveClickable.getModule(),
+            EffectiveWearable.getModule()
         )
 
     }

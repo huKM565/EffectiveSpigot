@@ -1,7 +1,7 @@
 package ru.hukm.effectiveSpigot.minecraft.nms.v1_21_6.chunk
 
 import net.minecraft.world.level.chunk.LevelChunkSection
-import org.bukkit.craftbukkit.v1_21_R5.CraftWorld
+import org.bukkit.craftbukkit.CraftWorld
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorldParser
 import ru.hukm.effectiveSpigot.minecraft.nms.interfaces.chunk.INmsEffectiveChunk
 import kotlin.math.abs

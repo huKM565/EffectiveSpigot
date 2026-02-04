@@ -6,6 +6,7 @@ import org.bukkit.event.world.LootGenerateEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.loot.LootTables
 import ru.hukm.effectiveSpigot.EffectiveSpigot
+import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
 
 interface EffectiveFoundableAndDropable {
@@ -28,12 +29,12 @@ interface EffectiveFoundableAndDropable {
             }
         }
 
-        fun register(data: Data) {
+        fun addLoot(data: Data) {
             if (data.chance < 0.0 || data.chance > 1.0) {
-                throw IllegalArgumentException("Chance must be between 0.0 and 1.0")
+                throw IllegalArgumentException(LanguageModule.getMessage("errors.chance_out_of_range"))
             }
             if ((data.minAmount != null && data.maxAmount == null) || (data.minAmount == null && data.maxAmount != null)) {
-                throw IllegalArgumentException("Both minAmount and maxAmount must be set or both must be null")
+                throw IllegalArgumentException(LanguageModule.getMessage("errors.amounts_both_required"))
             }
             foundableItems.add(data)
         }
