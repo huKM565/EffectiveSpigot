@@ -152,6 +152,7 @@ interface EffectiveClickable {
         }
     }
 
+    //TODO(Добавить эвент разрушения блока)
     class Events() : Listener {
         @EventHandler
         fun onPlayerInteractEvent(event: PlayerInteractEvent) {
@@ -160,6 +161,7 @@ interface EffectiveClickable {
             if (tryCall(EventsCallOptions(event.player, event.item ?: ItemStack(Material.AIR), event.hand ?: EquipmentSlot.HAND, click, event.clickedBlock, null))) {
                 event.isCancelled = true
             }
+
         }
 
         @EventHandler
