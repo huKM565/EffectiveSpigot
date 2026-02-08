@@ -18,6 +18,7 @@ errors:
     chunk_not_loaded: "Chunk %d, %d in world %s is not loaded"
     chunk_wrong_world: "Chunk %d, %d is in world %s, not in %s"
   loot:
+    container_full: "Not all items could be placed in the container: inventory is full"
     chance_out_of_range: "Chance must be between 0.0 and 1.0"
     amounts_both_required: "Both minAmount and maxAmount must be set or both must be null"
   cooldown:

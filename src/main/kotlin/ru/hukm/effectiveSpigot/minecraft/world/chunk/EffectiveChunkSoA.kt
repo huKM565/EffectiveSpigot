@@ -52,9 +52,9 @@ class EffectiveChunkSoA{
                             blocksRequireMaterial.add(convertTypeToBlock(i, effectiveChunkSoA))
                         }
                     }
-                    cachedTypes.put(materialIndex, blocksRequireMaterial)
+                    cachedTypes[materialIndex] = blocksRequireMaterial
                 } else {
-                    blocksRequireMaterial.addAll(cachedTypes.get(materialIndex)!!)
+                    blocksRequireMaterial.addAll(cachedTypes[materialIndex]!!)
                     if(blocksRequireMaterial.isNotEmpty()) println(blocksRequireMaterial)
                 }
 
@@ -82,7 +82,7 @@ class EffectiveChunkSoA{
         }
 
         private fun setType(chunkX: Int, y: Int, chunkZ: Int, type: Short, effectiveChunkSoA: EffectiveChunkSoA) {
-            Bukkit.broadcastMessage("Set type ${Material.values()[type.toInt()]} at ${chunkX(effectiveChunkSoA) * 16 + chunkX}, $y, ${chunkZ(effectiveChunkSoA) * 16 + chunkZ} in chunk ${chunkX(effectiveChunkSoA)}, ${chunkZ(effectiveChunkSoA)}")
+            //Bukkit.broadcastMessage("Set type ${Material.values()[type.toInt()]} at ${chunkX(effectiveChunkSoA) * 16 + chunkX}, $y, ${chunkZ(effectiveChunkSoA) * 16 + chunkZ} in chunk ${chunkX(effectiveChunkSoA)}, ${chunkZ(effectiveChunkSoA)}")
             effectiveChunkSoA.cachedTypes[index] = hashMapOf()
             types(effectiveChunkSoA)!![getTypeIndexFromBlock(chunkX, y, chunkZ)] = type
         }

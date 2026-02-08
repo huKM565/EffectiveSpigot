@@ -83,8 +83,8 @@ abstract class EffectiveItem {
     fun equalByNamespacedKey(effectiveItem: EffectiveItem) = getNamespacedName() == effectiveItem.getNamespacedName()
     fun equalByNamespacedKey(item: ItemStack) = getNamespacedName() == getNamespacedKeyByItem(item)
 
-    fun addClickHandler(click: EffectiveClickable.Click, callback: InteractCallback, ifRightClickOpenContainer: Boolean = false) {
-        EffectiveClickable.addClickHandler(createItemStack(), click, callback, ifRightClickOpenContainer)
+    fun addClickHandler(click: EffectiveClickable.Click, callback: InteractCallback, ifRightClickOpenContainer: Boolean = false, cooldownToUseInTicks: Int = 0, conditionForSkipCooldown: ConditionForSkipCooldown? = null) {
+        EffectiveClickable.addClickHandler(createItemStack(), click, callback, ifRightClickOpenContainer, cooldownToUseInTicks, conditionForSkipCooldown)
     }
 
     fun addShapelessCraft(ingredients: List<Any>) {

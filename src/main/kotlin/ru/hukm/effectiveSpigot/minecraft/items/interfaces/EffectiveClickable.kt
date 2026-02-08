@@ -122,30 +122,33 @@ interface EffectiveClickable {
             }
         }
 
+        private fun runCallAndUpdateResult(currentResult: Boolean, data: Data, options: EventsCallOptions): Boolean {
+            val callResult = checkCooldownAndRunCall(data, options)
+            return currentResult || (callResult == Result.CANCEL_EVENT)
+        }
+
         fun tryCall(eventsCallOptions: EventsCallOptions): Boolean {
             val item = eventsCallOptions.item
 
             if (item.type == Material.AIR) return false
 
+            var result = false
+
             for (clickableItem in clickableItems) {
-                println(clickableItem.item.type)
                 val isEqual = EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(clickableItem.item, item)
 
                 if (isEqual) {
                     if (clickableItem.click == Click.RIGHT && eventsCallOptions.click == Click.RIGHT) {
-                        return if (eventsCallOptions.clickedBlock is Container && !clickableItem.ifRightClickOpenContainer) {
-                            false
-                        } else {
-                            checkCooldownAndRunCall(clickableItem, eventsCallOptions) == Result.CANCEL_EVENT
+                        if (!(eventsCallOptions.clickedBlock is Container && !clickableItem.ifRightClickOpenContainer)) {
+                            result = runCallAndUpdateResult(result, clickableItem, eventsCallOptions)
                         }
-                    }else if(clickableItem.click == Click.LEFT && eventsCallOptions.click == Click.LEFT) {
-                        return checkCooldownAndRunCall(clickableItem, eventsCallOptions) == Result.CANCEL_EVENT
+                    } else if (clickableItem.click == Click.LEFT && eventsCallOptions.click == Click.LEFT) {
+                        result = runCallAndUpdateResult(result, clickableItem, eventsCallOptions)
                     }
-            
                 }
             }
 
-            return false
+            return result
         }
     }
 
