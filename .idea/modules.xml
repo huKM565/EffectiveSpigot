@@ -2,7 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/EffectiveSpigot.core.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/EffectiveSpigot.core.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/EffectiveSpigot.main.iml" filepath="$PROJECT_DIR$/.idea/modules/EffectiveSpigot.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/nms/v1_21_11/EffectiveSpigot.nms.v1_21_11.main.iml" filepath="$PROJECT_DIR$/.idea/modules/nms/v1_21_11/EffectiveSpigot.nms.v1_21_11.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/nms/v1_21_6/EffectiveSpigot.nms.v1_21_6.main.iml" filepath="$PROJECT_DIR$/.idea/modules/nms/v1_21_6/EffectiveSpigot.nms.v1_21_6.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/nms/v1_21_6/EffectiveSpigot.nms.v1_21_6.test.iml" filepath="$PROJECT_DIR$/.idea/modules/nms/v1_21_6/EffectiveSpigot.nms.v1_21_6.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/EffectiveSpigot.test.iml" filepath="$PROJECT_DIR$/.idea/modules/EffectiveSpigot.test.iml" />
     </modules>
   </component>
