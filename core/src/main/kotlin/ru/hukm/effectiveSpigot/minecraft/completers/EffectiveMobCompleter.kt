@@ -12,10 +12,13 @@ class EffectiveMobCompleter : TabCompleter {
         label: String,
         args: Array<out String>
     ): MutableList<String>? {
+        val lastArg = args.last().lowercase()
         if (args.size == 1) {
-            return EffectiveEntity.namespacedKeyToEntity.keys.toMutableList()
+            return EffectiveEntity.namespacedKeyToEntity.keys
+                .filter { it.lowercase().startsWith(lastArg) }
+                .toMutableList()
         }
 
-        return null
+        return mutableListOf()
     }
 }

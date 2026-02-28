@@ -2,8 +2,6 @@ package ru.hukm.effectiveSpigot.minecraft.interfaces
 
 import net.md_5.bungee.api.ChatColor
 import org.bukkit.NamespacedKey
-import org.bukkit.entity.Entity
-import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
@@ -35,13 +33,17 @@ interface EffectiveAbstractInteract {
         val hand: EquipmentSlot
     }
 
-    interface Data<T: EventsCallOptions<out Target>> {
+    data class CooldownData<T : EventsCallOptions<out Target>>(
+        val cooldownToUseInTicks: Int = 0,
+        val conditionForSkipCooldown: ((T) -> Boolean)? = null,
+        val cooldownType: CooldownType? = null
+    )
+
+    interface Data<T : EventsCallOptions<out Target>> {
         val target: Target
         val click: Click
         val callback: (T) -> Result
-        val cooldownToUseInTicks: Int get() = 0
-        val conditionForSkipCooldown: ((T) -> Boolean)? get() = null
-        val cooldownType: CooldownType get() = CooldownType.ON_CURRENT_PLAYER
+        val cooldownData: CooldownData<T>?
     }
 
     companion object {
@@ -54,9 +56,9 @@ interface EffectiveAbstractInteract {
                 is Target.Entity -> EffectiveEntity.getNamespacedKeyByEntity(target.entity)
             }!!
 
-            if (data.cooldownToUseInTicks <= 0) return data.callback(eventsCallOptions)
-            if (data.conditionForSkipCooldown?.invoke(eventsCallOptions) == true) return Result.ALLOW_EVENT
-            val timeLatestUsed = if (data.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
+            if (data.cooldownData == null || data.cooldownData!!.cooldownToUseInTicks <= 0) return data.callback(eventsCallOptions)
+            if (data.cooldownData!!.conditionForSkipCooldown?.invoke(eventsCallOptions) == true) return Result.ALLOW_EVENT
+            val timeLatestUsed = if (data.cooldownData!!.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
                 val namespacedKey = NamespacedKey(
                     EffectiveSpigot.instance,
                     instanceNamespacedKeyOrName
@@ -90,7 +92,7 @@ interface EffectiveAbstractInteract {
             }
 
             if (timeLatestUsed != null) {
-                val cooldownToUseInMillis = data.cooldownToUseInTicks * 50
+                val cooldownToUseInMillis = data.cooldownData!!.cooldownToUseInTicks * 50
 
                 val millisPassed = System.currentTimeMillis() - timeLatestUsed
                 if (millisPassed < cooldownToUseInMillis) {
@@ -108,7 +110,7 @@ interface EffectiveAbstractInteract {
             return data.callback(eventsCallOptions).also { result ->
                 if (result != Result.CANCEL_EVENT) return result
 
-                if (data.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
+                if (data.cooldownData!!.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
                     EffectiveDataContainerUtils.setContainer(
                         eventsCallOptions.player,
                         COOLDOWN_KEY
@@ -121,9 +123,9 @@ interface EffectiveAbstractInteract {
                             System.currentTimeMillis()
                         )
                     }
-                } else if (data.cooldownType == CooldownType.ON_THIS_INSTANCE) {
+                } else if (data.cooldownData!!.cooldownType == CooldownType.ON_THIS_INSTANCE) {
                     setLatestTimeUsed(data.target)
-                } else if (data.cooldownType == CooldownType.ON_ALL_INSTANCES) {
+                } else if (data.cooldownData!!.cooldownType == CooldownType.ON_ALL_INSTANCES) {
                     if (target is Target.Item) {
                         eventsCallOptions.player.inventory.forEach {
                             if (it != null && EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it, target.itemStack)) {

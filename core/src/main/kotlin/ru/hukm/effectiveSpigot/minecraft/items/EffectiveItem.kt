@@ -9,8 +9,13 @@ import org.bukkit.loot.LootTables
 import org.bukkit.persistence.PersistentDataType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
-import ru.hukm.effectiveSpigot.minecraft.items.interfaces.*
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveCraftable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.InteractCallback
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 
 abstract class EffectiveItem {
@@ -89,8 +94,13 @@ abstract class EffectiveItem {
     fun equalByNamespacedKey(effectiveItem: EffectiveItem) = getNamespacedName() == effectiveItem.getNamespacedName()
     fun equalByNamespacedKey(item: ItemStack) = getNamespacedName() == getNamespacedKeyByItem(item)
 
-    fun addClickHandler(click: Click, callback: InteractCallback, ifRightClickOpenContainer: Boolean = false, cooldownToUseInTicks: Int = 0, conditionForSkipCooldown: ConditionForSkipCooldown? = null) {
-        EffectiveClickable.addClickHandler(createItemStack(), click, callback, ifRightClickOpenContainer, cooldownToUseInTicks, conditionForSkipCooldown)
+    fun addClickHandler(
+        click: Click,
+        callback: InteractCallback,
+        ifRightClickOpenContainer: Boolean = false,
+        cooldownData: EffectiveAbstractInteract.CooldownData<EffectiveClickable.EventsCallOptions>? = null
+    ) {
+        EffectiveClickable.addClickHandler(createItemStack(), click, callback, ifRightClickOpenContainer, cooldownData)
     }
 
     fun addShapelessCraft(ingredients: List<Any>) {

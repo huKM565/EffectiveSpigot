@@ -16,7 +16,6 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Cl
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable.Events
 
 typealias InteractCallback = (EffectiveEntityInteractable.EventsCallOptions) -> EffectiveAbstractInteract.Result
-typealias ConditionForSkipCooldown = (EffectiveEntityInteractable.EventsCallOptions) -> Boolean
 
 interface EffectiveEntityInteractable {
 
@@ -24,9 +23,7 @@ interface EffectiveEntityInteractable {
         override val target: EffectiveAbstractInteract.Target.Entity,
         override val click: Click,
         override val callback: InteractCallback,
-        override val cooldownToUseInTicks: Int = 0,
-        override val conditionForSkipCooldown: ConditionForSkipCooldown? = null,
-        override val cooldownType: EffectiveAbstractInteract.CooldownType = EffectiveAbstractInteract.CooldownType.ON_CURRENT_PLAYER,
+        override val cooldownData: EffectiveAbstractInteract.CooldownData<EventsCallOptions>? = null,
     ) : EffectiveAbstractInteract.Data<EventsCallOptions> {
         val entity = target.entity
     }
@@ -55,17 +52,14 @@ interface EffectiveEntityInteractable {
             entity: Entity,
             click: Click,
             callback: InteractCallback,
-            cooldownToUseInTicks: Int = 0,
-            conditionForSkipCooldown: ConditionForSkipCooldown? = null,
-            cooldownType: EffectiveAbstractInteract.CooldownType = EffectiveAbstractInteract.CooldownType.ON_CURRENT_PLAYER
+            cooldownData: EffectiveAbstractInteract.CooldownData<EventsCallOptions>? = null
         ) {
             interactableEntities.add(
                 Data(
                     EffectiveAbstractInteract.Target.Entity(entity),
                     click,
                     callback,
-                    cooldownToUseInTicks,
-                    conditionForSkipCooldown
+                    cooldownData
                 )
             )
         }

@@ -15,19 +15,24 @@ class EffectiveGiveCompleter : TabCompleter {
         label: String,
         args: Array<out String>
     ): MutableList<String>? {
+        val lastArg = args.last().lowercase()
         if (args.size == 1) {
-            return (listOf("@a", "@p") + Bukkit.getOnlinePlayers().map(Player::getName)).toMutableList()
+            return (listOf("@a", "@p") + Bukkit.getOnlinePlayers().map(Player::getName))
+                .filter { it.lowercase().startsWith(lastArg) }
+                .toMutableList()
         }
 
         if (args.size == 2) {
-            return EffectiveItem.namespacedKeyToItem.keys.toMutableList()
+            return EffectiveItem.namespacedKeyToItem.keys
+                .filter { it.lowercase().startsWith(lastArg) }
+                .toMutableList()
         }
 
         if (args.size == 3) {
             return mutableListOf("<count>")
         }
 
-        return null
+        return mutableListOf()
     }
 
 }

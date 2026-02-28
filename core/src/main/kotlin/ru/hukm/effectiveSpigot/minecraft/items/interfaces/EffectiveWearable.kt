@@ -11,6 +11,7 @@ import org.bukkit.event.inventory.InventoryType
 import org.bukkit.inventory.ItemStack
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 
@@ -23,9 +24,9 @@ interface EffectiveWearable {
                 wearableItems.add(effectiveItem)
 
                 //TODO(При ПКМ по шлему, если был предмет на голове, предмет моментально возращается обратно)
-                effectiveItem.addClickHandler(EffectiveClickable.Click.RIGHT, { e ->
+                effectiveItem.addClickHandler(EffectiveAbstractInteract.Click.RIGHT, { e ->
                     equipToHead(e.player, e.item)
-                    EffectiveClickable.Result.CANCEL_EVENT
+                    EffectiveAbstractInteract.Result.CANCEL_EVENT
                 })
             }
         }

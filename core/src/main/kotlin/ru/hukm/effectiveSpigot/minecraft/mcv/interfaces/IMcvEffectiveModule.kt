@@ -4,5 +4,4 @@ import ru.hukm.effectiveSpigot.minecraft.mcv.interfaces.chunk.IMcvEffectiveChunk
 
 interface IMcvEffectiveModule {
     fun getChunk(): IMcvEffectiveChunkManager
-    fun getCurrentTick(): Int
 }

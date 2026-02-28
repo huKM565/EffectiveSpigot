@@ -13,6 +13,10 @@ import org.bukkit.persistence.PersistentDataType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
+import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.InteractCallback
+import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
+import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 import java.util.*
@@ -80,37 +84,55 @@ abstract class EffectiveEntity {
         namespacedKeyToEntity[getNamespacedKey()] = this
     }
 
-    fun createEntity() {
+    fun createEntity(): Entity {
+        val world = Bukkit.getWorlds()[0]
+        val location = Location(world, 0.0, 0.0, 0.0)
+        val typeClass = getEntityType().entityClass
 
+        val entity = world.createEntity(location, typeClass as Class<out Entity>)
+        editEntity(entity)
+
+        EffectiveDataContainerUtils.setContainerValue(
+            entity,
+            ENTITY_KEY,
+            PersistentDataType.STRING,
+            getNamespacedKey()
+        )
+
+        return entity
     }
 
     fun spawnEntity(location: Location): Entity {
         val world = location.world ?: throw IllegalArgumentException("Location world cannot be null")
-        return world.spawnEntity(location, getEntityType()).also {
-            editEntity(it)
-            EffectiveDataContainerUtils.setContainerValue(
-                it,
-                ENTITY_KEY,
-                PersistentDataType.STRING,
-                getNamespacedKey()
-            )
 
-            val chunk = location.chunk
-            val chunkIdentifier = ChunkIdentifier(
-                world.uid,
-                EffectiveUtils.twoIntToLong(chunk.x, chunk.z)
-            )
+        val entity = createEntity()
 
-            cacheEntity(chunkIdentifier, it)
-        }
+        val chunk = location.chunk
+        val chunkIdentifier = ChunkIdentifier(
+            world.uid,
+            EffectiveUtils.twoIntToLong(chunk.x, chunk.z)
+        )
+
+        cacheEntity(chunkIdentifier, entity)
+
+        world.addEntity(entity)
+        entity.teleport(location)
+
+        return entity
     }
 
     fun addInteractHandler(
-
+        click: Click,
+        callback: InteractCallback,
+        cooldownData: EffectiveAbstractInteract.CooldownData<EffectiveEntityInteractable.EventsCallOptions>? = null
     ) {
-
+        EffectiveEntityInteractable.addInteractHandler(
+            createEntity(),
+            click,
+            callback,
+            cooldownData
+        )
     }
-
 
     abstract fun editEntity(entity: Entity)
     abstract fun getEntityType(): EntityType

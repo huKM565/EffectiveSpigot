@@ -23,16 +23,13 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 import java.util.UUID
 
 typealias InteractCallback = (EffectiveClickable.EventsCallOptions) -> EffectiveAbstractInteract.Result
-typealias ConditionForSkipCooldown = (EffectiveClickable.EventsCallOptions) -> Boolean
 
 interface EffectiveClickable {
     data class Data(
         override val target: EffectiveAbstractInteract.Target.Item,
         override val click: Click,
         override val callback: InteractCallback,
-        override val cooldownToUseInTicks: Int,
-        override val conditionForSkipCooldown: ConditionForSkipCooldown?,
-        override val cooldownType: EffectiveAbstractInteract.CooldownType,
+        override val cooldownData: EffectiveAbstractInteract.CooldownData<EventsCallOptions>?,
         val ifRightClickOpenContainer: Boolean = false,
     ) : EffectiveAbstractInteract.Data<EventsCallOptions> {
         val item = target.itemStack
@@ -70,17 +67,14 @@ interface EffectiveClickable {
             click: Click,
             callback: InteractCallback,
             ifRightClickOpenContainer: Boolean = false,
-            cooldownToUseInTicks: Int = 0,
-            conditionForSkipCooldown: ConditionForSkipCooldown? = null,
-            cooldownType: EffectiveAbstractInteract.CooldownType = EffectiveAbstractInteract.CooldownType.ON_CURRENT_PLAYER
+            cooldownData: EffectiveAbstractInteract.CooldownData<EventsCallOptions>? = null
         ) {
             clickableItems.add(Data(
                 EffectiveAbstractInteract.Target.Item(item),
                 click,
                 callback,
-                cooldownToUseInTicks,
-                conditionForSkipCooldown,
-                cooldownType
+                cooldownData,
+                ifRightClickOpenContainer
             ))
         }
 

@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/EffectiveSpigot.core.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/EffectiveSpigot.core.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/EffectiveSpigot.main.iml" filepath="$PROJECT_DIR$/.idea/modules/EffectiveSpigot.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mcv/v1_21_11/EffectiveSpigot.mcv.v1_21_11.main.iml" filepath="$PROJECT_DIR$/.idea/modules/mcv/v1_21_11/EffectiveSpigot.mcv.v1_21_11.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mcv/v1_21_9/EffectiveSpigot.mcv.v1_21_9.main.iml" filepath="$PROJECT_DIR$/.idea/modules/mcv/v1_21_9/EffectiveSpigot.mcv.v1_21_9.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/EffectiveSpigot.test.iml" filepath="$PROJECT_DIR$/.idea/modules/EffectiveSpigot.test.iml" />
     </modules>
   </component>

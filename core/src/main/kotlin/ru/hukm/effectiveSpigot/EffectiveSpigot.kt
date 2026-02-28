@@ -7,6 +7,7 @@ import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
+import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveGiveCompleter
 import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveMobCompleter
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
@@ -24,7 +25,7 @@ class EffectiveSpigot : JavaPlugin() {
         lateinit var mcvModule: IMcvEffectiveModule
             private set
 
-        private fun initNmsModule() {
+        private fun initMcvModule() {
             val version = Bukkit.getServer().version.split(".").map {
                 it.take(2).toInt()
             }
@@ -37,7 +38,27 @@ class EffectiveSpigot : JavaPlugin() {
             mcvModule = EffectiveUtils.loadMcvModule(className, instance) ?: return
         }
 
-        val modulesList: List<IModule> = listOf(
+    }
+
+    override fun onEnable() {
+        instance = this
+
+        getCommand("egive")!!.let {
+            it.setExecutor(EffectiveGiveCommand())
+            it.tabCompleter = EffectiveGiveCompleter()
+        }
+        getCommand("emob")!!.let {
+            it.setExecutor(EffectiveMobCommand())
+            it.tabCompleter = EffectiveMobCompleter()
+
+        }
+        initMcvModule()
+
+        Bukkit.getScheduler().runTaskTimer(this, Runnable {
+            EffectiveClickable.resetPlayerUUIDInteractedWithEntity()
+        }, 0, 1)
+
+        val modulesList = listOf<IModule>(
             ConfigModule,
             LanguageModule,
             EffectiveWorld.Companion.EffectiveWorldModule,
@@ -47,24 +68,8 @@ class EffectiveSpigot : JavaPlugin() {
             EffectiveEntity.getModule(),
             EffectiveEntityInteractable.getModule()
         )
-    }
-
-    override fun onEnable() {
-        instance = this
-
-        getCommand("egive")!!.setExecutor(EffectiveGiveCommand())
-        getCommand("emob")!!.let {
-            it.setExecutor(EffectiveMobCommand())
-            it.tabCompleter = EffectiveMobCompleter()
-        }
 
         modulesList.forEach { it.init() }
-        initNmsModule()
-        if (!this.isEnabled) return
-
-        Bukkit.getScheduler().runTaskTimer(this, Runnable {
-            EffectiveClickable.resetPlayerUUIDInteractedWithEntity()
-        }, 0, 1)
 
 //        Bukkit.getScheduler().runTaskTimer(this, Runnable {
 //            println("Найдено ${EffectiveWorld.findBlocksByMaterial(Material.ACACIA_STAIRS, Bukkit.getWorlds()[0]).count()}")

@@ -3,11 +3,9 @@ package ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_9
 import ru.hukm.effectiveSpigot.minecraft.mcv.interfaces.IMcvEffectiveModule
 import ru.hukm.effectiveSpigot.minecraft.mcv.interfaces.chunk.IMcvEffectiveChunkManager
 import ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_9.chunk.McvEffectiveChunkV1_21_9
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
-import org.bukkit.craftbukkit.v1_21_R5.CraftServer
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorldParser
 
 object McvModuleV1_21_9 : IMcvEffectiveModule {
@@ -23,9 +21,5 @@ object McvModuleV1_21_9 : IMcvEffectiveModule {
 
     override fun getChunk(): IMcvEffectiveChunkManager {
         return McvEffectiveChunkV1_21_9
-    }
-
-    override fun getCurrentTick(): Int {
-        return (Bukkit.getServer() as CraftServer).server.tickCount
     }
 }
