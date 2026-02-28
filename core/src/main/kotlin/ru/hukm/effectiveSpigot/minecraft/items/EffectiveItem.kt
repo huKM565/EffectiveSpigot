@@ -9,12 +9,13 @@ import org.bukkit.loot.LootTables
 import org.bukkit.persistence.PersistentDataType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.*
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 
 abstract class EffectiveItem {
     companion object {
-        private val ITEM_KEY = NamespacedKey(EffectiveSpigot.instance, "item")
+        val ITEM_KEY = NamespacedKey(EffectiveSpigot.instance, "item")
         val namespacedKeyToItem = hashMapOf<String, EffectiveItem>()
 
         fun equalByMaterial(item1: ItemStack?, item2: ItemStack?): Boolean {
@@ -55,12 +56,17 @@ abstract class EffectiveItem {
             }
         }
 
+        fun getNamespacedKeyByItemElseMaterial(item: ItemStack?): String? {
+            return getNamespacedKeyByItem(item) ?: item?.type?.name
+        }
+
         fun getGrayLore(lines: List<String>): List<String> {
             return lines.map { ChatColor.GRAY.toString() + it }
         }
     }
 
     init {
+        //TODO(Сделать, чтобы нельзя было использовать названия обычных предметов)
         val namespacedName = getNamespacedName()
         if (namespacedKeyToItem.containsKey(namespacedName)) {
             throw IllegalArgumentException(LanguageModule.getMessage("errors.item_already_registered", namespacedName))
@@ -83,7 +89,7 @@ abstract class EffectiveItem {
     fun equalByNamespacedKey(effectiveItem: EffectiveItem) = getNamespacedName() == effectiveItem.getNamespacedName()
     fun equalByNamespacedKey(item: ItemStack) = getNamespacedName() == getNamespacedKeyByItem(item)
 
-    fun addClickHandler(click: EffectiveClickable.Click, callback: InteractCallback, ifRightClickOpenContainer: Boolean = false, cooldownToUseInTicks: Int = 0, conditionForSkipCooldown: ConditionForSkipCooldown? = null) {
+    fun addClickHandler(click: Click, callback: InteractCallback, ifRightClickOpenContainer: Boolean = false, cooldownToUseInTicks: Int = 0, conditionForSkipCooldown: ConditionForSkipCooldown? = null) {
         EffectiveClickable.addClickHandler(createItemStack(), click, callback, ifRightClickOpenContainer, cooldownToUseInTicks, conditionForSkipCooldown)
     }
 

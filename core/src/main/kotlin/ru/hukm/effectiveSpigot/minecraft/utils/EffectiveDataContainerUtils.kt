@@ -12,7 +12,11 @@ import java.io.ByteArrayOutputStream
 import java.util.Base64
 
 object EffectiveDataContainerUtils {
-    fun <Z : Any, T : Any> getContainerValue(item: ItemStack, key: NamespacedKey, type: PersistentDataType<T, Z>): Z? {
+    fun <Z : Any, T : Any> getContainerValue(
+        item: ItemStack,
+        key: NamespacedKey,
+        type: PersistentDataType<T, Z>
+    ): Z? {
         try {
             return item.itemMeta?.persistentDataContainer?.get(key, type)
         } catch (_: NullPointerException) {
@@ -27,7 +31,20 @@ object EffectiveDataContainerUtils {
     ): Z? {
         try {
             return holder.persistentDataContainer.get(key, type)
-        } catch (_: NullPointerException) { }
+        } catch (_: NullPointerException) {
+        }
+        return null
+    };
+
+    fun <Z : Any, T : Any> getContainerValue(
+        container: PersistentDataContainer,
+        key: NamespacedKey,
+        type: PersistentDataType<T, Z>
+    ): Z? {
+        try {
+            return container.get(key, type)
+        } catch (_: NullPointerException) {
+        }
         return null
     };
 
@@ -79,7 +96,11 @@ object EffectiveDataContainerUtils {
     };
 
 
-    fun <Z : Any, T : Any> hasContainerValue(item: ItemStack, key: NamespacedKey, type: PersistentDataType<T, Z>): Boolean {
+    fun <Z : Any, T : Any> hasContainerValue(
+        item: ItemStack,
+        key: NamespacedKey,
+        type: PersistentDataType<T, Z>
+    ): Boolean {
         return item.itemMeta?.persistentDataContainer?.has(key, type) ?: false
     }
 
@@ -139,5 +160,30 @@ object EffectiveDataContainerUtils {
             ex.printStackTrace()
             return null
         }
+    }
+
+    fun setContainer(
+        holder: PersistentDataHolder,
+        key: NamespacedKey,
+        block: (PersistentDataContainer) -> Unit
+    ) {
+        val root = holder.persistentDataContainer
+        val folder = getContainerValue(holder, key, PersistentDataType.TAG_CONTAINER) ?: root.adapterContext.newPersistentDataContainer()
+        block(folder)
+        root.set(key, PersistentDataType.TAG_CONTAINER, folder)
+    }
+
+    fun setContainer(
+        item: ItemStack,
+        key: NamespacedKey,
+        block: (PersistentDataContainer) -> Unit
+    ): ItemStack {
+        val meta = item.itemMeta ?: return item
+        val root = meta.persistentDataContainer
+        val folder = getContainerValue(item, key, PersistentDataType.TAG_CONTAINER) ?: root.adapterContext.newPersistentDataContainer()
+        block(folder)
+        root.set(key, PersistentDataType.TAG_CONTAINER, folder)
+        item.itemMeta = meta
+        return item
     }
 }

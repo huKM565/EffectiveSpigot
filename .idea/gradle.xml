@@ -10,9 +10,9 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/core" />
-            <option value="$PROJECT_DIR$/nms" />
-            <option value="$PROJECT_DIR$/nms/v1_21_11" />
-            <option value="$PROJECT_DIR$/nms/v1_21_6" />
+            <option value="$PROJECT_DIR$/mcv" />
+            <option value="$PROJECT_DIR$/mcv/v1_21_11" />
+            <option value="$PROJECT_DIR$/mcv/v1_21_9" />
           </set>
         </option>
       </GradleProjectSettings>

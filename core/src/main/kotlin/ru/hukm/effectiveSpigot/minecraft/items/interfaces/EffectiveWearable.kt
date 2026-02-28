@@ -75,12 +75,12 @@ interface EffectiveWearable {
                     if (cursorItem.amount > 1) {
                         cursorItem.amount -= 1
                     } else {
-                        event.view.setCursor(null)
+                        event.view.cursor = null
                     }
                     
                     if (currentHelmet != null && currentHelmet.type != Material.AIR) {
                         if (cursorItem.amount <= 1) {
-                            event.view.setCursor(currentHelmet)
+                            event.view.cursor = currentHelmet
                         } else {
                             EffectiveInventoryUtils.giveItem(currentHelmet, player)
                         }

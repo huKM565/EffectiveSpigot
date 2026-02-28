@@ -1,5 +1,6 @@
 package ru.hukm.effectiveSpigot.minecraft.entities
 
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Entity
@@ -27,9 +28,39 @@ abstract class EffectiveEntity {
 
         val namespacedKeyToEntity = hashMapOf<String, EffectiveEntity>()
         val chunkToEntities = hashMapOf<ChunkIdentifier, MutableList<Entity>>()
-        fun addEntity(chunkIdentifier: ChunkIdentifier, entity: Entity) {
+        fun cacheEntity(chunkIdentifier: ChunkIdentifier, entity: Entity) {
             val entities = chunkToEntities.getOrPut(chunkIdentifier) { arrayListOf() }
             entities.add(entity)
+        }
+
+        fun equalByNamespacedKey(entity1: Entity?, entity2: Entity?): Boolean {
+            val value1 = getNamespacedKeyByEntity(entity1) ?: return false
+            val value2 = getNamespacedKeyByEntity(entity2) ?: return false
+
+            return value1 == value2
+        }
+
+        fun getNamespacedKeyByEntity(entity: Entity?): String? {
+            return if (entity != null) {
+                EffectiveDataContainerUtils.getContainerValue(entity, ENTITY_KEY, PersistentDataType.STRING)
+            } else {
+                return null
+            }
+        }
+
+        fun equalByNamespacedKeyIfExistElseByEntityType(entity1: Entity?, entity2: Entity?): Boolean {
+            val key1 = getNamespacedKeyByEntity(entity1)
+            val key2 = getNamespacedKeyByEntity(entity2)
+
+            if (key1 != null && key2 != null){
+                return equalByNamespacedKey(entity1, entity2)
+            }
+
+            if (key1 == key2) {
+                return entity1?.type == entity2?.type
+            }
+
+            return false
         }
 
         fun getModule(): IModule {
@@ -42,10 +73,15 @@ abstract class EffectiveEntity {
     }
 
     init {
+        //TODO(Сделать, чтобы нельзя было использовать названия обычных энтити)
         if (namespacedKeyToEntity.containsKey(getNamespacedKey())) {
             throw IllegalArgumentException(LanguageModule.getMessage("errors.item_already_registered", getNamespacedKey()))
         }
         namespacedKeyToEntity[getNamespacedKey()] = this
+    }
+
+    fun createEntity() {
+
     }
 
     fun spawnEntity(location: Location): Entity {
@@ -65,8 +101,14 @@ abstract class EffectiveEntity {
                 EffectiveUtils.twoIntToLong(chunk.x, chunk.z)
             )
 
-            addEntity(chunkIdentifier, it)
+            cacheEntity(chunkIdentifier, it)
         }
+    }
+
+    fun addInteractHandler(
+
+    ) {
+
     }
 
 
@@ -90,7 +132,7 @@ abstract class EffectiveEntity {
                     PersistentDataType.STRING
                 )
                 if (key != null) {
-                    addEntity(chunkIdentifier, it)
+                    cacheEntity(chunkIdentifier, it)
                 }
             }
         }

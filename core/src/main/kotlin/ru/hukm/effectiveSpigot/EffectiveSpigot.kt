@@ -9,6 +9,7 @@ import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
 import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveMobCompleter
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
+import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
@@ -43,7 +44,8 @@ class EffectiveSpigot : JavaPlugin() {
             EffectiveFoundableAndDropable.getModule(),
             EffectiveClickable.getModule(),
             EffectiveWearable.getModule(),
-            EffectiveEntity.getModule()
+            EffectiveEntity.getModule(),
+            EffectiveEntityInteractable.getModule()
         )
     }
 
