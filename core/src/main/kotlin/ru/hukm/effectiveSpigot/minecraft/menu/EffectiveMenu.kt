@@ -1,0 +1,110 @@
+package ru.hukm.effectiveSpigot.minecraft.menu
+
+import org.bukkit.Bukkit
+import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.inventory.Inventory
+import org.bukkit.inventory.InventoryHolder
+import org.bukkit.inventory.ItemStack
+import ru.hukm.effectiveSpigot.EffectiveSpigot
+import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
+import kotlin.collections.set
+
+abstract class EffectiveMenu {
+    data class ClickData(
+        val click: EffectiveAbstractInteract.Click,
+        val callback: (Player) -> Unit
+    )
+
+    data class SlotData(
+        val item: ItemStack,
+        val clickHandlers: List<ClickData>
+    )
+
+    private val maxItemSlot = getItems().keys.maxOfOrNull { it } ?: -1
+
+    val countSlot: Int = POSSIBLE_COUNT_SLOTS.find { it >= maxItemSlot + 1 } ?: 54
+
+    private val inventoryHolder = object : InventoryHolder {
+        override fun getInventory(): Inventory {
+            val inventory = Bukkit.createInventory(this, countSlot, getMenuTitle())
+
+            for ((slotIndex, itemData) in getItems()) {
+                inventory.setItem(slotIndex, itemData.item)
+            }
+
+            return inventory
+        }
+    }
+
+    companion object {
+        val POSSIBLE_COUNT_SLOTS = intArrayOf(9, 18, 27, 36, 45, 54)
+
+        internal fun getModule(): IModule {
+            return object : IModule {
+                override fun init() {
+                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
+                }
+            }
+        }
+
+        val namespacedNameToMenu = hashMapOf<String, EffectiveMenu>()
+    }
+
+    init {
+        val namespacedName = getNamespacedName()
+        if (namespacedNameToMenu.containsKey(namespacedName)) {
+            throw IllegalArgumentException(LanguageModule.getMessage("errors.menu.already_registered", namespacedName))
+        }
+
+        if (maxItemSlot > 53) {
+            //TODO()
+            throw IllegalArgumentException(LanguageModule.getMessage("errors.menu.already_registered", namespacedName))
+        }
+
+        namespacedNameToMenu[namespacedName] = this
+    }
+
+    fun getMenu(): Inventory {
+        return inventoryHolder.inventory
+    }//TODO(Сделать, чтобы доч. плагин мог сам выбирать количество слото)
+
+    abstract fun getMenuTitle(): String
+    abstract fun getItems(): Map<Int, SlotData>
+    abstract fun getNamespacedName(): String
+
+    class Events : Listener {
+        @EventHandler
+        fun onInventoryClick(event: InventoryClickEvent) {
+            val inventory = event.inventory
+            val inventoryHolder = inventory.holder
+
+            val effectiveMenu = namespacedNameToMenu.values.find { inventoryHolder == it.inventoryHolder }
+            if (effectiveMenu == null) return
+
+            val rawSlot = event.rawSlot
+            if (event.isShiftClick) {
+                event.isCancelled = true
+            }
+
+            if (rawSlot >= effectiveMenu.countSlot || rawSlot < -99) return
+            event.isCancelled = true
+
+            var click: EffectiveAbstractInteract.Click? = null;
+
+            if (event.isLeftClick) click = EffectiveAbstractInteract.Click.LEFT
+            else if (event.isRightClick) click = EffectiveAbstractInteract.Click.RIGHT
+
+            if (click == null) return
+
+            val slot = event.slot
+            effectiveMenu.getItems()[slot]?.clickHandlers?.forEach {
+                if (it.click == click) it.callback.invoke(event.whoClicked as Player)
+            }
+        }
+    }
+}

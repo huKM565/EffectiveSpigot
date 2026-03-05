@@ -5,19 +5,6 @@ plugins {
     `maven-publish`
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            artifact(tasks.named("shadowJar"))
-        }
-    }
-}
-
-tasks.withType<PublishToMavenLocal> {
-    dependsOn(tasks.named("jar"))
-    dependsOn(tasks.named("shadowJar"))
-}
-
 allprojects {
     group = "ru.hukm"
     version = "1.0-SNAPSHOT"
@@ -25,12 +12,8 @@ allprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven {
-            url = uri("https://repo.papermc.io/repository/maven-public/")
-        }
-        maven {
-            url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
-        }
+        maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+        maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
     }
 }
 
@@ -41,9 +24,8 @@ subprojects {
         implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     }
 
-    val targetJavaVersion = 21
     kotlin {
-        jvmToolchain(targetJavaVersion)
+        jvmToolchain(21)
     }
 }
 
@@ -55,12 +37,31 @@ dependencies {
 
 tasks {
     shadowJar {
-        archiveClassifier.set("")
-        // Релокация зависимостей если нужно
+        archiveClassifier.set("all")
+        
+        // Релокация
+        relocate("kotlin", "ru.hukm.effectiveSpigot.libs.kotlin")
+        relocate("org.jetbrains", "ru.hukm.effectiveSpigot.libs.org.jetbrains")
+
+        mergeServiceFiles()
+        
+        // Помогаем Gradle понять, что дубликаты — это не всегда плохо
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+
+    jar {
+        enabled = true
+        archiveClassifier.set("dev")
+
+        // Собираем классы и ресурсы из всех подпроектов
+        val subprojectsOutputs = subprojects.map { it.sourceSets.main.get().output }
+        from(subprojectsOutputs)
+
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
     runServer {
-        minecraftVersion("1.21")
+        minecraftVersion("1.21.11")
     }
 
     build {
@@ -68,21 +69,52 @@ tasks {
     }
 }
 
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            // Публикуем именно dev-артефакт (без релокации)
+            artifact(tasks.jar.get()) {
+                classifier = "" // Убираем "dev" из имени в репозитории, чтобы дочерние плагины видели его как основной
+            }
+        }
+    }
+}
+
+// --- ИСПРАВЛЕННЫЕ ЗАДАЧИ ---
+
+// 1. Копирование на сервер (с защитой от ошибок доступа к чужим файлам)
 val copyJarToServer = tasks.register<Copy>("copyJarToServer") {
-    dependsOn("shadowJar")
-    from(tasks.named("shadowJar"))
-    into("/mnt/ssd/перенос/server/plugins/")
+    dependsOn(tasks.shadowJar)
+    
+    // ВАЖНО: говорим Gradle не анализировать папку назначения на изменения.
+    // Это уберет ошибку с MD5 хешами временных файлов Spark.
+    doNotTrackState("Папка сервера содержит динамические файлы")
+
+    val destFolder = file("/mnt/ssd/перенос/server/plugins/")
+    
+    from(tasks.shadowJar.get().archiveFile)
+    into(destFolder)
+    
+    // На всякий случай игнорируем всё лишнее в папке назначения
+    exclude("**/spark/**")
+    exclude("**/*.tmp")
+    exclude("**/*.jfr")
+
+    doFirst {
+        if (!destFolder.exists()) {
+            throw GradleException("Папка сервера не найдена по пути: ${destFolder.absolutePath}")
+        }
+    }
 }
 
+// 2. Копирование исходников
 val copySourceToDecomp = tasks.register<Copy>("copySourceToDecomp") {
-    from("core/src/main/kotlin/ru")
-    into("../jarToTxt/decomp")
+    from(project(":core").file("src/main/kotlin/ru"))
+    into(rootProject.file("../jarToTxt/decomp"))
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
+// Финальная цепочка
 tasks.build {
-    finalizedBy(copyJarToServer, copySourceToDecomp, "publishToMavenLocal")
-}
-
-tasks.named("publishToMavenLocal") {
-    dependsOn("shadowJar")
+    finalizedBy(copySourceToDecomp, "publishToMavenLocal", copyJarToServer)
 }

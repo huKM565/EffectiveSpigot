@@ -13,7 +13,6 @@ import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
-import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable.Events
 
 typealias InteractCallback = (EffectiveEntityInteractable.EventsCallOptions) -> EffectiveAbstractInteract.Result
 
@@ -107,7 +106,8 @@ interface EffectiveEntityInteractable {
         fun onPlayerHitEntity(event: EntityDamageByEntityEvent) {
             if (
                 event.damager is Player &&
-                event.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                event.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK &&
+                event.damageSource.
             ) {
                 if (tryCall(
                         EventsCallOptions(
