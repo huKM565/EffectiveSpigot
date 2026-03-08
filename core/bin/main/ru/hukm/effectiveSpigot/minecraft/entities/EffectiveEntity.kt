@@ -14,6 +14,7 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
+import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.InteractCallback
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
@@ -84,10 +85,11 @@ abstract class EffectiveEntity {
         namespacedKeyToEntity[getNamespacedKey()] = this
     }
 
-    fun createEntity(): Entity {
+    fun createEntity(location: Location?): Entity {
         val world = Bukkit.getWorlds()[0]
-        val location = Location(world, 0.0, 0.0, 0.0)
         val typeClass = getEntityType().entityClass
+
+        val location = location ?: Location(Bukkit.getWorlds()[0], 0.0, 0.0, 0.0)
 
         val entity = world.createEntity(location, typeClass as Class<out Entity>)
         editEntity(entity)
@@ -105,7 +107,7 @@ abstract class EffectiveEntity {
     fun spawnEntity(location: Location): Entity {
         val world = location.world ?: throw IllegalArgumentException("Location world cannot be null")
 
-        val entity = createEntity()
+        val entity = createEntity(location)
 
         val chunk = location.chunk
         val chunkIdentifier = ChunkIdentifier(
@@ -114,8 +116,6 @@ abstract class EffectiveEntity {
         )
 
         cacheEntity(chunkIdentifier, entity)
-
-
 
         world.addEntity(entity)
         entity.teleport(location)
@@ -129,10 +129,21 @@ abstract class EffectiveEntity {
         cooldownData: EffectiveAbstractInteract.CooldownData<EffectiveEntityInteractable.EventsCallOptions>? = null
     ) {
         EffectiveEntityInteractable.addInteractHandler(
-            createEntity(),
+            createEntity(null),
             click,
             callback,
             cooldownData
+        )
+    }
+
+    fun doEntityNearLookable(
+        whoToLook: (Entity) -> Boolean = EffectiveEntityLookable.Look.TO_NEAR_PLAYER,
+        lookDistance: Float = 5.0f
+    ) {
+        EffectiveEntityLookable.doEntityLookable(
+            createEntity(null),
+            whoToLook,
+            lookDistance
         )
     }
 

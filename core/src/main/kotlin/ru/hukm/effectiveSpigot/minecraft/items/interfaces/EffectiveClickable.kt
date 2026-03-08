@@ -6,6 +6,7 @@ import org.bukkit.block.Container
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDamageByEntityEvent
@@ -105,7 +106,7 @@ interface EffectiveClickable {
 
     //TODO(Добавить эвент разрушения блока)
     class Events() : Listener {
-        @EventHandler
+        @EventHandler(priority = EventPriority.HIGHEST)
         fun onPlayerInteractEvent(event: PlayerInteractEvent) {
             if (playerUUIDInteractedWithEntity.contains(event.player.uniqueId)) return
             val click = if (event.action != Action.RIGHT_CLICK_BLOCK && event.action != Action.RIGHT_CLICK_AIR) Click.LEFT else Click.RIGHT
@@ -122,7 +123,7 @@ interface EffectiveClickable {
 
         }
 
-        @EventHandler
+        @EventHandler(priority = EventPriority.HIGHEST)
         fun onPlayerInteractWithEntity(event: PlayerInteractAtEntityEvent) {
             playerUUIDInteractedWithEntity.add(event.player.uniqueId)
             if (tryCall(EventsCallOptions(
@@ -139,7 +140,7 @@ interface EffectiveClickable {
             }
         }
 
-        @EventHandler
+        @EventHandler(priority = EventPriority.HIGHEST)
         fun onPlayerHitEntity(event: EntityDamageByEntityEvent) {
             if (
                 event.damager is Player &&

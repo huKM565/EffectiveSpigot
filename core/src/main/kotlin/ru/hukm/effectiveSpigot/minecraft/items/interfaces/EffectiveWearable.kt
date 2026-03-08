@@ -71,17 +71,17 @@ interface EffectiveWearable {
                 if (isWearable(cursorItem)) {
                     val currentHelmet = event.currentItem
                     
-                    event.currentItem = cursorItem!!.clone().apply { amount = 1 }
+                    event.currentItem = cursorItem.clone().apply { amount = 1 }
                     
                     if (cursorItem.amount > 1) {
                         cursorItem.amount -= 1
                     } else {
-                        event.view.cursor = null
+                        event.view.setCursor(null)
                     }
                     
                     if (currentHelmet != null && currentHelmet.type != Material.AIR) {
                         if (cursorItem.amount <= 1) {
-                            event.view.cursor = currentHelmet
+                            event.view.setCursor(currentHelmet)
                         } else {
                             EffectiveInventoryUtils.giveItem(currentHelmet, player)
                         }

@@ -13,6 +13,7 @@ import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveMenuCompleter
 import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveMobCompleter
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
+import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
@@ -74,7 +75,8 @@ class EffectiveSpigot : JavaPlugin() {
             EffectiveWearable.getModule(),
             EffectiveEntity.getModule(),
             EffectiveEntityInteractable.getModule(),
-            EffectiveMenu.getModule()
+            EffectiveMenu.getModule(),
+            EffectiveEntityLookable.getModule()
         )
 
         modulesList.forEach { it.init() }

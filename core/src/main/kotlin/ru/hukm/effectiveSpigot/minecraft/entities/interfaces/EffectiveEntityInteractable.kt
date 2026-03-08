@@ -106,8 +106,7 @@ interface EffectiveEntityInteractable {
         fun onPlayerHitEntity(event: EntityDamageByEntityEvent) {
             if (
                 event.damager is Player &&
-                event.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK &&
-                event.damageSource.
+                event.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
             ) {
                 if (tryCall(
                         EventsCallOptions(
@@ -115,7 +114,7 @@ interface EffectiveEntityInteractable {
                             EffectiveAbstractInteract.Target.Entity(
                                 event.entity
                             ),
-                            Click.RIGHT,
+                            Click.LEFT,
                             EquipmentSlot.HAND
                         )
                 )) {
