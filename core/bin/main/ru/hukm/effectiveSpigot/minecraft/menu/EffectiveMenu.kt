@@ -27,7 +27,7 @@ abstract class EffectiveMenu {
 
     private val maxItemSlot = getItems().keys.maxOfOrNull { it } ?: -1
 
-    val countSlot: Int = POSSIBLE_COUNT_SLOTS.find { it >= maxItemSlot + 1 } ?: 54
+    val countSlot: Int = getSlotsCount() ?: (POSSIBLE_COUNT_SLOTS.find { it >= maxItemSlot + 1 } ?: 54)
 
     private val inventoryHolder = object : InventoryHolder {
         override fun getInventory(): Inventory {
@@ -71,11 +71,12 @@ abstract class EffectiveMenu {
 
     fun getMenu(): Inventory {
         return inventoryHolder.inventory
-    }//TODO(Сделать, чтобы доч. плагин мог сам выбирать количество слото)
+    }
 
     abstract fun getMenuTitle(): String
     abstract fun getItems(): Map<Int, SlotData>
     abstract fun getNamespacedName(): String
+    open fun getSlotsCount(): Int? = null
 
     class Events : Listener {
         @EventHandler

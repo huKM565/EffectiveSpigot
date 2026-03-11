@@ -1,7 +1,7 @@
 package ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_9.chunk
 
 import net.minecraft.world.level.chunk.LevelChunkSection
-import org.bukkit.craftbukkit.v1_21_R6.CraftWorld
+import org.bukkit.craftbukkit.v1_21_R7.CraftWorld
 import ru.hukm.effectiveSpigot.minecraft.mcv.interfaces.chunk.IMcvEffectiveChunkManager
 import ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_9.McvModuleV1_21_9
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorldParser

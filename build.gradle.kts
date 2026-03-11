@@ -90,7 +90,7 @@ val copyJarToServer = tasks.register<Copy>("copyJarToServer") {
     // Это уберет ошибку с MD5 хешами временных файлов Spark.
     doNotTrackState("Папка сервера содержит динамические файлы")
 
-    val destFolder = file("/mnt/ssd/перенос/server/plugins/")
+    val destFolder = file("/mnt/sda2/перенос/server/plugins/")
     
     from(tasks.shadowJar.get().archiveFile)
     into(destFolder)
