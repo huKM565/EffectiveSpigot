@@ -57,7 +57,7 @@ abstract class EffectiveItem {
             return if (item != null) {
                 EffectiveDataContainerUtils.getContainerValue(item, ITEM_KEY, PersistentDataType.STRING)
             } else {
-                return null
+                null
             }
         }
 

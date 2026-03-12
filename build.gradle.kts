@@ -83,29 +83,29 @@ publishing {
 // --- ИСПРАВЛЕННЫЕ ЗАДАЧИ ---
 
 // 1. Копирование на сервер (с защитой от ошибок доступа к чужим файлам)
-val copyJarToServer = tasks.register<Copy>("copyJarToServer") {
-    dependsOn(tasks.shadowJar)
-    
-    // ВАЖНО: говорим Gradle не анализировать папку назначения на изменения.
-    // Это уберет ошибку с MD5 хешами временных файлов Spark.
-    doNotTrackState("Папка сервера содержит динамические файлы")
-
-    val destFolder = file("/mnt/sda2/перенос/server/plugins/")
-    
-    from(tasks.shadowJar.get().archiveFile)
-    into(destFolder)
-    
-    // На всякий случай игнорируем всё лишнее в папке назначения
-    exclude("**/spark/**")
-    exclude("**/*.tmp")
-    exclude("**/*.jfr")
-
-    doFirst {
-        if (!destFolder.exists()) {
-            throw GradleException("Папка сервера не найдена по пути: ${destFolder.absolutePath}")
-        }
-    }
-}
+//val copyJarToServer = tasks.register<Copy>("copyJarToServer") {
+//    dependsOn(tasks.shadowJar)
+//
+//    // ВАЖНО: говорим Gradle не анализировать папку назначения на изменения.
+//    // Это уберет ошибку с MD5 хешами временных файлов Spark.
+//    doNotTrackState("Папка сервера содержит динамические файлы")
+//
+//    val destFolder = file("/mnt/sda2/перенос/server/plugins/")
+//
+//    from(tasks.shadowJar.get().archiveFile)
+//    into(destFolder)
+//
+//    // На всякий случай игнорируем всё лишнее в папке назначения
+//    exclude("**/spark/**")
+//    exclude("**/*.tmp")
+//    exclude("**/*.jfr")
+//
+//    doFirst {
+//        if (!destFolder.exists()) {
+//            throw GradleException("Папка сервера не найдена по пути: ${destFolder.absolutePath}")
+//        }
+//    }
+//}
 
 // 2. Копирование исходников
 val copySourceToDecomp = tasks.register<Copy>("copySourceToDecomp") {
@@ -116,5 +116,5 @@ val copySourceToDecomp = tasks.register<Copy>("copySourceToDecomp") {
 
 // Финальная цепочка
 tasks.build {
-    finalizedBy(copySourceToDecomp, "publishToMavenLocal", copyJarToServer)
+    finalizedBy(copySourceToDecomp, "publishToMavenLocal")
 }
