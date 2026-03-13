@@ -10,6 +10,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.event.world.ChunkUnloadEvent
 import org.bukkit.persistence.PersistentDataType
+import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.language.LanguageModule
@@ -49,7 +50,7 @@ abstract class EffectiveEntity {
             return if (entity != null) {
                 EffectiveDataContainerUtils.getContainerValue(entity, ENTITY_KEY, PersistentDataType.STRING)
             } else {
-                return null
+                null
             }
         }
 
@@ -79,26 +80,27 @@ abstract class EffectiveEntity {
 
     init {
         //TODO(Сделать, чтобы нельзя было использовать названия обычных энтити)
-        if (namespacedKeyToEntity.containsKey(getNamespacedKey())) {
-            throw IllegalArgumentException(LanguageModule.getMessage("errors.entities.already_registered", getNamespacedKey()))
+        val namespacedName = getNamespacedName()
+        if (namespacedKeyToEntity.containsKey(namespacedName)) {
+            throw IllegalArgumentException(LanguageModule.getMessage("errors.entities.already_registered", namespacedName))
         }
-        namespacedKeyToEntity[getNamespacedKey()] = this
+        namespacedKeyToEntity[namespacedName] = this
     }
 
     fun createEntity(location: Location?): Entity {
         val world = Bukkit.getWorlds()[0]
         val typeClass = getEntityType().entityClass
 
-        val location = location ?: Location(Bukkit.getWorlds()[0], 0.0, 0.0, 0.0)
+        val loc = location ?: Location(Bukkit.getWorlds()[0], 0.0, 0.0, 0.0)
 
-        val entity = world.createEntity(location, typeClass as Class<out Entity>)
+        val entity = world.createEntity(loc, typeClass as Class<out Entity>)
         editEntity(entity)
 
         EffectiveDataContainerUtils.setContainerValue(
             entity,
             ENTITY_KEY,
             PersistentDataType.STRING,
-            getNamespacedKey()
+            getNamespacedName()
         )
 
         return entity
@@ -149,9 +151,13 @@ abstract class EffectiveEntity {
 
     abstract fun editEntity(entity: Entity)
     abstract fun getEntityType(): EntityType
-    abstract fun getNamespacedKey(): String
+    abstract fun getNamespacedData(): Pair<JavaPlugin, String>
 
-    class Events(): Listener {
+    fun getNamespacedName(): String {
+        return getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
+    }
+
+    class Events: Listener {
         @EventHandler
         fun onChunkLoad(event: ChunkLoadEvent) {
             val chunk = event.chunk

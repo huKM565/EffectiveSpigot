@@ -7,16 +7,14 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.loot.LootTables
 import org.bukkit.persistence.PersistentDataType
+import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
-import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
-import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveCraftable
-import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
-import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
-import ru.hukm.effectiveSpigot.minecraft.items.interfaces.InteractCallback
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.*
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
+import kotlin.text.lowercase
 
 abstract class EffectiveItem {
     companion object {
@@ -57,7 +55,7 @@ abstract class EffectiveItem {
             return if (item != null) {
                 EffectiveDataContainerUtils.getContainerValue(item, ITEM_KEY, PersistentDataType.STRING)
             } else {
-                return null
+                null
             }
         }
 
@@ -117,5 +115,9 @@ abstract class EffectiveItem {
 
     abstract fun editMeta(meta: ItemMeta)
     abstract fun getMaterial(): Material
-    abstract fun getNamespacedName(): String
+    abstract fun getNamespacedData(): Pair<JavaPlugin, String>
+
+    fun getNamespacedName(): String {
+        return getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
+    }
 }

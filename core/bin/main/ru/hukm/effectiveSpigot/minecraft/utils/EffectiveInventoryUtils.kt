@@ -8,6 +8,11 @@ import org.bukkit.inventory.ItemStack
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
 object EffectiveInventoryUtils {
+    enum class GiveResult {
+        SUCCESS,
+        DROPPED
+    }
+
     fun isFullInventory(inventory: Inventory): Boolean {
         var countDeleteInventoryContains = 0
         if (inventory.size >= 41) countDeleteInventoryContains = inventory.size - 36
@@ -20,11 +25,11 @@ object EffectiveInventoryUtils {
         return inventory.addItem(item)
     }
 
-    fun giveItem(item: ItemStack, player: Player): Boolean {
+    fun giveItem(item: ItemStack, player: Player): GiveResult {
         val leftOver = tryGiveItem(item, player)
         leftOver.values.forEach { player.world.dropItem(player.location, it) }
 
-        return leftOver.isEmpty()
+        return if (leftOver.isEmpty()) GiveResult.SUCCESS else GiveResult.DROPPED
     }
 
     fun getItemFromEquipmentSlot(player: Player, slot: EquipmentSlot): ItemStack? {
@@ -73,5 +78,43 @@ object EffectiveInventoryUtils {
         } else {
             null
         }
+    }
+
+    enum class RemoveResult {
+        SUCCESS,
+        NOT_ENOUGH
+    }
+
+    fun hasItems(inventory: Inventory, item: ItemStack, count: Int): Boolean {
+        var found = 0
+        for (i in 0 until inventory.size) {
+            val current = inventory.getItem(i) ?: continue
+            if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(current, item)) {
+                found += current.amount
+            }
+            if (found >= count) return true
+        }
+        return false
+    }
+
+    fun removeItems(inventory: Inventory, item: ItemStack, count: Int): RemoveResult {
+        if (!hasItems(inventory, item, count)) return RemoveResult.NOT_ENOUGH
+
+        var remaining = count
+        for (i in 0 until inventory.size) {
+            val current = inventory.getItem(i) ?: continue
+            if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(current, item)) {
+                val amount = current.amount
+                if (amount > remaining) {
+                    current.amount = amount - remaining
+                    remaining = 0
+                } else {
+                    inventory.setItem(i, null)
+                    remaining -= amount
+                }
+            }
+            if (remaining <= 0) break
+        }
+        return RemoveResult.SUCCESS
     }
 }

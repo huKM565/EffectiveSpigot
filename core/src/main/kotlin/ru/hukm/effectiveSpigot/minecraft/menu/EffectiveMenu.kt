@@ -8,6 +8,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
+import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.language.LanguageModule
@@ -25,15 +26,15 @@ abstract class EffectiveMenu {
         val clickHandlers: List<ClickData>
     )
 
-    private val maxItemSlot = getItems().keys.maxOfOrNull { it } ?: -1
+    private val maxSlotIndex = getItemsWithPattern().keys.maxOfOrNull { it } ?: -1
 
-    val countSlot: Int = getSlotsCount() ?: (POSSIBLE_COUNT_SLOTS.find { it >= maxItemSlot + 1 } ?: 54)
+    val countSlot: Int = getSlotsCount() ?: (POSSIBLE_COUNT_SLOTS.find { it >= maxSlotIndex + 1 } ?: 54)
 
     private val inventoryHolder = object : InventoryHolder {
         override fun getInventory(): Inventory {
             val inventory = Bukkit.createInventory(this, countSlot, getMenuTitle())
 
-            for ((slotIndex, itemData) in getItems()) {
+            for ((slotIndex, itemData) in getItemsWithPattern()) {
                 inventory.setItem(slotIndex, itemData.item)
             }
 
@@ -61,7 +62,7 @@ abstract class EffectiveMenu {
             throw IllegalArgumentException(LanguageModule.getMessage("errors.menu.already_registered", namespacedName))
         }
 
-        if (maxItemSlot > 53) {
+        if (maxSlotIndex > 53) {
             //TODO()
             throw IllegalArgumentException(LanguageModule.getMessage("errors.menu.already_registered", namespacedName))
         }
@@ -74,9 +75,31 @@ abstract class EffectiveMenu {
     }
 
     abstract fun getMenuTitle(): String
-    abstract fun getItems(): Map<Int, SlotData>
-    abstract fun getNamespacedName(): String
+    abstract fun getPattern(): List<String>?
+    abstract fun getSymbolsToItems(): Map<Char, SlotData>
+    abstract fun getNamespacedData(): Pair<JavaPlugin, String>
+
+    fun getNamespacedName(): String {
+        return getNamespacedData().first.description.name.lowercase() + ":" + getNamespacedData().second.lowercase().trim()
+    }
+
     open fun getSlotsCount(): Int? = null
+
+    fun getItemsWithPattern(): Map<Int, SlotData> {
+        val items = mutableMapOf<Int, SlotData>()
+
+        getPattern()?.let { pattern ->
+            val patternItems = getSymbolsToItems()
+            pattern.forEachIndexed { rowIndex, row ->
+                row.forEachIndexed { colIndex, char ->
+                    val slot = rowIndex * 9 + colIndex
+                    patternItems[char]?.let { items[slot] = it }
+                }
+            }
+        }
+
+        return items
+    }
 
     class Events : Listener {
         @EventHandler
@@ -103,7 +126,7 @@ abstract class EffectiveMenu {
             if (click == null) return
 
             val slot = event.slot
-            effectiveMenu.getItems()[slot]?.clickHandlers?.forEach {
+            effectiveMenu.getItemsWithPattern()[slot]?.clickHandlers?.forEach {
                 if (it.click == click) it.callback.invoke(event.whoClicked as Player)
             }
         }

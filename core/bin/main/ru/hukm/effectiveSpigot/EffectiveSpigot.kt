@@ -41,7 +41,6 @@ class EffectiveSpigot : JavaPlugin() {
 
             mcvModule = EffectiveUtils.loadMcvModule(className, instance) ?: return
         }
-
     }
 
     override fun onEnable() {
