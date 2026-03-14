@@ -1,7 +1,9 @@
 package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
+import org.bukkit.entity.EntityType
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.world.LootGenerateEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.loot.LootTables
@@ -13,9 +15,9 @@ interface EffectiveFoundableAndDropable {
     data class Data(
         val item: ItemStack,
         val chance: Double,
-        val spawnLootTables: ArrayList<LootTables>,
-        val minAmount: Int? = null,
-        val maxAmount: Int? = null
+        val spawnLootTables: ArrayList<LootTables>? = arrayListOf(),
+        val spawnEntities: ArrayList<EntityType>? = arrayListOf(),
+        val amount: IntRange? = null
     )
 
     companion object {
@@ -39,9 +41,6 @@ interface EffectiveFoundableAndDropable {
             if (data.chance < 0.0 || data.chance > 1.0) {
                 throw IllegalArgumentException(LanguageModule.getMessage("errors.chance_out_of_range"))
             }
-            if ((data.minAmount != null && data.maxAmount == null) || (data.minAmount == null && data.maxAmount != null)) {
-                throw IllegalArgumentException(LanguageModule.getMessage("errors.amounts_both_required"))
-            }
             foundableItems.add(data)
         }
     }
@@ -53,14 +52,32 @@ interface EffectiveFoundableAndDropable {
             val loot = event.loot
 
             for (data in foundableItems) {
-                if (data.spawnLootTables.map { it.lootTable } .contains(lootTable)) {
+                if (data.spawnLootTables != null && data.spawnLootTables.map { it.lootTable } .contains(lootTable)) {
                     if (Math.random() <= data.chance) {
                         val item = data.item.clone()
-                        if (data.minAmount != null && data.maxAmount != null) {
-                            item.amount = (data.minAmount..data.maxAmount).random()
+                        data.amount?.let {
+                            item.amount = it.random()
                         }
 
                         loot.add(item)
+                    }
+                }
+            }
+        }
+
+        @EventHandler
+        fun onEntityDeath(event: EntityDeathEvent) {
+            val entity = event.entity
+
+            for (data in foundableItems) {
+                if (data.spawnEntities != null && data.spawnEntities.contains(entity.type)) {
+                    if (Math.random() <= data.chance) {
+                        val item = data.item.clone()
+                        data.amount?.let {
+                            item.amount = it.random()
+                        }
+
+                        event.drops.add(item)
                     }
                 }
             }

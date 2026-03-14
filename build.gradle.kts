@@ -109,8 +109,8 @@ val copyJarToServer = tasks.register<Copy>("copyJarToServer") {
 
 // 2. Копирование исходников
 val copySourceToDecomp = tasks.register<Copy>("copySourceToDecomp") {
-    from(project(":core").file("src/main/kotlin/ru"))
-    into(rootProject.file("../jarToTxt/decomp"))
+    from(project(":core").file("src/main/kotlin/ru/hukm"))
+    into(rootProject.file("/home/hukm/pluginLibs"))
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 

@@ -15,7 +15,7 @@ import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
-import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveDropable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveFoundableAndDropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
 import ru.hukm.effectiveSpigot.minecraft.mcv.interfaces.IMcvEffectiveModule
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
@@ -69,7 +69,7 @@ class EffectiveSpigot : JavaPlugin() {
             ConfigModule,
             LanguageModule,
             EffectiveWorld.Companion.EffectiveWorldModule,
-            EffectiveDropable.getModule(),
+            EffectiveFoundableAndDropable.getModule(),
             EffectiveClickable.getModule(),
             EffectiveWearable.getModule(),
             EffectiveEntity.getModule(),

@@ -3,8 +3,6 @@ package ru.hukm.effectiveSpigot.minecraft.items
 import net.md_5.bungee.api.ChatColor
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
-import org.bukkit.entity.EntityType
-import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.loot.LootTables
@@ -107,23 +105,8 @@ abstract class EffectiveItem {
         EffectiveCraftable.addShapelessCraft(createItemStack(), ingredients, EffectiveSpigot.instance, getNamespacedName())
     }
 
-    fun addToLoot(
-        dropChance: (Player?) -> Double,
-        lootTables: List<LootTables>?,
-        blocks: List<Material>?,
-        entities: List<EntityType>?,
-        amount: ((Player?) -> IntRange)? = null
-    ) {
-        EffectiveDropable.addLoot(
-            EffectiveDropable.Data(
-                createItemStack(),
-                dropChance,
-                lootTables,
-                blocks,
-                entities,
-                amount
-            )
-        )
+    fun addToLoot(dropChance: Double, lootTables: List<LootTables>) {
+        EffectiveFoundableAndDropable.addLoot(EffectiveFoundableAndDropable.Data(createItemStack(), dropChance, ArrayList(lootTables)))
     }
 
     fun makeWearable() {
