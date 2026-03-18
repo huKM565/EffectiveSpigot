@@ -90,13 +90,12 @@ interface EffectiveDropable {
 
             for (data in foundableItems) {
                 if (data.blocks != null && data.blocks.contains(block.type)) {
-                    println(2)
                     if (Math.random() <= data.chance.invoke(player)) {
                         val item = data.item.clone()
                         data.amount?.let {
                             item.amount = it.invoke(player).random()
                         }
-                        block.world.dropItemNaturally(block.location, item)
+                        block.world.dropItemNaturally(block.location.add(0.5, 0.5, 0.5), item)
                     }
                 }
             }

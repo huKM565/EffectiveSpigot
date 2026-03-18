@@ -5,6 +5,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.PlayerInventory
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
 object EffectiveInventoryUtils {
@@ -98,18 +99,19 @@ object EffectiveInventoryUtils {
     }
 
     fun removeItems(inventory: Inventory, item: ItemStack, count: Int): RemoveResult {
-        if (!hasItems(inventory, item, count)) return RemoveResult.NOT_ENOUGH
+        val inv = inventory as? PlayerInventory ?: inventory
+        if (!hasItems(inv, item, count)) return RemoveResult.NOT_ENOUGH
 
         var remaining = count
-        for (i in 0 until inventory.size) {
-            val current = inventory.getItem(i) ?: continue
+        for (i in 0 until inv.size) {
+            val current = inv.getItem(i) ?: continue
             if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(current, item)) {
                 val amount = current.amount
                 if (amount > remaining) {
                     current.amount = amount - remaining
                     remaining = 0
                 } else {
-                    inventory.setItem(i, null)
+                    inv.setItem(i, null)
                     remaining -= amount
                 }
             }
