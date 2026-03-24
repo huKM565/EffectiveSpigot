@@ -2,7 +2,6 @@ package ru.hukm.effectiveSpigot
 
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
-import ru.hukm.effectiveSpigot.config.ConfigModule
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
@@ -66,7 +65,6 @@ class EffectiveSpigot : JavaPlugin() {
         }, 0, 1)
 
         val modulesList = listOf<IModule>(
-            ConfigModule,
             LanguageModule,
             EffectiveWorld.Companion.EffectiveWorldModule,
             EffectiveDropable.getModule(),

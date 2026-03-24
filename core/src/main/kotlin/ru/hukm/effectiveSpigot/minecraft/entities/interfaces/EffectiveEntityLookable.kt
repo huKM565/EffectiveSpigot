@@ -80,15 +80,11 @@ interface EffectiveEntityLookable {
                 MAX_LOOK_DISTANCE
             ).forEach {
                 for (data in lookableEntities) {
-                    println("OK3")
                     if (
                         EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(data.entity, it) &&
                         entity.location.distance(it.location) <= data.lookDistance
                     ) {
-                        println(EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(data.entity, it))
-                        println(entity.location.distance(it.location) <= data.lookDistance)
                         if (data.whoToLook(entity)) {
-                            println("OK4")
                             lookAt(it, entity)
                         }
                     }
