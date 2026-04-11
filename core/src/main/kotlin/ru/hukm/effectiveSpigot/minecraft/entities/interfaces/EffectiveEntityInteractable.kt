@@ -84,7 +84,7 @@ interface EffectiveEntityInteractable {
         }
     }
 
-    class Events() : Listener {
+    class Events : Listener {
         @EventHandler
         fun onPlayerInteractWithEntity(event: PlayerInteractAtEntityEvent) {
             if (tryCall(

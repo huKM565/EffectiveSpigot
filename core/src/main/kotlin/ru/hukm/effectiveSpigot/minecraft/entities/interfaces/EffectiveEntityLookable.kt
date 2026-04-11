@@ -93,7 +93,7 @@ interface EffectiveEntityLookable {
         }
     }
 
-    class Events() : Listener {
+    class Events : Listener {
         @EventHandler
         fun onEntityMove(event: EntityMoveEvent) {
             trySetLook(event.entity)

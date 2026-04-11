@@ -3,10 +3,8 @@ package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
-import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
-import org.bukkit.event.inventory.InventoryCreativeEvent
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.inventory.ItemStack
 import ru.hukm.effectiveSpigot.EffectiveSpigot
@@ -70,15 +68,15 @@ interface EffectiveWearable {
                 val cursorItem = event.cursor
                 if (isWearable(cursorItem)) {
                     val currentHelmet = event.currentItem
-                    
+
                     event.currentItem = cursorItem.clone().apply { amount = 1 }
-                    
+
                     if (cursorItem.amount > 1) {
                         cursorItem.amount -= 1
                     } else {
                         event.view.setCursor(null)
                     }
-                    
+
                     if (currentHelmet != null && currentHelmet.type != Material.AIR) {
                         if (cursorItem.amount <= 1) {
                             event.view.setCursor(currentHelmet)

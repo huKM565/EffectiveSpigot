@@ -4,6 +4,7 @@ import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMenuCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
@@ -73,7 +74,7 @@ class EffectiveSpigot : JavaPlugin() {
             EffectiveEntity.getModule(),
             EffectiveEntityInteractable.getModule(),
             EffectiveMenu.getModule(),
-            EffectiveEntityLookable.getModule()
+            EffectiveEntityLookable.getModule(),
         )
 
         modulesList.forEach { it.init() }
