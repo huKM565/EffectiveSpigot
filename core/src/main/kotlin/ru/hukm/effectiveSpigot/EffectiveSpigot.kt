@@ -8,9 +8,11 @@ import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMenuCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
+import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveScreenCommand
 import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveGiveCompleter
 import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveMenuCompleter
 import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveMobCompleter
+import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveScreenCompleter
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
@@ -58,6 +60,10 @@ class EffectiveSpigot : JavaPlugin() {
         getCommand("emenu")!!.let {
             it.setExecutor(EffectiveMenuCommand())
             it.tabCompleter = EffectiveMenuCompleter()
+        }
+        getCommand("escreen")!!.let {
+            it.setExecutor(EffectiveScreenCommand())
+            it.tabCompleter = EffectiveScreenCompleter()
         }
         initMcvModule()
 

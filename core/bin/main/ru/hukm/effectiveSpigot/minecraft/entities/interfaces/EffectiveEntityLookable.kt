@@ -84,8 +84,6 @@ interface EffectiveEntityLookable {
                         EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(data.entity, it) &&
                         entity.location.distance(it.location) <= data.lookDistance
                     ) {
-                        println(EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(data.entity, it))
-                        println(entity.location.distance(it.location) <= data.lookDistance)
                         if (data.whoToLook(entity)) {
                             lookAt(it, entity)
                         }
@@ -95,7 +93,7 @@ interface EffectiveEntityLookable {
         }
     }
 
-    class Events() : Listener {
+    class Events : Listener {
         @EventHandler
         fun onEntityMove(event: EntityMoveEvent) {
             trySetLook(event.entity)

@@ -16,6 +16,20 @@ commands:
     no_permission: "&cYou do not have permission to execute this command!"
     only_players: "&cOnly players can execute this command!"
     menu_not_found: "&cError: menu %s is not found"
+  escreen:
+    usage: "&cUsage: /escreen <selector> <FADE|SHAKE> [intensity] [duration]"
+    no_permission: "&cYou do not have permission to execute this command!"
+    player_not_found: "&cPlayers not found."
+    success_fade: "&aFade effect applied!"
+    success_shake: "&aShake effect applied!"
+    unknown_effect: "&cUnknown effect. Use FADE or SHAKE."
+    usage_shake: "&cUsage: /escreen <selector> SHAKE <intensity> <duration>"
+    completions:
+      fade_in: "<fadeIn>"
+      stay: "<stay>"
+      fade_out: "<fadeOut>"
+      intensity: "<intensity>"
+      duration: "<duration>"
 
 errors:
   items:

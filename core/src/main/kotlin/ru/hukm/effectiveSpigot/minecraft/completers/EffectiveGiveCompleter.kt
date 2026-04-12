@@ -14,7 +14,7 @@ class EffectiveGiveCompleter : TabCompleter {
         command: Command,
         label: String,
         args: Array<out String>
-    ): MutableList<String>? {
+    ): MutableList<String> {
         val lastArg = args.last().lowercase()
         if (args.size == 1) {
             return (listOf("@a", "@p") + Bukkit.getOnlinePlayers().map(Player::getName))

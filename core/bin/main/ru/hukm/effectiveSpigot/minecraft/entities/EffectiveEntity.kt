@@ -7,6 +7,7 @@ import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.entity.EntityRemoveEvent
 import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.event.world.ChunkUnloadEvent
 import org.bukkit.persistence.PersistentDataType
@@ -20,24 +21,14 @@ import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.InteractCallback
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
-import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 import java.util.*
 
 abstract class EffectiveEntity {
-    data class ChunkIdentifier(
-        val worldUID: UUID,
-        val chunkKey: Long
-    )
-
     companion object {
         private val ENTITY_KEY = NamespacedKey(EffectiveSpigot.instance, "entity")
 
         val namespacedKeyToEntity = hashMapOf<String, EffectiveEntity>()
-        val chunkToEntities = hashMapOf<ChunkIdentifier, MutableList<Entity>>()
-        fun cacheEntity(chunkIdentifier: ChunkIdentifier, entity: Entity) {
-            val entities = chunkToEntities.getOrPut(chunkIdentifier) { arrayListOf() }
-            entities.add(entity)
-        }
+        val entities = ArrayList<Entity>()
 
         fun equalByNamespacedKey(entity1: Entity?, entity2: Entity?): Boolean {
             val value1 = getNamespacedKeyByEntity(entity1) ?: return false
@@ -69,6 +60,10 @@ abstract class EffectiveEntity {
             return false
         }
 
+        fun getEntitiesByNamespacedKey(namespacedKey: String): List<Entity> {
+            return entities.filter { getNamespacedKeyByEntity(it) == namespacedKey }
+        }
+
         fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
@@ -79,8 +74,7 @@ abstract class EffectiveEntity {
     }
 
     init {
-        //TODO(Сделать, чтобы нельзя было использовать названия обычных энтити)
-        val namespacedName = getNamespacedName()
+        val namespacedName = getNamespacedKey()
         if (namespacedKeyToEntity.containsKey(namespacedName)) {
             throw IllegalArgumentException(LanguageModule.getMessage("errors.entities.already_registered", namespacedName))
         }
@@ -100,7 +94,7 @@ abstract class EffectiveEntity {
             entity,
             ENTITY_KEY,
             PersistentDataType.STRING,
-            getNamespacedName()
+            getNamespacedKey()
         )
 
         return entity
@@ -108,21 +102,17 @@ abstract class EffectiveEntity {
 
     fun spawnEntity(location: Location): Entity {
         val world = location.world ?: throw IllegalArgumentException("Location world cannot be null")
-
         val entity = createEntity(location)
-
-        val chunk = location.chunk
-        val chunkIdentifier = ChunkIdentifier(
-            world.uid,
-            EffectiveUtils.twoIntToLong(chunk.x, chunk.z)
-        )
-
-        cacheEntity(chunkIdentifier, entity)
+        entities.add(entity)
 
         world.addEntity(entity)
         entity.teleport(location)
 
         return entity
+    }
+
+    fun getEntitiesByNamespacedKey(): List<Entity> {
+        return getEntitiesByNamespacedKey(getNamespacedKey())
     }
 
     fun addInteractHandler(
@@ -153,40 +143,37 @@ abstract class EffectiveEntity {
     abstract fun getEntityType(): EntityType
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
 
-    fun getNamespacedName(): String {
+    fun getNamespacedKey(): String {
         return getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
     }
 
     class Events: Listener {
         @EventHandler
         fun onChunkLoad(event: ChunkLoadEvent) {
-            val chunk = event.chunk
-            val chunkIdentifier = ChunkIdentifier(
-                event.world.uid,
-                EffectiveUtils.twoIntToLong(chunk.x, chunk.z)
-            )
-
-            chunk.entities.forEach {
+            event.chunk.entities.forEach {
                 val key = EffectiveDataContainerUtils.getContainerValue(
                     it,
                     ENTITY_KEY,
                     PersistentDataType.STRING
                 )
                 if (key != null) {
-                    cacheEntity(chunkIdentifier, it)
+                    entities.add(it)
                 }
             }
         }
 
         @EventHandler
         fun onChunkUnload(event: ChunkUnloadEvent) {
-            val chunk = event.chunk
-            val chunkIdentifier = ChunkIdentifier(
-                event.world.uid,
-                EffectiveUtils.twoIntToLong(chunk.x, chunk.z)
-            )
+            event.chunk.entities.forEach { entity ->
+                entities.removeIf { it.uniqueId == entity.uniqueId }
+            }
+        }
 
-            chunkToEntities.remove(chunkIdentifier)
+        @EventHandler
+        fun onEntityDeath(event: EntityRemoveEvent) {
+            if (getNamespacedKeyByEntity(event.entity) != null) {
+                entities.removeIf { event.entity.uniqueId == it.uniqueId}
+            }
         }
     }
 }

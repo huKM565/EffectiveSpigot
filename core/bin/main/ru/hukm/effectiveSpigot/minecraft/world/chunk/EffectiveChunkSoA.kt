@@ -55,7 +55,6 @@ class EffectiveChunkSoA{
                     cachedTypes[materialIndex] = blocksRequireMaterial
                 } else {
                     blocksRequireMaterial.addAll(cachedTypes[materialIndex]!!)
-                    if(blocksRequireMaterial.isNotEmpty()) println(blocksRequireMaterial)
                 }
 
                 allFindBlocks.addAll(blocksRequireMaterial)

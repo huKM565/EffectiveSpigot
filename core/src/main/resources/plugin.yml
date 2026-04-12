@@ -17,3 +17,7 @@ commands:
         description: Command for open a custom menus from plugins
         usage: /<command> <menu_id>
         permission: effectivespigot.command.emenu
+    escreen:
+        description: Command for play screen effects
+        usage: /<command> <selector> <effect> [args...]
+        permission: effectivespigot.command.escreen

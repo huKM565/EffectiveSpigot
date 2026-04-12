@@ -7,7 +7,7 @@ import ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_11.McvModuleV1_21_11
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorldParser
 import kotlin.math.abs
 
-object NmsEffectiveChunkV1_21_11: IMcvEffectiveChunkManager {
+object McvEffectiveChunkV1_21_11: IMcvEffectiveChunkManager {
     override fun getBlocks(chunkX: Int, chunkZ: Int, world: String): ShortArray {
         val mcvWorld = (EffectiveWorldParser.stringToWorld(world) as CraftWorld).handle
         val mcvChunk = mcvWorld.getChunk(chunkX, chunkZ)

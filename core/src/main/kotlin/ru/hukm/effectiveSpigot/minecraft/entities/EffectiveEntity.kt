@@ -60,8 +60,8 @@ abstract class EffectiveEntity {
             return false
         }
 
-        fun getEntitiesByNamespacedKey(namespacedKey: String) {
-            entities.filter { getNamespacedKeyByEntity(it) == namespacedKey }
+        fun getEntitiesByNamespacedKey(namespacedKey: String): List<Entity> {
+            return entities.filter { getNamespacedKeyByEntity(it) == namespacedKey }
         }
 
         fun getModule(): IModule {
@@ -111,7 +111,7 @@ abstract class EffectiveEntity {
         return entity
     }
 
-    fun getEntitiesByNamespacedKey() {
+    fun getEntitiesByNamespacedKey(): List<Entity> {
         return getEntitiesByNamespacedKey(getNamespacedKey())
     }
 

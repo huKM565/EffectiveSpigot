@@ -2,6 +2,7 @@ package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
 import org.bukkit.Material
 import org.bukkit.block.Block
+import org.bukkit.block.BlockFace
 import org.bukkit.block.Container
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
@@ -42,6 +43,7 @@ interface EffectiveClickable {
         override val click: Click,
         override val hand: EquipmentSlot,
         val clickedBlock: Block?,
+        val blockFace: BlockFace?,
         val clickedEntity: Entity?,
     ) : EffectiveAbstractInteract.EventsCallOptions<EffectiveAbstractInteract.Target.Item> {
         val item = target.itemStack
@@ -116,6 +118,7 @@ interface EffectiveClickable {
                     click,
                     event.hand ?: EquipmentSlot.HAND,
                     event.clickedBlock,
+                    event.blockFace,
                     null)
             )) {
                 event.isCancelled = true
@@ -133,6 +136,7 @@ interface EffectiveClickable {
                     ),
                     Click.RIGHT,
                     event.hand,
+                    null,
                     null,
                     event.rightClicked)
             )) {
@@ -153,6 +157,7 @@ interface EffectiveClickable {
                         ),
                         Click.LEFT,
                         EquipmentSlot.HAND,
+                        null,
                         null,
                         event.entity
                 ))) {

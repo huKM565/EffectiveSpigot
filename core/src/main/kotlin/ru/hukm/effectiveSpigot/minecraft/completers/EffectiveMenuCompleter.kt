@@ -11,7 +11,7 @@ class EffectiveMenuCompleter : TabCompleter {
         command: Command,
         label: String,
         args: Array<out String>
-    ): MutableList<String>? {
+    ): MutableList<String> {
         if (args.size == 1) {
             val lastArg = args.last().lowercase()
             return EffectiveMenu.namespacedNameToMenu.keys

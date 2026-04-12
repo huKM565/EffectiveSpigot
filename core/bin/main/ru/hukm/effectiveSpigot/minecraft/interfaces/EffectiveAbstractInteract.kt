@@ -1,7 +1,9 @@
 package ru.hukm.effectiveSpigot.minecraft.interfaces
 
 import net.md_5.bungee.api.ChatColor
+import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
@@ -24,6 +26,7 @@ interface EffectiveAbstractInteract {
     sealed class Target {
         data class Item(val itemStack: ItemStack) : Target()
         data class Entity(val entity: org.bukkit.entity.Entity) : Target()
+        data class Block(val material: Material, val block: org.bukkit.block.Block?, val itemDisplay: ItemDisplay?) : Target()
     }
 
     interface EventsCallOptions<out T : Target> {
@@ -56,6 +59,7 @@ interface EffectiveAbstractInteract {
             val instanceNamespacedKeyOrName = when (target) {
                 is Target.Item -> EffectiveItem.getNamespacedKeyByItem(target.itemStack)
                 is Target.Entity -> EffectiveEntity.getNamespacedKeyByEntity(target.entity)
+                is Target.Block -> EffectiveEntity.getNamespacedKeyByEntity(target.itemDisplay)
             }!!
 
             if (data.cooldownData == null || data.cooldownData!!.cooldownToUseInTicks <= 0) return data.callback(eventsCallOptions)
@@ -76,20 +80,34 @@ interface EffectiveAbstractInteract {
                     PersistentDataType.LONG
                 )
             } else  {
-                if (target is Target.Item) {
-                    EffectiveDataContainerUtils.getContainerValue(
-                        target.itemStack,
-                        COOLDOWN_KEY,
-                        PersistentDataType.LONG
-                    )
-                } else if (target is Target.Entity) {
-                    EffectiveDataContainerUtils.getContainerValue(
-                        target.entity,
-                        COOLDOWN_KEY,
-                        PersistentDataType.LONG
-                    )
+                if (target is Target.Block && target.itemDisplay == null) {
+                    0L
                 } else {
-                    null
+                    when (target) {
+                        is Target.Item -> {
+                            EffectiveDataContainerUtils.getContainerValue(
+                                target.itemStack,
+                                COOLDOWN_KEY,
+                                PersistentDataType.LONG
+                            )
+                        }
+
+                        is Target.Entity -> {
+                            EffectiveDataContainerUtils.getContainerValue(
+                                target.entity,
+                                COOLDOWN_KEY,
+                                PersistentDataType.LONG
+                            )
+                        }
+
+                        is Target.Block -> {
+                            EffectiveDataContainerUtils.getContainerValue(
+                                target.itemDisplay!!,
+                                COOLDOWN_KEY,
+                                PersistentDataType.LONG
+                            )
+                        }
+                    }
                 }
             }
 
@@ -111,38 +129,59 @@ interface EffectiveAbstractInteract {
 
             return data.callback(eventsCallOptions).also { result ->
                 if (result != Result.CANCEL_EVENT) return result
+                if (eventsCallOptions.target is Target.Block) {
+                    val target = eventsCallOptions.target as Target.Block
+                    if (target.itemDisplay == null) return result
+                }
 
-                if (data.cooldownData!!.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
-                    EffectiveDataContainerUtils.setContainer(
-                        eventsCallOptions.player,
-                        COOLDOWN_KEY
-                    ) {
-                        EffectiveDataContainerUtils.setContainerValue(
-                            it,
-                            NamespacedKey(
-                                EffectiveSpigot.instance, instanceNamespacedKeyOrName),
-                            PersistentDataType.LONG,
-                            System.currentTimeMillis()
-                        )
-                    }
-                } else if (data.cooldownData!!.cooldownType == CooldownType.ON_THIS_INSTANCE) {
-                    setLatestTimeUsed(data.target)
-                } else if (data.cooldownData!!.cooldownType == CooldownType.ON_ALL_INSTANCES) {
-                    if (target is Target.Item) {
-                        eventsCallOptions.player.inventory.forEach {
-                            if (it != null && EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it, target.itemStack)) {
-                                setLatestTimeUsed(it)
-                            }
+                when (data.cooldownData!!.cooldownType) {
+                    CooldownType.ON_CURRENT_PLAYER -> {
+                        EffectiveDataContainerUtils.setContainer(
+                            eventsCallOptions.player,
+                            COOLDOWN_KEY
+                        ) {
+                            EffectiveDataContainerUtils.setContainerValue(
+                                it,
+                                NamespacedKey(
+                                    EffectiveSpigot.instance, instanceNamespacedKeyOrName
+                                ),
+                                PersistentDataType.LONG,
+                                System.currentTimeMillis()
+                            )
                         }
-                    } else if (target is Target.Entity) {
-                        EffectiveEntity.chunkToEntities.values.forEach {
-                            for (entity in it) {
-                                if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(entity, target.entity)){
-                                    setLatestTimeUsed(entity)
+                    }
+                    CooldownType.ON_THIS_INSTANCE -> {
+                        setLatestTimeUsed(data.target)
+                    }
+                    CooldownType.ON_ALL_INSTANCES -> {
+                        when (target) {
+                            is Target.Item -> {
+                                eventsCallOptions.player.inventory.forEach {
+                                    if (it != null && EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it, target.itemStack)) {
+                                        setLatestTimeUsed(it)
+                                    }
+                                }
+                            }
+
+                            is Target.Entity -> {
+                                EffectiveEntity.entities.forEach {
+                                    if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.entity)) {
+                                        setLatestTimeUsed(it)
+                                    }
+                                }
+                            }
+
+                            is Target.Block -> {
+                                EffectiveEntity.entities.forEach {
+                                    if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.itemDisplay)) {
+                                        setLatestTimeUsed(it)
+                                    }
                                 }
                             }
                         }
                     }
+
+                    else -> {}
                 }
             }
         }
@@ -151,6 +190,7 @@ interface EffectiveAbstractInteract {
             val obj = when (target) {
                 is Target.Item -> target.itemStack
                 is Target.Entity -> target.entity
+                is Target.Block -> target.itemDisplay
                 else -> target
             }
 
