@@ -6,10 +6,10 @@ import org.bukkit.entity.Player
 abstract class EffectiveZone {
     abstract class TriggerData {
         abstract fun getName(): String
-        abstract fun getCallback(): Player
+        abstract fun getCallback(): (Player, ActivationType) -> Unit
     }
 
     abstract fun getTriggerData(): TriggerData
 
-    fun registerZoneFromSelection()
+    fun registerSelection()
 }
