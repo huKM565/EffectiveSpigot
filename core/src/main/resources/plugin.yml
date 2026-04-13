@@ -21,3 +21,7 @@ commands:
         description: Command for play screen effects
         usage: /<command> <selector> <effect> [args...]
         permission: effectivespigot.command.escreen
+    ezone:
+        description: Command for manage zones
+        usage: /<command> <list|create>
+        permission: effectivespigot.command.ezone

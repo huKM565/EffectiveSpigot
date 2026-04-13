@@ -31,6 +31,12 @@ commands:
       intensity: "<интенсивность>"
       duration: "<длительность>"
 
+items:
+  zone_selector:
+    name: "&6Селектор зоны"
+    pos1: "&dПервая позиция установлена на %d, %d, %d"
+    pos2: "&dВторая позиция установлена на %d, %d, %d"
+
 errors:
   items:
     already_registered: "Предмет с ключом '%s' уже зарегистрирован"

@@ -31,6 +31,12 @@ commands:
       intensity: "<intensity>"
       duration: "<duration>"
 
+items:
+  zone_selector:
+    name: "&6Zone Selector"
+    pos1: "&dFirst position set to %d, %d, %d"
+    pos2: "&dSecond position set to %d, %d, %d"
+
 errors:
   items:
     already_registered: "Item with namespaced name '%s' is already registered"
