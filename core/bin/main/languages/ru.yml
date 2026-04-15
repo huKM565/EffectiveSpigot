@@ -16,6 +16,26 @@ commands:
     no_permission: "&cУ вас недостаточно прав на выполнение этой команды!"
     only_players: "&cЭту команду могут выполнять только игроки!"
     menu_not_found: "&cОшибка: меню %s не найдено"
+  escreen:
+    usage: "&cИспользование: /escreen <селектор> <FADE|SHAKE> [интенсивность] [длительность]"
+    no_permission: "&cУ вас недостаточно прав на выполнение этой команды!"
+    player_not_found: "&cИгроки не найдены."
+    success_fade: "&aЭффект затухания применен!"
+    success_shake: "&aЭффект тряски применен!"
+    unknown_effect: "&cНеизвестный эффект. Используйте FADE или SHAKE."
+    usage_shake: "&cИспользование: /escreen <селектор> SHAKE <интенсивность> <длительность>"
+    completions:
+      fade_in: "<появление>"
+      stay: "<статика>"
+      fade_out: "<затухание>"
+      intensity: "<интенсивность>"
+      duration: "<длительность>"
+
+items:
+  zone_selector:
+    name: "&6Селектор зоны"
+    pos1: "&dПервая позиция установлена на %d, %d, %d"
+    pos2: "&dВторая позиция установлена на %d, %d, %d"
 
 errors:
   items:

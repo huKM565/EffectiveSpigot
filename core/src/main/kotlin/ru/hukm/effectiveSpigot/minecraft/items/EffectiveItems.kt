@@ -36,9 +36,10 @@ enum class EffectiveItems(val item: EffectiveItem) {
         ): EffectiveAbstractInteract.Result {
             val block = options.clickedBlock ?: return EffectiveAbstractInteract.Result.ALLOW_EVENT
             val loc = block.location
+
             val pos = EffectiveBlockPos(loc.blockX, loc.blockY, loc.blockZ)
             val uuid = options.player.uniqueId
-            EffectiveZoneSelection.setSelection(uuid, pos, posNum)
+            EffectiveZoneSelection.setSelection(uuid, pos, posNum, loc.world.uid)
             options.player.sendMessage(LanguageModule.getMessage("items.zone_selector.pos$posNum", loc.blockX, loc.blockY, loc.blockZ))
             return EffectiveAbstractInteract.Result.CANCEL_EVENT
         }

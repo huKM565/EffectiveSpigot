@@ -30,6 +30,14 @@ commands:
       fade_out: "<затухание>"
       intensity: "<интенсивность>"
       duration: "<длительность>"
+  ezone:
+    usage: "&cИспользование: /ezone <list|create> [тип_зоны]"
+    no_permission: "&cУ вас недостаточно прав на выполнение этой команды!"
+    create_usage: "&cИспользование: /ezone create <тип_зоны>"
+    available_zones: "&eДоступные типы зон:"
+    create_success: "&aСоздание зоны типа: %s (заглушка)"
+    no_selection: "&cИспользуйте селектор зоны для выбора области перед созданием зоны!"
+    not_player: "&cТолько игроки могут выполнять эту команду!"
 
 items:
   zone_selector:

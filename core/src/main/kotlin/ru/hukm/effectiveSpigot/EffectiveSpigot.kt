@@ -26,6 +26,7 @@ import ru.hukm.effectiveSpigot.minecraft.mcv.interfaces.IMcvEffectiveModule
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
 import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
+import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
 
 class EffectiveSpigot : JavaPlugin() {
     companion object{
@@ -89,6 +90,7 @@ class EffectiveSpigot : JavaPlugin() {
             EffectiveEntityInteractable.getModule(),
             EffectiveMenu.getModule(),
             EffectiveEntityLookable.getModule(),
+            EffectiveZone.getModule()
         )
 
         EffectiveItems.ZONE_SELECTOR

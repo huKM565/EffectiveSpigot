@@ -30,6 +30,14 @@ commands:
       fade_out: "<fadeOut>"
       intensity: "<intensity>"
       duration: "<duration>"
+  ezone:
+    usage: "&cUsage: /ezone <list|create> [zone_type]"
+    no_permission: "&cYou do not have permission to execute this command!"
+    create_usage: "&cUsage: /ezone create <zone_type>"
+    available_zones: "&eAvailable zone types:"
+    no_selection: "&cUse zone selector to select an area before creating a zone!"
+    not_player: "&cOnly players can execute this command!"
+    create_success: "&aCreating zone type: %s (stub)"
 
 items:
   zone_selector:

@@ -8,12 +8,17 @@ import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMenuCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
+import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveScreenCommand
+import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveZoneCommand
 import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveGiveCompleter
 import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveMenuCompleter
 import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveMobCompleter
+import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveScreenCompleter
+import ru.hukm.effectiveSpigot.minecraft.completers.EffectiveZoneCompleter
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
+import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItems
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveDropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
@@ -59,6 +64,15 @@ class EffectiveSpigot : JavaPlugin() {
             it.setExecutor(EffectiveMenuCommand())
             it.tabCompleter = EffectiveMenuCompleter()
         }
+        getCommand("escreen")!!.let {
+            it.setExecutor(EffectiveScreenCommand())
+            it.tabCompleter = EffectiveScreenCompleter()
+        }
+        getCommand("ezone")!!.let {
+            it.setExecutor(EffectiveZoneCommand())
+            it.tabCompleter = EffectiveZoneCompleter()
+        }
+
         initMcvModule()
 
         Bukkit.getScheduler().runTaskTimer(this, Runnable {
@@ -76,6 +90,8 @@ class EffectiveSpigot : JavaPlugin() {
             EffectiveMenu.getModule(),
             EffectiveEntityLookable.getModule(),
         )
+
+        EffectiveItems.ZONE_SELECTOR
 
         modulesList.forEach { it.init() }
 

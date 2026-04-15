@@ -7,7 +7,7 @@ import kotlin.math.pow
 import kotlin.random.Random
 
 object EffectiveScreenEffects {
-    const val FADE_SCREEN_SYMBOL = ' '
+    const val FADE_SCREEN_SYMBOL = '\ueff3'
 
     enum class ShakeType {
         LINEAR,
@@ -33,15 +33,29 @@ object EffectiveScreenEffects {
     }
 
     fun runCameraFade(player: Player, fadeIn: Int, stay: Int, fadeOut: Int) {
-        player.sendTitle(FADE_SCREEN_SYMBOL.toString(), null, fadeIn, stay, fadeOut)
+        runCameraFade(player, fadeIn, stay, fadeOut, null)
+    }
+
+    fun runCameraFade(player: Player, fadeIn: Int, stay: Int, fadeOut: Int, fullCameraFadeRunnable: Runnable?) {
+        player.sendTitle(FADE_SCREEN_SYMBOL.toString(), "", fadeIn, stay, fadeOut)
+        if (fullCameraFadeRunnable != null) {
+            object : BukkitRunnable() {
+                override fun run() {
+                    fullCameraFadeRunnable.run()
+                }
+            }.runTaskLater(EffectiveSpigot.instance, (stay / 2).toLong())
+        }
     }
 
     fun runCameraShake(player: Player, intensity: Float, duration: Int, type: ShakeType) {
         object : BukkitRunnable() {
             var elapsed: Int = 0
+            var lastYawOffset: Float = 0f
+            var lastPitchOffset: Float = 0f
 
             override fun run() {
                 if (elapsed >= duration || !player.isOnline()) {
+                    EffectiveSpigot.mcvModule.sendRelativeLook(player, -lastYawOffset, -lastPitchOffset)
                     this.cancel()
                     return
                 }
@@ -49,13 +63,16 @@ object EffectiveScreenEffects {
                 val progress: Double = 1.0 - (elapsed.toDouble() / duration)
                 val currentIntensity: Double = intensity * type.getMultiplier(progress)
 
-                val yawOffset: Float = (Random.nextFloat() * 2 - 1) * currentIntensity.toFloat()
-                val pitchOffset: Float = (Random.nextFloat() * 2 - 1) * currentIntensity.toFloat()
+                val newYawOffset: Float = (Random.nextFloat() * 2 - 1) * currentIntensity.toFloat()
+                val newPitchOffset: Float = (Random.nextFloat() * 2 - 1) * currentIntensity.toFloat()
 
-                val location = player.location
+                val deltaYaw = newYawOffset - lastYawOffset
+                val deltaPitch = newPitchOffset - lastPitchOffset
 
-                player.setRotation(location.yaw + yawOffset, location.pitch + pitchOffset)
+                EffectiveSpigot.mcvModule.sendRelativeLook(player, deltaYaw, deltaPitch)
 
+                lastYawOffset = newYawOffset
+                lastPitchOffset = newPitchOffset
                 elapsed++
             }
         }.runTaskTimer(EffectiveSpigot.instance, 0L, 1L)

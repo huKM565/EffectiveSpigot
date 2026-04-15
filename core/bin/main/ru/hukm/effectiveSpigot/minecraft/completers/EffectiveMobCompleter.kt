@@ -11,7 +11,7 @@ class EffectiveMobCompleter : TabCompleter {
         command: Command,
         label: String,
         args: Array<out String>
-    ): MutableList<String>? {
+    ): MutableList<String> {
         val lastArg = args.last().lowercase()
         if (args.size == 1) {
             return EffectiveEntity.namespacedKeyToEntity.keys
