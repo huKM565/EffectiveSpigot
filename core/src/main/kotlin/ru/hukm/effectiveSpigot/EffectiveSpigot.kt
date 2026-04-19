@@ -27,6 +27,7 @@ import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
 import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
+import ru.hukm.effectiveSpigot.minecraft.zone.TestZone
 
 class EffectiveSpigot : JavaPlugin() {
     companion object{
@@ -94,6 +95,8 @@ class EffectiveSpigot : JavaPlugin() {
         )
 
         EffectiveItems.ZONE_SELECTOR
+
+        TestZone.getTriggerData()
 
         modulesList.forEach { it.init() }
 

@@ -28,7 +28,7 @@ abstract class EffectiveEntity {
         private val ENTITY_KEY = NamespacedKey(EffectiveSpigot.instance, "entity")
 
         val namespacedKeyToEntity = hashMapOf<String, EffectiveEntity>()
-        val entities = ArrayList<Entity>()
+        val uuidToEntities = HashMap<UUID, Entity>()
 
         fun equalByNamespacedKey(entity1: Entity?, entity2: Entity?): Boolean {
             val value1 = getNamespacedKeyByEntity(entity1) ?: return false
@@ -61,7 +61,7 @@ abstract class EffectiveEntity {
         }
 
         fun getEntitiesByNamespacedKey(namespacedKey: String): List<Entity> {
-            return entities.filter { getNamespacedKeyByEntity(it) == namespacedKey }
+            return uuidToEntities.values.filter { getNamespacedKeyByEntity(it) == namespacedKey }
         }
 
         fun getModule(): IModule {
@@ -103,7 +103,7 @@ abstract class EffectiveEntity {
     fun spawnEntity(location: Location): Entity {
         val world = location.world ?: throw IllegalArgumentException("Location world cannot be null")
         val entity = createEntity(location)
-        entities.add(entity)
+        uuidToEntities[entity.uniqueId] = entity
 
         world.addEntity(entity)
         entity.teleport(location)
@@ -151,29 +151,27 @@ abstract class EffectiveEntity {
         @EventHandler
         fun onChunkLoad(event: ChunkLoadEvent) {
             event.chunk.entities.forEach {
-                val key = EffectiveDataContainerUtils.getContainerValue(
-                    it,
-                    ENTITY_KEY,
-                    PersistentDataType.STRING
-                )
-                if (key != null) {
-                    entities.add(it)
+                if (getNamespacedKeyByEntity(it) != null && uuidToEntities[it.uniqueId] == null) {
+                    uuidToEntities[it.uniqueId] = it
+                }
+            }
+        }
+
+        //TODO(Срабатывание load и unload при взаимодествии с кастомным мобом, который на самом деле уже не был в загруженном чанке, если юзаеться таймер)
+
+        @EventHandler
+        fun onChunkUnload(event: ChunkUnloadEvent) {
+            event.chunk.entities.forEach {
+                if (getNamespacedKeyByEntity(it) != null) {
+                    uuidToEntities.remove(it.uniqueId)
                 }
             }
         }
 
         @EventHandler
-        fun onChunkUnload(event: ChunkUnloadEvent) {
-            event.chunk.entities.forEach { entity ->
-                entities.removeIf { it.uniqueId == entity.uniqueId }
-            }
-        }
-
-        @EventHandler
         fun onEntityDeath(event: EntityRemoveEvent) {
-            if (getNamespacedKeyByEntity(event.entity) != null) {
-                entities.removeIf { event.entity.uniqueId == it.uniqueId}
-            }
+            if (getNamespacedKeyByEntity(event.entity) == null) return
+            uuidToEntities.remove(event.entity.uniqueId)
         }
     }
 }

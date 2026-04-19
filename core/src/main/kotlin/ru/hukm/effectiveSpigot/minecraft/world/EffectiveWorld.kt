@@ -13,6 +13,8 @@ import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA.Effective
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlock
 
 class EffectiveWorld private constructor(val name: String) {
+    data class BlockData(val x: Int, val y: Int, val z: Int, val material: Material)
+
     val effectiveChunkSoA = EffectiveChunkSoA()
 
     companion object {
@@ -67,6 +69,22 @@ class EffectiveWorld private constructor(val name: String) {
         fun setAir(block: Block) {
             getOrCreateInstance(block.world).setAir(block)
         }
+
+        fun updateBlock(world: World, x: Int, y: Int, z: Int, material: Material) {
+            getOrCreateInstance(world).updateBlock(x, y, z, material)
+        }
+
+        fun updateBlock(worldName: String, x: Int, y: Int, z: Int, material: Material) {
+            getOrCreateInstance(worldName).updateBlock(x, y, z, material)
+        }
+
+        fun updateBlocks(world: World, blocks: List<BlockData>) {
+            getOrCreateInstance(world).updateBlocks(blocks)
+        }
+
+        fun updateBlocks(worldName: String, blocks: List<BlockData>) {
+            getOrCreateInstance(worldName).updateBlocks(blocks)
+        }
     }
 
     fun findBlocksByMaterial(material: Material): ArrayList<EffectiveBlock> {
@@ -114,7 +132,7 @@ class EffectiveWorld private constructor(val name: String) {
     }
 
     private fun updateBlock(chunkX: Int, chunkZ: Int, x: Int, y: Int, z: Int, material: Material) {
-        findChunkOrLoad(chunkX, chunkZ,).updateBlock(x, y, z, material, effectiveChunkSoA)
+        findChunkOrLoad(chunkX, chunkZ)?.updateBlock(x, y, z, material, effectiveChunkSoA)
     }
 
     fun setAirs(blocks: List<Block>) {
@@ -122,15 +140,53 @@ class EffectiveWorld private constructor(val name: String) {
     }
 
     fun setAir(block: Block) {
-        findChunkOrLoad(block).setAir(block.x % 16, block.y, block.z % 16, effectiveChunkSoA)
+        findChunkOrLoad(block)?.setAir(block.x % 16, block.y, block.z % 16, effectiveChunkSoA)
     }
 
-    private fun findChunkOrLoad(block: Block): EffectiveChunkCursor {
+    fun updateBlock(x: Int, y: Int, z: Int, material: Material) {
+        val chunkX = x shr 4
+        val chunkZ = z shr 4
+        val blockX = x and 15
+        val blockZ = z and 15
+        
+        updateBlock(chunkX, chunkZ, blockX, y, blockZ, material)
+    }
+
+    @JvmName("updateBlocksData")
+    fun updateBlocks(blocks: List<BlockData>) {
+        val blocksByChunk = blocks.groupBy { block ->
+            Pair(block.x shr 4, block.z shr 4)
+        }
+        
+        blocksByChunk.forEach { (chunkCoords, chunkBlocks) ->
+            val cursor = findChunkOrLoad(chunkCoords.first, chunkCoords.second)
+            cursor?.let { chunkCursor ->
+                chunkBlocks.forEach { blockData ->
+                    chunkCursor.updateBlock(
+                        blockData.x and 15,
+                        blockData.y,
+                        blockData.z and 15,
+                        blockData.material,
+                        effectiveChunkSoA
+                    )
+                }
+            }
+        }
+    }
+
+    private fun findChunkOrLoad(block: Block): EffectiveChunkCursor? {
         return findChunkOrLoad(block.chunk.x, block.chunk.z)
     }
 
-    private fun findChunkOrLoad(chunkX: Int, chunkZ: Int): EffectiveChunkCursor {
-        return effectiveChunkSoA.find(chunkX, chunkZ)!!
+    private fun findChunkOrLoad(chunkX: Int, chunkZ: Int): EffectiveChunkCursor? {
+        val cursor = effectiveChunkSoA.find(chunkX, chunkZ)
+        if (cursor == null) {
+            EffectiveSpigot.instance.logger.warning(
+                "Попытка обновить блок в незагруженном чанке: [$chunkX, $chunkZ] в мире $name"
+            )
+            return null
+        }
+        return cursor
     }
 
     override fun equals(other: Any?): Boolean {

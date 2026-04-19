@@ -30,7 +30,7 @@ object EffectiveZoneSelection {
         if (updated.first != null && updated.second != null) {
             EffectiveZoneRenderer.startRendering({
                 val selection = playerToSelectedCoords[uuid]
-                selection?.let { it.first to it.second }
+                selection
             }, false)
         }
         return updated

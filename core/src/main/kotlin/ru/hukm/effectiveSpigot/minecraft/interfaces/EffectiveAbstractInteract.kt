@@ -164,7 +164,7 @@ interface EffectiveAbstractInteract {
                             }
 
                             is Target.Entity -> {
-                                EffectiveEntity.entities.forEach {
+                                EffectiveEntity.uuidToEntities.values.forEach {
                                     if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.entity)) {
                                         setLatestTimeUsed(it)
                                     }
@@ -172,7 +172,7 @@ interface EffectiveAbstractInteract {
                             }
 
                             is Target.Block -> {
-                                EffectiveEntity.entities.forEach {
+                                EffectiveEntity.uuidToEntities.values.forEach {
                                     if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.itemDisplay)) {
                                         setLatestTimeUsed(it)
                                     }

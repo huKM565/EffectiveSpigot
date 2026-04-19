@@ -21,7 +21,7 @@ import java.util.UUID
 object EffectiveZoneRenderer {
     private val activeTasks = hashMapOf<UUID, BukkitTask>()
 
-    fun startRendering(selection: () -> Pair<EffectiveBlockPos?, EffectiveBlockPos?>?, isRegistered: Boolean = true) {
+    fun startRendering(selection: () -> Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, isRegistered: Boolean = true) {
         val dustOptions = DustOptions(if (!isRegistered) Color.fromRGB(102, 178, 255) else Color.fromRGB(255, 255, 0), 1.0f)
 
         val taskId = object : BukkitRunnable() {
@@ -33,16 +33,23 @@ object EffectiveZoneRenderer {
 
                 val pos1 = selection.first
                 val pos2 = selection.second
+                val worldUUID = selection.third
 
                 if (pos1 == null || pos2 == null) {
                     cancel()
                     return
                 }
 
-                val players = Bukkit.getOnlinePlayers().filter {
+                val world = Bukkit.getWorld(worldUUID) ?: run {
+                    cancel()
+                    return
+                }
+
+                val players = Bukkit.getOnlinePlayers().filter { player ->
                     EffectiveItem.getNamespacedKeyByItem(
-                        EffectiveInventoryUtils.getUsedItemFromHands(it)
-                    ) == EffectiveItems.ZONE_SELECTOR.item.getNamespacedName()
+                        EffectiveInventoryUtils.getUsedItemFromHands(player)
+                    ) == EffectiveItems.ZONE_SELECTOR.item.getNamespacedName() &&
+                    player.world.uid == worldUUID
                 }
 
                 if (players.isNotEmpty()) renderZone(players, pos1, pos2, dustOptions)

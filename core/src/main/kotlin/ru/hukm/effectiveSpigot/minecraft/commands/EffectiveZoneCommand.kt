@@ -26,7 +26,7 @@ class EffectiveZoneCommand : CommandExecutor {
                     sender.sendMessage(it.getNamespacedName())
                     for (zoneBox in it.zoneBoxes) {
                         sender.sendMessage(" - id: ${zoneBox.id}")
-                        sender.sendMessage(" ${zoneBox.firstPos.x} ${zoneBox.firstPos.y} ${zoneBox.firstPos.z} - ${zoneBox.secondPos.x} ${zoneBox.secondPos.y} ${zoneBox.secondPos.z}")
+                        sender.sendMessage("  ${zoneBox.firstPos.x} ${zoneBox.firstPos.y} ${zoneBox.firstPos.z} - ${zoneBox.secondPos.x} ${zoneBox.secondPos.y} ${zoneBox.secondPos.z}")
                     }
                 }
             }
@@ -54,6 +54,7 @@ class EffectiveZoneCommand : CommandExecutor {
                     val firstPos = selection.first!!
                     val secondPos = selection.second!!
 
+                    EffectiveZoneSelection.playerToSelectedCoords.remove(sender.uniqueId)
                     EffectiveZone.registerSelection(Triple(firstPos, secondPos, selection.third), zoneType)
 
                     sender.sendMessage(LanguageModule.getMessage("commands.ezone.create_success", zoneType))

@@ -1,11 +1,13 @@
 package ru.hukm.effectiveSpigot.minecraft.zone
 
+import io.papermc.paper.event.entity.EntityMoveEvent
 import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.NamespacedKey
-import org.bukkit.entity.Entity
-import org.bukkit.entity.Player
+import org.bukkit.entity.LivingEntity
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.server.ServerLoadEvent
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
@@ -14,6 +16,7 @@ import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
+import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZoneSelection.playerToSelectedCoords
 import java.util.UUID
 
 abstract class EffectiveZone {
@@ -29,6 +32,23 @@ abstract class EffectiveZone {
         val secondPos: EffectiveBlockPos,
         val worldUUID: UUID
     ) {
+        fun isInside(location: Location): Boolean {
+            if (location.world?.uid != worldUUID) {
+                return false
+            }
+
+            val minX = kotlin.math.min(firstPos.x, secondPos.x)
+            val maxX = kotlin.math.max(firstPos.x, secondPos.x)
+            val minY = kotlin.math.min(firstPos.y, secondPos.y)
+            val maxY = kotlin.math.max(firstPos.y, secondPos.y)
+            val minZ = kotlin.math.min(firstPos.z, secondPos.z)
+            val maxZ = kotlin.math.max(firstPos.z, secondPos.z)
+
+            return location.blockX >= minX && location.blockX <= maxX &&
+                   location.blockY >= minY && location.blockY <= maxY &&
+                   location.blockZ >= minZ && location.blockZ <= maxZ
+        }
+        
         fun serialize(): String {
             return "${id};${firstPos.serialize()};${secondPos.serialize()}"
         }
@@ -47,8 +67,8 @@ abstract class EffectiveZone {
     }
 
     abstract class TriggerData {
-        abstract fun getEntityTypesForActivationType(): List<Entity>
-        abstract fun trigger(player: Player, activationType: ActivationType)
+        abstract fun getEntityTypesForActivationType(): List<Class<out LivingEntity>>
+        abstract fun trigger(livingEntity: LivingEntity, zoneBox: ZoneBox, activationType: ActivationType)
     }
 
     companion object {
@@ -86,9 +106,36 @@ abstract class EffectiveZone {
             )
 
             zone.saveBoxInMemory(zoneBox)
-            zone.zoneBoxes.add(zoneBox)
+            EffectiveZoneRenderer.startRendering({
+                selection
+            })
 
             return zoneBox
+        }
+
+        fun tryTrigger(entity: LivingEntity, from: Location, to: Location) {
+            for (zone in namespacedKeyToZone.values) {
+                val allowedTypes = zone.getTriggerData().getEntityTypesForActivationType()
+                val entityClass = entity::class.java
+
+                if (allowedTypes.any { it.isAssignableFrom(entityClass) }) {
+                    for (zoneBox in zone.zoneBoxes) {
+                        val fromIsInside = zoneBox.isInside(from)
+                        val toIsInside = zoneBox.isInside(to)
+
+                        val activationType = when {
+                            !fromIsInside && toIsInside -> ActivationType.ENTER
+                            fromIsInside && !toIsInside -> ActivationType.EXIT
+                            fromIsInside && toIsInside  -> ActivationType.INSIDE
+                            else -> null
+                        }
+
+                        if (activationType != null) {
+                            zone.getTriggerData().trigger(entity, zoneBox, activationType)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -151,8 +198,8 @@ abstract class EffectiveZone {
                 val de = ZoneBox.deserialize(boxData, world.uid)
                 allBoxes.add(de)
                 EffectiveZoneRenderer.startRendering({
-                    val zoneBox = allBoxes.find { it.id == de.id }
-                    zoneBox?.firstPos to zoneBox?.secondPos
+                    val zoneBox = allBoxes.find { it.id == de.id } ?: return@startRendering null
+                    Triple(zoneBox.firstPos, zoneBox.secondPos, zoneBox.worldUUID)
                 })
             }
         }
@@ -166,6 +213,16 @@ abstract class EffectiveZone {
             namespacedKeyToZone.values.forEach {
                 it.loadBoxesFromMemory()
             }
+        }
+
+        @EventHandler
+        fun onPlayerMove(event: PlayerMoveEvent) {
+            tryTrigger(event.player, event.from, event.to)
+        }
+
+        @EventHandler
+        fun onEntityMove(event: EntityMoveEvent) {
+            tryTrigger(event.entity, event.from, event.to)
         }
     }
 }
