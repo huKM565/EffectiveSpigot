@@ -28,10 +28,7 @@ object EffectiveZoneSelection {
         playerToSelectedCoords[uuid] = Triple(updated.first, updated.second, worldUUID)
         
         if (updated.first != null && updated.second != null) {
-            EffectiveZoneRenderer.startRendering({
-                val selection = playerToSelectedCoords[uuid]
-                selection
-            }, false)
+            EffectiveZoneRenderer.startRendering(playerToSelectedCoords[uuid], uuid, false)
         }
         return updated
     }

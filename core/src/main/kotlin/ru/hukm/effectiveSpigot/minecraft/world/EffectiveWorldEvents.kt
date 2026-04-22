@@ -9,6 +9,7 @@ import org.bukkit.event.block.*
 import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.event.world.ChunkUnloadEvent
 import ru.hukm.effectiveSpigot.EffectiveSpigot
+import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 
 class EffectiveWorldEvents : Listener {
     @EventHandler(priority = EventPriority.MONITOR)
@@ -33,6 +34,37 @@ class EffectiveWorldEvents : Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockBreakEvent(event: BlockBreakEvent) {
+//        val pos = EffectiveBlockPos(event.block.x, event.block.y, event.block.z)
+//
+//// Берем данные ДО того, как превратим блок в воздух в нашей системе
+//        val effectiveBlock = EffectiveWorld.getOrCreateInstance(event.block.world).getBlock(pos)
+//
+//
+//        if (effectiveBlock != null) {
+//            val bukkitY = event.block.y
+//            val effectiveY = effectiveBlock.y
+//            val bukkitMat = event.block.type
+//            val effectiveMat = effectiveBlock.material
+//
+//            // Условия успешности
+//            val yMatches = bukkitY == effectiveY
+//            val matMatches = bukkitMat == effectiveMat
+//
+//            val color = if (yMatches && matMatches) "§a" else "§c"
+//
+//            event.player.sendMessage("""
+//        $color--- Результаты теста EffectiveWorld ---
+//        §7Координаты: §f[${pos.x}, ${pos.y}, ${pos.z}]
+//
+//        §7Высота Y: §fBukkit($bukkitY) vs Effective($effectiveY) ${if (yMatches) "§a✔" else "§c✘"}
+//        §7Материал: §fBukkit($bukkitMat) vs Effective($effectiveMat) ${if (matMatches) "§a✔" else "§c✘"}
+//
+//        §7Статус: ${if (yMatches && matMatches) "§aСИНХРОНИЗИРОВАНО" else "§cРАССИНХРОН (Проверь 64/65)"}
+//        §8[Инфо] Система установила AIR после этой проверки.
+//    """.trimIndent())
+//        } else {
+//            event.player.sendMessage("§6[!] Ошибка: Блок по координатам ${pos.x}, ${pos.y}, ${pos.z} не найден в кэше SoA.")
+//        }
         EffectiveWorld.setAir(event.block)
     }
 

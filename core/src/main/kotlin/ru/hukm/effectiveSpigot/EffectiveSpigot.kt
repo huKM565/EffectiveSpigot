@@ -4,7 +4,6 @@ import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
-import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMenuCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
@@ -27,7 +26,6 @@ import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
 import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
-import ru.hukm.effectiveSpigot.minecraft.zone.TestZone
 
 class EffectiveSpigot : JavaPlugin() {
     companion object{
@@ -95,8 +93,6 @@ class EffectiveSpigot : JavaPlugin() {
         )
 
         EffectiveItems.ZONE_SELECTOR
-
-        TestZone.getTriggerData()
 
         modulesList.forEach { it.init() }
 

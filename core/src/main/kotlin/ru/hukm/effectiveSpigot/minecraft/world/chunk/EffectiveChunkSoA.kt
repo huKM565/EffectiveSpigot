@@ -1,10 +1,9 @@
 package ru.hukm.effectiveSpigot.minecraft.world.chunk
 
-import org.bukkit.Bukkit
 import org.bukkit.Material
-import ru.hukm.effectiveSpigot.EffectiveSpigot
+import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorldParser
-import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlock
+import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlockData
 
 class EffectiveChunkSoA{
     companion object {
@@ -17,13 +16,13 @@ class EffectiveChunkSoA{
     internal var chunkX = IntArray(INIT_SIZE)
     internal var chunkZ = IntArray(INIT_SIZE)
     internal var types = Array<ShortArray?>(INIT_SIZE) { null }
-    internal var cachedTypes = Array<HashMap<Short, ArrayList<EffectiveBlock>>?>(INIT_SIZE) { null }
+    internal var cachedTypes = Array<HashMap<Short, ArrayList<EffectiveBlockData>>?>(INIT_SIZE) { null }
     internal var isLoad = BooleanArray(INIT_SIZE)
 
     @JvmInline
     value class EffectiveChunkCursor(val index: Int) {
         companion object {
-            private fun getTypeIndexFromBlock(chunkX: Int, y: Int, chunkZ: Int) = (y + 65) * 256 + chunkX * 16 + chunkZ
+            private fun getTypeIndexFromBlock(relativeX: Int, y: Int, relativeZ: Int) = (y + 64) * 256 + relativeX * 16 + relativeZ
         }
 
         fun chunkX(effectiveChunkSoA: EffectiveChunkSoA) = effectiveChunkSoA.chunkX[index]
@@ -36,16 +35,16 @@ class EffectiveChunkSoA{
             effectiveChunkSoA.isLoad[index] = isLoad
         }
 
-        fun findBlocksByMaterialIndexes(materialsIndexes: List<Short>, effectiveChunkSoA: EffectiveChunkSoA): ArrayList<EffectiveBlock>? {
+        fun findBlocksByMaterialIndexes(materialsIndexes: List<Short>, effectiveChunkSoA: EffectiveChunkSoA): ArrayList<EffectiveBlockData>? {
             if(!isLoad(effectiveChunkSoA)) return null
 
-            val allFindBlocks = arrayListOf<EffectiveBlock>()
+            val allFindBlocks = arrayListOf<EffectiveBlockData>()
 
             val types = types(effectiveChunkSoA)!!
             val cachedTypes = cachedTypes(effectiveChunkSoA)!!
             for(j in materialsIndexes.indices) {
                 val materialIndex = materialsIndexes[j]
-                val blocksRequireMaterial = arrayListOf<EffectiveBlock>()
+                val blocksRequireMaterial = arrayListOf<EffectiveBlockData>()
 
                 if(!cachedTypes.containsKey(materialIndex)) {
                     for(i in types.indices) {
@@ -64,8 +63,24 @@ class EffectiveChunkSoA{
             return allFindBlocks
         }
 
-        private fun convertTypeToBlock(typesIndex: Int, effectiveChunkSoA: EffectiveChunkSoA): EffectiveBlock {
-            return EffectiveBlock(
+        fun getBlockAt(relativeX: Int, y: Int, relativeZ: Int, effectiveChunkSoA: EffectiveChunkSoA): EffectiveBlockData {
+            val types = types(effectiveChunkSoA)!!
+
+            val typeIndex = getTypeIndexFromBlock(relativeX, y, relativeZ)
+
+            val materialIndex = types[typeIndex].toInt()
+            val material = Material.values().getOrNull(materialIndex) ?: Material.AIR
+
+            return EffectiveBlockData(
+                relativeX + chunkX(effectiveChunkSoA) * 16,
+                y,
+                relativeZ + chunkZ(effectiveChunkSoA) * 16,
+                material
+            )
+        }
+
+        private fun convertTypeToBlock(typesIndex: Int, effectiveChunkSoA: EffectiveChunkSoA): EffectiveBlockData {
+            return EffectiveBlockData(
                 (typesIndex % 256) / 16 + chunkX(effectiveChunkSoA) * 16,
                 typesIndex / 256 - 64,
                 (typesIndex % 16) + chunkZ(effectiveChunkSoA) * 16,
@@ -73,19 +88,28 @@ class EffectiveChunkSoA{
             )
         }
 
-        fun updateBlock(chunkX: Int, y: Int, chunkZ: Int, material: Material, effectiveChunkSoA: EffectiveChunkSoA) {
-            setType(chunkX, y, chunkZ, EffectiveWorldParser.materialToMaterialIndex(material), effectiveChunkSoA)
+        fun updateBlock(relativeX: Int, y: Int, relativeZ: Int, material: Material, effectiveChunkSoA: EffectiveChunkSoA) {
+            setType(relativeX, y, relativeZ, EffectiveWorldParser.materialToMaterialIndex(material), effectiveChunkSoA)
         }
 
-        fun setAir(chunkX: Int, y: Int, chunkZ: Int, effectiveChunkSoA: EffectiveChunkSoA) {
-            setType(chunkX, y, chunkZ, 2, effectiveChunkSoA)
+        fun setAir(relativeX: Int, y: Int, relativeZ: Int, effectiveChunkSoA: EffectiveChunkSoA) {
+            setType(relativeX, y, relativeZ, 2, effectiveChunkSoA)
         }
 
-        private fun setType(chunkX: Int, y: Int, chunkZ: Int, type: Short, effectiveChunkSoA: EffectiveChunkSoA) {
+        private fun setType(relativeX: Int, y: Int, relativeZ: Int, type: Short, effectiveChunkSoA: EffectiveChunkSoA) {
             //Bukkit.broadcastMessage("Set type ${Material.values()[type.toInt()]} at ${chunkX(effectiveChunkSoA) * 16 + chunkX}, $y, ${chunkZ(effectiveChunkSoA) * 16 + chunkZ} in chunk ${chunkX(effectiveChunkSoA)}, ${chunkZ(effectiveChunkSoA)}")
             effectiveChunkSoA.cachedTypes[index] = hashMapOf()
-            types(effectiveChunkSoA)!![getTypeIndexFromBlock(chunkX, y, chunkZ)] = type
+            types(effectiveChunkSoA)!![getTypeIndexFromBlock(relativeX, y, relativeZ)] = type
         }
+    }
+
+    fun getBlock(pos: EffectiveBlockPos): EffectiveBlockData? {
+        val cX = pos.x shr 4
+        val cZ = pos.z shr 4
+
+        val cursor = find(cX, cZ) ?: return null
+
+        return cursor.getBlockAt(pos.x and 15, pos.y, pos.z and 15, this)
     }
 
     fun find(chunkX: Int, chunkZ: Int): EffectiveChunkCursor? {

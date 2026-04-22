@@ -11,7 +11,6 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
-import org.bukkit.scheduler.BukkitTask
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItems
@@ -19,32 +18,34 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 import java.util.UUID
 
 object EffectiveZoneRenderer {
-    private val activeTasks = hashMapOf<UUID, BukkitTask>()
+    private val playerUUIDToTaskId = hashMapOf<UUID, Int>()
 
-    fun startRendering(selection: () -> Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, isRegistered: Boolean = true) {
+    fun startRendering(selectionOrZoneBox: Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, isRegistered: Boolean = true) {
+        startRendering(selectionOrZoneBox, null, isRegistered)
+    }
+
+    fun startRendering(selectionOrZoneBox: Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, selectionOwnerUUID: UUID?, isRegistered: Boolean = true) {
+        if (selectionOwnerUUID != null) {
+            val oldTaskId = playerUUIDToTaskId[selectionOwnerUUID]
+            if (oldTaskId != null) {
+                Bukkit.getScheduler().cancelTask(oldTaskId)
+            }
+        }
+
         val dustOptions = DustOptions(if (!isRegistered) Color.fromRGB(102, 178, 255) else Color.fromRGB(255, 255, 0), 1.0f)
+
+        val region = selectionOrZoneBox ?: return
+
+        val pos1 = region.first
+        val pos2 = region.second
+        val worldUUID = region.third
+
+        if (pos1 == null || pos2 == null) {
+            return
+        }
 
         val taskId = object : BukkitRunnable() {
             override fun run() {
-                val selection = selection() ?: run {
-                    cancel()
-                    return
-                }
-
-                val pos1 = selection.first
-                val pos2 = selection.second
-                val worldUUID = selection.third
-
-                if (pos1 == null || pos2 == null) {
-                    cancel()
-                    return
-                }
-
-                val world = Bukkit.getWorld(worldUUID) ?: run {
-                    cancel()
-                    return
-                }
-
                 val players = Bukkit.getOnlinePlayers().filter { player ->
                     EffectiveItem.getNamespacedKeyByItem(
                         EffectiveInventoryUtils.getUsedItemFromHands(player)
@@ -55,6 +56,10 @@ object EffectiveZoneRenderer {
                 if (players.isNotEmpty()) renderZone(players, pos1, pos2, dustOptions)
             }
         }.runTaskTimer(EffectiveSpigot.instance, 0, 5).taskId
+
+        if (selectionOwnerUUID != null) {
+            playerUUIDToTaskId[selectionOwnerUUID] = taskId
+        }
     }
 
     private fun renderZone(players: Collection<Player>, pos1: EffectiveBlockPos, pos2: EffectiveBlockPos, dustOptions: DustOptions) {

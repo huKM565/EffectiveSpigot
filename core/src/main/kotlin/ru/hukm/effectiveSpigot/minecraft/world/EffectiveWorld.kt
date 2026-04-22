@@ -8,9 +8,10 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.EffectiveSpigot.Companion.instance
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA.EffectiveChunkCursor
-import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlock
+import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlockData
 
 class EffectiveWorld private constructor(val name: String) {
     data class BlockData(val x: Int, val y: Int, val z: Int, val material: Material)
@@ -38,11 +39,11 @@ class EffectiveWorld private constructor(val name: String) {
             }
         }
 
-        fun findBlocksByMaterial(material: Material, world: World): ArrayList<EffectiveBlock> {
+        fun findBlocksByMaterial(material: Material, world: World): ArrayList<EffectiveBlockData> {
             return getOrCreateInstance(world).findBlocksByMaterial(material)
         }
 
-        fun findBlocksByMaterials(materials: List<Material>, world: World): ArrayList<EffectiveBlock> {
+        fun findBlocksByMaterials(materials: List<Material>, world: World): ArrayList<EffectiveBlockData> {
             return getOrCreateInstance(world).findBlocksByMaterials(materials)
         }
 
@@ -74,32 +75,28 @@ class EffectiveWorld private constructor(val name: String) {
             getOrCreateInstance(world).updateBlock(x, y, z, material)
         }
 
-        fun updateBlock(worldName: String, x: Int, y: Int, z: Int, material: Material) {
-            getOrCreateInstance(worldName).updateBlock(x, y, z, material)
-        }
-
-        fun updateBlocks(world: World, blocks: List<BlockData>) {
-            getOrCreateInstance(world).updateBlocks(blocks)
-        }
-
-        fun updateBlocks(worldName: String, blocks: List<BlockData>) {
-            getOrCreateInstance(worldName).updateBlocks(blocks)
+        fun getBlock(world: World, pos: EffectiveBlockPos): EffectiveBlockData? {
+            return getOrCreateInstance(world).getBlock(pos)
         }
     }
 
-    fun findBlocksByMaterial(material: Material): ArrayList<EffectiveBlock> {
+    fun findBlocksByMaterial(material: Material): ArrayList<EffectiveBlockData> {
         return findBlocksByMaterials(listOf(material))
     }
 
-    fun findBlocksByMaterials(materials: List<Material>): ArrayList<EffectiveBlock> {
+    fun findBlocksByMaterials(materials: List<Material>): ArrayList<EffectiveBlockData> {
         val materialsIndexes = materials.map { EffectiveWorldParser.materialToMaterialIndex(it) }
-        val foundBlocks = arrayListOf<EffectiveBlock>()
+        val foundBlocks = arrayListOf<EffectiveBlockData>()
 
         effectiveChunkSoA.forEachCursors { effectiveChunkCursor ->
             foundBlocks.addAll(effectiveChunkCursor.findBlocksByMaterialIndexes(materialsIndexes, effectiveChunkSoA)!!)
         }
 
         return foundBlocks
+    }
+
+    fun getBlock(pos: EffectiveBlockPos): EffectiveBlockData? {
+        return effectiveChunkSoA.getBlock(pos)
     }
 
     fun tryUploadChunk(chunk: Chunk) {
@@ -128,7 +125,7 @@ class EffectiveWorld private constructor(val name: String) {
     }
 
     fun updateBlock(block: Block) {
-        updateBlock(block.chunk.x, block.chunk.z, block.x % 16, block.y, block.z % 16, block.type)
+        updateBlock(block.chunk.x, block.chunk.z, block.x and 15, block.y, block.z and 15, block.type)
     }
 
     private fun updateBlock(chunkX: Int, chunkZ: Int, x: Int, y: Int, z: Int, material: Material) {
@@ -140,7 +137,7 @@ class EffectiveWorld private constructor(val name: String) {
     }
 
     fun setAir(block: Block) {
-        findChunkOrLoad(block)?.setAir(block.x % 16, block.y, block.z % 16, effectiveChunkSoA)
+        findChunkOrLoad(block)?.setAir(block.x % 16, block.y, block.z and 15, effectiveChunkSoA)
     }
 
     fun updateBlock(x: Int, y: Int, z: Int, material: Material) {
@@ -153,11 +150,11 @@ class EffectiveWorld private constructor(val name: String) {
     }
 
     @JvmName("updateBlocksData")
-    fun updateBlocks(blocks: List<BlockData>) {
+    fun updateBlocks(blocks: List<EffectiveBlockData>) {
         val blocksByChunk = blocks.groupBy { block ->
             Pair(block.x shr 4, block.z shr 4)
         }
-        
+
         blocksByChunk.forEach { (chunkCoords, chunkBlocks) ->
             val cursor = findChunkOrLoad(chunkCoords.first, chunkCoords.second)
             cursor?.let { chunkCursor ->
@@ -181,7 +178,7 @@ class EffectiveWorld private constructor(val name: String) {
     private fun findChunkOrLoad(chunkX: Int, chunkZ: Int): EffectiveChunkCursor? {
         val cursor = effectiveChunkSoA.find(chunkX, chunkZ)
         if (cursor == null) {
-            EffectiveSpigot.instance.logger.warning(
+            instance.logger.warning(
                 "Попытка обновить блок в незагруженном чанке: [$chunkX, $chunkZ] в мире $name"
             )
             return null

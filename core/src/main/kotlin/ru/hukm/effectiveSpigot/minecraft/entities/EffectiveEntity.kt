@@ -107,6 +107,7 @@ abstract class EffectiveEntity {
 
         world.addEntity(entity)
         entity.teleport(location)
+        editEntity(entity) //нужно, если editEntity захочет сам поменять location. Мб сделай потом отдельный enum, который будет указывать, как спавнить - с Yaw и горизонталным поворотом головы или не
 
         return entity
     }
