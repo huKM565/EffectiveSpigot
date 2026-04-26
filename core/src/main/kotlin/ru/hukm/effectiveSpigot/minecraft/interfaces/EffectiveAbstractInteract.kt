@@ -164,17 +164,23 @@ interface EffectiveAbstractInteract {
                             }
 
                             is Target.Entity -> {
-                                EffectiveEntity.uuidToEntities.values.forEach {
-                                    if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.entity)) {
-                                        setLatestTimeUsed(it)
+                                val effectiveEntities = EffectiveEntity.namespacedKeyToEffectiveEntity.values
+                                for (effectiveEntity in effectiveEntities) {
+                                    effectiveEntity.getEntities().forEach {
+                                        if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.entity)) {
+                                            setLatestTimeUsed(it)
+                                        }
                                     }
                                 }
                             }
 
                             is Target.Block -> {
-                                EffectiveEntity.uuidToEntities.values.forEach {
-                                    if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.itemDisplay)) {
-                                        setLatestTimeUsed(it)
+                                val effectiveEntities = EffectiveEntity.namespacedKeyToEffectiveEntity.values
+                                for (effectiveEntity in effectiveEntities) {
+                                    effectiveEntity.getEntities().forEach {
+                                        if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.itemDisplay)) {
+                                            setLatestTimeUsed(it)
+                                        }
                                     }
                                 }
                             }

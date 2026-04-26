@@ -16,11 +16,17 @@ class EffectiveZoneCompleter : TabCompleter {
         val firstArg = args.getOrNull(0)?.lowercase()
 
         val suggestions = when (args.size) {
-            1 -> listOf("list", "create")
+            1 -> listOf("list", "create", "delete")
 
             2 -> when (firstArg) {
-                "list" -> emptyList()
                 "create" -> EffectiveZone.namespacedKeyToZone.keys.toList()
+                "delete" -> {
+                    val ids = mutableListOf<String>()
+                    EffectiveZone.namespacedKeyToZone.values.forEach { zone ->
+                        zone.zoneBoxes.forEach { box -> ids.add(box.id.toString()) }
+                    }
+                    ids
+                }
                 else -> emptyList()
             }
 

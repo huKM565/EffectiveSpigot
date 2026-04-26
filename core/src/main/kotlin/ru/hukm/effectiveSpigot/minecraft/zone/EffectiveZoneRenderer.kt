@@ -18,7 +18,7 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 import java.util.UUID
 
 object EffectiveZoneRenderer {
-    private val playerUUIDToTaskId = hashMapOf<UUID, Int>()
+    private val UUIDToTaskId = hashMapOf<UUID, Int>()
 
     fun startRendering(selectionOrZoneBox: Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, isRegistered: Boolean = true) {
         startRendering(selectionOrZoneBox, null, isRegistered)
@@ -26,7 +26,7 @@ object EffectiveZoneRenderer {
 
     fun startRendering(selectionOrZoneBox: Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, selectionOwnerUUID: UUID?, isRegistered: Boolean = true) {
         if (selectionOwnerUUID != null) {
-            val oldTaskId = playerUUIDToTaskId[selectionOwnerUUID]
+            val oldTaskId = UUIDToTaskId[selectionOwnerUUID]
             if (oldTaskId != null) {
                 Bukkit.getScheduler().cancelTask(oldTaskId)
             }
@@ -58,8 +58,17 @@ object EffectiveZoneRenderer {
         }.runTaskTimer(EffectiveSpigot.instance, 0, 5).taskId
 
         if (selectionOwnerUUID != null) {
-            playerUUIDToTaskId[selectionOwnerUUID] = taskId
+            UUIDToTaskId[selectionOwnerUUID] = taskId
         }
+    }
+
+    fun stopRendering(uuid: UUID): Boolean {
+        val taskId = UUIDToTaskId[uuid] ?: return false
+
+        Bukkit.getScheduler().cancelTask(taskId)
+        UUIDToTaskId.remove(uuid)
+
+        return true
     }
 
     private fun renderZone(players: Collection<Player>, pos1: EffectiveBlockPos, pos2: EffectiveBlockPos, dustOptions: DustOptions) {

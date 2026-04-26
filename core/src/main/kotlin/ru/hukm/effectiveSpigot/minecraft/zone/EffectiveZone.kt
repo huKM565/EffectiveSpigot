@@ -4,6 +4,7 @@ import io.papermc.paper.event.entity.EntityMoveEvent
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
+import org.bukkit.World
 import org.bukkit.entity.LivingEntity
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -89,18 +90,10 @@ abstract class EffectiveZone {
         fun serialize(): String {
             return "${id};${firstPos.serialize()};${secondPos.serialize()}"
         }
+
+        fun getUUIDFromID() = EffectiveZoneUUID.toUUID(id.toLong())
         
         companion object {
-            fun getZoneBoxById(id: Int): ZoneBox? {
-                for (zone in namespacedKeyToZone.values) {
-                    for (zoneBox in zone.zoneBoxes) {
-                        if (zoneBox.id == id) return zoneBox
-                    }
-                }
-
-                return null
-            }
-
             fun deserialize(data: String, worldUUID: UUID): ZoneBox {
                 val parts = data.split(";")
                 return ZoneBox(
@@ -141,6 +134,28 @@ abstract class EffectiveZone {
             return count
         }
 
+        fun getZoneBoxById(id: Int): ZoneBox? {
+            for (zone in namespacedKeyToZone.values) {
+                for (zoneBox in zone.zoneBoxes) {
+                    if (zoneBox.id == id) return zoneBox
+                }
+            }
+
+            return null
+        }
+
+        fun deleteZoneBoxById(id: Int): Boolean {
+            for (zone in namespacedKeyToZone.values) {
+                for (zoneBox in zone.zoneBoxes) {
+                    if (zoneBox.id == id) {
+                        zone.deleteBoxInMemory(zoneBox)
+                        return true
+                    }
+                }
+            }
+
+            return false
+        }
 
         fun registerSelection(selection: Triple<EffectiveBlockPos, EffectiveBlockPos, UUID>, namespacedKey: String): ZoneBox {
             val zone = getZoneByNamespacedKey(namespacedKey)!!
@@ -153,7 +168,7 @@ abstract class EffectiveZone {
             )
 
             zone.saveBoxInMemory(zoneBox)
-            EffectiveZoneRenderer.startRendering(selection)
+            EffectiveZoneRenderer.startRendering(selection, EffectiveZoneUUID.toUUID(zoneBox.id.toLong()))
 
             zone.selectionRegistered(zoneBox)
             return zoneBox
@@ -203,6 +218,25 @@ abstract class EffectiveZone {
         return getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
     }
 
+    private fun deleteBoxInMemory(zoneBox: ZoneBox) {
+        val namespacedKey = NamespacedKey(getNamespacedData().first, getNamespacedData().second)
+        val world = Bukkit.getWorld(zoneBox.worldUUID)!!
+
+        var serializeAllBoxes = getSerializeBoxesFromMemory(world, namespacedKey)!!
+        serializeAllBoxes = serializeAllBoxes.replace("||${zoneBox.serialize()}", "")
+
+        EffectiveZoneRenderer.stopRendering(zoneBox.getUUIDFromID())
+
+        zoneBoxes.remove(zoneBox)
+
+        EffectiveDataContainerUtils.setContainerValue(
+            world,
+            namespacedKey,
+            PersistentDataType.STRING,
+            serializeAllBoxes
+        )
+    }
+
     private fun saveBoxInMemory(zoneBox: ZoneBox) {
         val namespacedKey = NamespacedKey(getNamespacedData().first, getNamespacedData().second)
         val world = Bukkit.getWorld(zoneBox.worldUUID)!!
@@ -230,26 +264,33 @@ abstract class EffectiveZone {
         zoneBoxes.add(zoneBox)
     }
 
-    fun loadBoxesFromMemory() {
+    private fun loadBoxesFromMemory() {
         val namespacedKey = NamespacedKey(getNamespacedData().first, getNamespacedData().second)
         val allBoxes = arrayListOf<ZoneBox>()
-        
+
         Bukkit.getWorlds().forEach { world ->
-            val savedBoxes = EffectiveDataContainerUtils.getContainerValue(
-                world,
-                namespacedKey,
-                PersistentDataType.STRING
-            ) ?: return@forEach
+            val savedBoxes = getSerializeBoxesFromMemory(world, namespacedKey) ?: return@forEach
 
             savedBoxes.split("||").forEach { boxData ->
                 val de = ZoneBox.deserialize(boxData, world.uid)
                 allBoxes.add(de)
                 val zoneBox = allBoxes.find { it.id == de.id } !!
-                EffectiveZoneRenderer.startRendering(Triple(zoneBox.firstPos, zoneBox.secondPos, zoneBox.worldUUID))
+                EffectiveZoneRenderer.startRendering(
+                    Triple(zoneBox.firstPos, zoneBox.secondPos, zoneBox.worldUUID),
+                    zoneBox.getUUIDFromID()
+                )
             }
         }
-        
+
         zoneBoxes = allBoxes
+    }
+
+    private fun getSerializeBoxesFromMemory(world: World, namespacedKey: NamespacedKey): String? {
+        return EffectiveDataContainerUtils.getContainerValue(
+            world,
+            namespacedKey,
+            PersistentDataType.STRING
+        )
     }
 
     class Events : Listener {

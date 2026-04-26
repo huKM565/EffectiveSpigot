@@ -59,8 +59,24 @@ class EffectiveZoneCommand : CommandExecutor {
 
                     sender.sendMessage(LanguageModule.getMessage("commands.ezone.create_success", zoneType))
                 }
+            }
+            "delete" -> {
+                if (args.size < 2) {
+                    sender.sendMessage("§cИспользование: /ezone delete <id>")
+                    return true
+                }
 
+                val id = args[1].toIntOrNull()
+                if (id == null) {
+                    sender.sendMessage("§cID должен быть числом.")
+                    return true
+                }
 
+                if (EffectiveZone.deleteZoneBoxById(id)) {
+                    sender.sendMessage("§aЗона с ID $id успешно удалена.")
+                } else {
+                    sender.sendMessage("§cЗона с таким ID не найдена.")
+                }
             }
             else -> {
                 sender.sendMessage(LanguageModule.getMessage("commands.ezone.usage"))

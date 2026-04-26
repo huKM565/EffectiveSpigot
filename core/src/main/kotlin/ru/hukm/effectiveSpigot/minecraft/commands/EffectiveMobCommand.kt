@@ -25,7 +25,7 @@ class EffectiveMobCommand : CommandExecutor {
         }
 
         val entityKey = args[0]
-        val effectiveEntity = EffectiveEntity.namespacedKeyToEntity[entityKey]
+        val effectiveEntity = EffectiveEntity.namespacedKeyToEffectiveEntity[entityKey]
 
         if (effectiveEntity == null) {
             sender.sendMessage(LanguageModule.getMessage("commands.emob.entity_not_found", entityKey))
