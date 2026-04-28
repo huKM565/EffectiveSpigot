@@ -34,6 +34,7 @@ dependencies {
     implementation(project(":mcv:v1_21_9"))
     implementation(project(":mcv:v1_21_11"))
 }
+//TODO(дочерний плагин (без all) не видит релокацию)
 
 tasks {
     shadowJar {
