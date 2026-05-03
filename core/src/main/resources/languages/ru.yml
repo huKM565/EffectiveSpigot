@@ -1,4 +1,5 @@
 commands:
+  no_permission: "&cУ вас недостаточно прав на выполнение этой команды!"
   egive:
     usage: "&cИспользование: /egive <селектор> <название_предмета> <количество>"
     no_permission: "&cУ вас недостаточно прав на выполнение этой команды!"
@@ -31,9 +32,13 @@ commands:
       intensity: "<интенсивность>"
       duration: "<длительность>"
   ezone:
-    usage: "&cИспользование: /ezone <list|create> [тип_зоны]"
+    usage: "&cИспользование: /ezone <list|create|delete> [аргументы]"
     no_permission: "&cУ вас недостаточно прав на выполнение этой команды!"
     create_usage: "&cИспользование: /ezone create <тип_зоны>"
+    delete_usage: "&cИспользование: /ezone delete <id>"
+    invalid_id: "&cID должен быть числом."
+    delete_success: "&aЗона с ID %d успешно удалена."
+    not_found: "&cЗона с таким ID не найдена."
     available_zones: "&eДоступные типы зон:"
     create_success: "&aСоздание зоны типа: %s (заглушка)"
     no_selection: "&cИспользуйте селектор зоны для выбора области перед созданием зоны!"
@@ -46,12 +51,17 @@ items:
     pos2: "&dВторая позиция установлена на %d, %d, %d"
 
 errors:
+  unsupported_version: "Неподдерживаемая версия Minecraft: %s"
+  commands:
+    already_registered: "Команда с ключом '%s' уже зарегистрирована"
   items:
     already_registered: "Предмет с ключом '%s' уже зарегистрирован"
   menu:
     already_registered: "Меню с ключом '%s' уже зарегистрировано"
   entities:
     already_registered: "Сущность с ключом '%s' уже зарегистрирована"
+    key_not_registered: "Namespaced key '%s' не зарегистрирован"
+    look_distance_exceeded: "Дистанция обзора превышает максимально допустимое значение"
   crafts:
     tag_invalid_material: "Тег содержит %s, но требуется Material"
     list_invalid_material: "Список должен содержать Material. Получено: %s"
@@ -60,6 +70,8 @@ errors:
   world:
     chunk_not_loaded: "Чанк %d, %d в мире %s не загружен"
     chunk_wrong_world: "Чанк %d, %d находится в мире %s, а не в %s"
+    location_null: "World у Location не может быть null"
+    update_unloaded_chunk: "Попытка обновить блок в незагруженном чанке: [%d, %d] в мире %s"
   loot:
     container_full: "Не все предметы удалось поместить в контейнер: инвентарь полон"
     chance_out_of_range: "Шанс должен быть от 0.0 до 1.0"

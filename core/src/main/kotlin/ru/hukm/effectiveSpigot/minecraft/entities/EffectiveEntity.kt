@@ -61,7 +61,7 @@ abstract class EffectiveEntity {
         }
 
         fun getEntitiesByNamespacedKey(namespacedKey: String): ArrayList<Entity> {
-            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: throw IllegalArgumentException("Namespaced key not registered")
+            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: throw IllegalArgumentException(LanguageModule.getMessage("errors.entities.key_not_registered", namespacedKey))
             return effectiveEntity.getEntities()
         }
 
@@ -113,7 +113,7 @@ abstract class EffectiveEntity {
     }
 
     fun spawnEntity(location: Location): Entity {
-        val world = location.world ?: throw IllegalArgumentException("Location world cannot be null")
+        val world = location.world ?: throw IllegalArgumentException(LanguageModule.getMessage("errors.world.location_null"))
         val entity = createEntity(location)
         addEntityToCache(entity)
 

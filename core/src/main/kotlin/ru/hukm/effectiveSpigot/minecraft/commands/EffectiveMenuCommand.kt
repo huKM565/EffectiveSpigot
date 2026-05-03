@@ -1,38 +1,36 @@
 package ru.hukm.effectiveSpigot.minecraft.commands
 
-import org.bukkit.command.Command
-import org.bukkit.command.CommandExecutor
-import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import org.bukkit.plugin.java.JavaPlugin
+import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
 
-class EffectiveMenuCommand : CommandExecutor {
-    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (sender !is Player) {
-            sender.sendMessage(LanguageModule.getMessage("commands.emenu.only_players"))
-            return true
+object EffectiveMenuCommand : EffectiveCommand() {
+
+    override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "emenu")
+    override fun getPermission() = "effectivespigot.command.emenu"
+    override fun getDescription() = "Open custom menus"
+
+    override fun commandTree() = CommandNode.build {
+        executes { args ->
+            if (this !is Player) {
+                sendMessage(LanguageModule.getMessage("commands.emenu.only_players"))
+                return@executes
+            }
+            if (args.isEmpty()) {
+                sendMessage(LanguageModule.getMessage("commands.emenu.usage"))
+                return@executes
+            }
+            val menu = EffectiveMenu.namespacedNameToMenu[args[0]]
+            if (menu == null) {
+                sendMessage(LanguageModule.getMessage("commands.emenu.menu_not_found", args[0]))
+                return@executes
+            }
+            openInventory(menu.getMenu())
         }
-
-        if (!sender.hasPermission("effectivespigot.command.emenu")) {
-            sender.sendMessage(LanguageModule.getMessage("commands.emenu.no_permission"))
-            return true
-        }
-
-        if (args.isEmpty()) {
-            sender.sendMessage(LanguageModule.getMessage("commands.emenu.usage"))
-            return true
-        }
-
-        val menuName = args[0]
-        val menu = EffectiveMenu.namespacedNameToMenu[menuName]
-
-        if (menu == null) {
-            sender.sendMessage(LanguageModule.getMessage("commands.emenu.menu_not_found", menuName))
-            return true
-        }
-
-        sender.openInventory(menu.getMenu())
-        return true
+        dynamic { EffectiveMenu.namespacedNameToMenu.keys.toList() }
     }
+
+    fun init() {}
 }

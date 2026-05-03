@@ -1,64 +1,47 @@
 package ru.hukm.effectiveSpigot.minecraft.commands
 
 import org.bukkit.Bukkit
-import org.bukkit.ChatColor
-import org.bukkit.command.Command
-import org.bukkit.command.CommandExecutor
-import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import org.bukkit.plugin.java.JavaPlugin
+import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 
+object EffectiveGiveCommand : EffectiveCommand() {
 
-class EffectiveGiveCommand : CommandExecutor {
-    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (!sender.hasPermission("effectivespigot.command.egive")) {
-            sender.sendMessage(LanguageModule.getMessage("commands.egive.no_permission"))
-            return true
-        }
+    override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "egive")
+    override fun getPermission() = "effectivespigot.command.egive"
+    override fun getDescription() = "Give custom items to players"
 
-        if (args.size < 3) {
-            sender.sendMessage(LanguageModule.getMessage("commands.egive.usage"))
-            return true
-        }
-
-        val selector = args[0]
-        val namespacedKeyName = args[1]
-        val count = args[2].toIntOrNull() ?: 0
-        val targets = ArrayList<Player>()
-
-        try {
-            val entities = Bukkit.selectEntities(sender, selector)
-            for (entity in entities) {
-                if (entity is Player) {
-                    targets.add(entity)
-                }
+    override fun commandTree() = CommandNode.build {
+        executes { args ->
+            if (args.size < 3) {
+                sendMessage(LanguageModule.getMessage("commands.egive.usage"))
+                return@executes
             }
-        } catch (e: IllegalArgumentException) {
-            val player: Player? = Bukkit.getPlayer(selector)
-            if (player != null) {
-                targets.add(player)
+            val targets = ArrayList<Player>()
+            try { Bukkit.selectEntities(this, args[0]).filterIsInstanceTo(targets) }
+            catch (e: IllegalArgumentException) { Bukkit.getPlayer(args[0])?.let { targets.add(it) } }
+
+            if (targets.isEmpty()) {
+                sendMessage(LanguageModule.getMessage("commands.egive.player_not_found"))
+                return@executes
             }
+            val item = EffectiveItem.getItemByNamespacedKey(args[1])
+            if (item == null) {
+                sendMessage(LanguageModule.getMessage("commands.egive.item_not_found", args[1]))
+                return@executes
+            }
+            val count = args[2].toIntOrNull() ?: 0
+            for (target in targets) repeat(count) { EffectiveInventoryUtils.giveItem(item, target) }
         }
-
-        if (targets.isEmpty()) {
-            sender.sendMessage(LanguageModule.getMessage("commands.egive.player_not_found"))
-            return true
-        }
-
-        val item = EffectiveItem.getItemByNamespacedKey(namespacedKeyName)
-        if (item == null) {
-            sender.sendMessage(LanguageModule.getMessage("commands.egive.item_not_found", namespacedKeyName))
-            return true
-        }
-
-        for (target in targets) {
-            for(i in 0 until count) {
-                EffectiveInventoryUtils.giveItem(item, target)
+        dynamic({ listOf("@a", "@p") + Bukkit.getOnlinePlayers().map { it.name } }) {
+            dynamic({ EffectiveItem.namespacedKeyToItem.keys.toList() }) {
+                dynamic { listOf("<count>") }
             }
         }
-
-        return true
     }
+
+    fun init() {}
 }

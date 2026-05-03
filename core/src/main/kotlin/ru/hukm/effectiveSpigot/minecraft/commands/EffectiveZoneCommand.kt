@@ -1,88 +1,85 @@
 package ru.hukm.effectiveSpigot.minecraft.commands
 
-import org.bukkit.command.Command
-import org.bukkit.command.CommandExecutor
-import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import org.bukkit.plugin.java.JavaPlugin
+import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZoneSelection
 
-class EffectiveZoneCommand : CommandExecutor {
-    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (!sender.hasPermission("effectivespigot.command.ezone")) {
-            sender.sendMessage(LanguageModule.getMessage("commands.ezone.no_permission"))
-            return true
+object EffectiveZoneCommand : EffectiveCommand() {
+
+    override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "ezone")
+    override fun getPermission() = "effectivespigot.command.ezone"
+    override fun getDescription() = "Manage zones"
+
+    override fun commandTree() = CommandNode.build {
+        executes { _ ->
+            sendMessage(LanguageModule.getMessage("commands.ezone.usage"))
         }
 
-        if (args.isEmpty()) {
-            sender.sendMessage(LanguageModule.getMessage("commands.ezone.usage"))
-            return true
-        }
-
-        when (args[0].lowercase()) {
-            "list" -> {
-                EffectiveZone.namespacedKeyToZone.values.forEach {
-                    sender.sendMessage(it.getNamespacedName())
-                    for (zoneBox in it.zoneBoxes) {
-                        sender.sendMessage(" - id: ${zoneBox.id}")
-                        sender.sendMessage("  ${zoneBox.firstPos.x} ${zoneBox.firstPos.y} ${zoneBox.firstPos.z} - ${zoneBox.secondPos.x} ${zoneBox.secondPos.y} ${zoneBox.secondPos.z}")
+        choice("list") {
+            executes { _ ->
+                EffectiveZone.namespacedKeyToZone.values.forEach { zone ->
+                    sendMessage(zone.getNamespacedName())
+                    for (zoneBox in zone.zoneBoxes) {
+                        sendMessage(" - id: ${zoneBox.id}")
+                        sendMessage("  ${zoneBox.firstPos.x} ${zoneBox.firstPos.y} ${zoneBox.firstPos.z} - ${zoneBox.secondPos.x} ${zoneBox.secondPos.y} ${zoneBox.secondPos.z}")
                     }
                 }
             }
-            "create" -> {
-                if (sender !is Player) {
-                    sender.sendMessage(LanguageModule.getMessage("commands.ezone.not_player"))
-                } else {
-                    if (args.size < 2) {
-                        sender.sendMessage(LanguageModule.getMessage("commands.ezone.create_usage"))
-                        sender.sendMessage(LanguageModule.getMessage("commands.ezone.available_zones"))
-                        EffectiveZone.namespacedKeyToZone.keys.forEach { zoneName ->
-                            sender.sendMessage(" - $zoneName")
-                        }
-                        return true
-                    }
-                    val zoneType = args[1]
+        }
 
-                    val selection = EffectiveZoneSelection.getSelection(sender.uniqueId)
-
-                    if (selection == null || selection.first == null || selection.second == null) {
-                        sender.sendMessage(LanguageModule.getMessage("commands.ezone.no_selection"))
-                        return true
-                    }
-
-                    val firstPos = selection.first!!
-                    val secondPos = selection.second!!
-
-                    EffectiveZoneSelection.playerToSelectedCoords.remove(sender.uniqueId)
-                    EffectiveZone.registerSelection(Triple(firstPos, secondPos, selection.third), zoneType)
-
-                    sender.sendMessage(LanguageModule.getMessage("commands.ezone.create_success", zoneType))
+        choice("create") {
+            executes { args ->
+                if (this !is Player) {
+                    sendMessage(LanguageModule.getMessage("commands.ezone.not_player"))
+                    return@executes
                 }
-            }
-            "delete" -> {
+                val player = this
                 if (args.size < 2) {
-                    sender.sendMessage("§cИспользование: /ezone delete <id>")
-                    return true
+                    sendMessage(LanguageModule.getMessage("commands.ezone.create_usage"))
+                    sendMessage(LanguageModule.getMessage("commands.ezone.available_zones"))
+                    EffectiveZone.namespacedKeyToZone.keys.forEach { sendMessage(" - $it") }
+                    return@executes
                 }
+                val selection = EffectiveZoneSelection.getSelection(player.uniqueId)
+                if (selection == null || selection.first == null || selection.second == null) {
+                    sendMessage(LanguageModule.getMessage("commands.ezone.no_selection"))
+                    return@executes
+                }
+                val zoneType = args[1]
+                EffectiveZoneSelection.playerToSelectedCoords.remove(player.uniqueId)
+                EffectiveZone.registerSelection(Triple(selection.first!!, selection.second!!, selection.third), zoneType)
+                sendMessage(LanguageModule.getMessage("commands.ezone.create_success", zoneType))
+            }
+            dynamic { EffectiveZone.namespacedKeyToZone.keys.toList() }
+        }
 
+        choice("delete") {
+            executes { args ->
+                if (args.size < 2) {
+                    sendMessage(LanguageModule.getMessage("commands.ezone.delete_usage"))
+                    return@executes
+                }
                 val id = args[1].toIntOrNull()
                 if (id == null) {
-                    sender.sendMessage("§cID должен быть числом.")
-                    return true
+                    sendMessage(LanguageModule.getMessage("commands.ezone.invalid_id"))
+                    return@executes
                 }
-
                 if (EffectiveZone.deleteZoneBoxById(id)) {
-                    sender.sendMessage("§aЗона с ID $id успешно удалена.")
+                    sendMessage(LanguageModule.getMessage("commands.ezone.delete_success", id))
                 } else {
-                    sender.sendMessage("§cЗона с таким ID не найдена.")
+                    sendMessage(LanguageModule.getMessage("commands.ezone.not_found"))
                 }
             }
-            else -> {
-                sender.sendMessage(LanguageModule.getMessage("commands.ezone.usage"))
+            dynamic {
+                EffectiveZone.namespacedKeyToZone.values.flatMap { zone ->
+                    zone.zoneBoxes.map { it.id.toString() }
+                }
             }
         }
-
-        return true
     }
+
+    fun init() {}
 }

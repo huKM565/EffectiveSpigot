@@ -116,15 +116,3 @@ val copySourceToDecomp =
 
 // Финальная цепочка
 tasks.build { finalizedBy(copySourceToDecomp, "publishToMavenLocal", copyJarToServer) }
-
-// Финальная цепочка
-tasks.build { finalizedBy(copySourceToDecomp, "publishToMavenLocal", copyJarToServer) }
-
-// Финальная цепочка
-tasks.build { finalizedBy(copySourceToDecomp, "publishToMavenLocal", copyJarToServer) }
-
-// Финальная цепочка
-tasks.build { finalizedBy(copySourceToDecomp, "publishToMavenLocal", copyJarToServer) }
-
-// Финальная цепочка
-tasks.build { finalizedBy(copySourceToDecomp, "publishToMavenLocal", copyJarToServer) }

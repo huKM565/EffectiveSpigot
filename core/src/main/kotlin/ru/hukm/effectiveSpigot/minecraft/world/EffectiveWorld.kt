@@ -179,7 +179,7 @@ class EffectiveWorld private constructor(val name: String) {
         val cursor = effectiveChunkSoA.find(chunkX, chunkZ)
         if (cursor == null) {
             instance.logger.warning(
-                "Попытка обновить блок в незагруженном чанке: [$chunkX, $chunkZ] в мире $name"
+                LanguageModule.getMessage("errors.world.update_unloaded_chunk", chunkX, chunkZ, name)
             )
             return null
         }

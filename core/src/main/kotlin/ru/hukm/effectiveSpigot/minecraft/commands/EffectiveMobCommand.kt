@@ -1,40 +1,38 @@
 package ru.hukm.effectiveSpigot.minecraft.commands
 
-import org.bukkit.command.Command
-import org.bukkit.command.CommandExecutor
-import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import org.bukkit.plugin.java.JavaPlugin
+import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 
-class EffectiveMobCommand : CommandExecutor {
-    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
-        if (sender !is Player) {
-            sender.sendMessage(LanguageModule.getMessage("commands.emob.only_players"))
-            return true
+object EffectiveMobCommand : EffectiveCommand() {
+
+    override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "emob")
+    override fun getPermission() = "effectivespigot.command.emob"
+    override fun getDescription() = "Spawn custom entities"
+
+    override fun commandTree() = CommandNode.build {
+        executes { args ->
+            if (this !is Player) {
+                sendMessage(LanguageModule.getMessage("commands.emob.only_players"))
+                return@executes
+            }
+            if (args.isEmpty()) {
+                sendMessage(LanguageModule.getMessage("commands.emob.usage"))
+                return@executes
+            }
+            val entityKey = args[0]
+            val effectiveEntity = EffectiveEntity.namespacedKeyToEffectiveEntity[entityKey]
+            if (effectiveEntity == null) {
+                sendMessage(LanguageModule.getMessage("commands.emob.entity_not_found", entityKey))
+                return@executes
+            }
+            effectiveEntity.spawnEntity(location)
+            sendMessage(LanguageModule.getMessage("commands.emob.success", entityKey))
         }
-
-        if (!sender.hasPermission("effectivespigot.command.emob")) {
-            sender.sendMessage(LanguageModule.getMessage("commands.emob.no_permission"))
-            return true
-        }
-
-        if (args.isEmpty()) {
-            sender.sendMessage(LanguageModule.getMessage("commands.emob.usage"))
-            return true
-        }
-
-        val entityKey = args[0]
-        val effectiveEntity = EffectiveEntity.namespacedKeyToEffectiveEntity[entityKey]
-
-        if (effectiveEntity == null) {
-            sender.sendMessage(LanguageModule.getMessage("commands.emob.entity_not_found", entityKey))
-            return true
-        }
-
-        effectiveEntity.spawnEntity(sender.location)
-        sender.sendMessage(LanguageModule.getMessage("commands.emob.success", entityKey))
-
-        return true
+        dynamic { EffectiveEntity.namespacedKeyToEffectiveEntity.keys.toList() }
     }
+
+    fun init() {}
 }
