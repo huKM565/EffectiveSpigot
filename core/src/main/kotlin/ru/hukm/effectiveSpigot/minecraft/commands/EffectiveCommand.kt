@@ -5,7 +5,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import org.bukkit.command.CommandSender
 import org.bukkit.plugin.java.JavaPlugin
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 
 abstract class EffectiveCommand : BasicCommand {
     companion object {
@@ -16,7 +16,7 @@ abstract class EffectiveCommand : BasicCommand {
         val namespacedName = getNamespacedName()
         if (registry.containsKey(namespacedName)) {
             throw IllegalArgumentException(
-                LanguageModule.getMessage("errors.commands.already_registered", namespacedName)
+                Locale.getMessage("errors.commands.already_registered", namespacedName)
             )
         }
         registry[namespacedName] = this
@@ -44,7 +44,7 @@ abstract class EffectiveCommand : BasicCommand {
         val sender = commandSourceStack.sender
         val perm = getPermission()
         if (perm.isNotEmpty() && !sender.hasPermission(perm)) {
-            sender.sendMessage(LanguageModule.getMessage("commands.no_permission"))
+            sender.sendMessage(Locale.getMessage("commands.no_permission"))
             return
         }
 

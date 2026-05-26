@@ -33,6 +33,10 @@ class EffectiveChunkSoA{
 
         fun setLoad(isLoad: Boolean, effectiveChunkSoA: EffectiveChunkSoA) {
             effectiveChunkSoA.isLoad[index] = isLoad
+            if (!isLoad) {
+                effectiveChunkSoA.types[index] = null
+                effectiveChunkSoA.cachedTypes[index] = null
+            }
         }
 
         fun findBlocksByMaterialIndexes(materialsIndexes: List<Short>, effectiveChunkSoA: EffectiveChunkSoA): ArrayList<EffectiveBlockData>? {
@@ -121,15 +125,17 @@ class EffectiveChunkSoA{
     }
 
     fun add(chunkX: Int, chunkZ: Int, types: ShortArray) {
-        if(freeIndex >= this.chunkX.size) expandSize()
+        val slot = this.types.indexOfFirst { it == null }.takeIf { it != -1 } ?: run {
+            if(freeIndex >= this.chunkX.size) expandSize()
+            freeIndex++
+            freeIndex - 1
+        }
 
-        this.chunkX[freeIndex] = chunkX
-        this.chunkZ[freeIndex] = chunkZ
-        this.types[freeIndex] = types
-        this.cachedTypes[freeIndex] = hashMapOf()
-        this.isLoad[freeIndex] = true
-
-        freeIndex++
+        this.chunkX[slot] = chunkX
+        this.chunkZ[slot] = chunkZ
+        this.types[slot] = types
+        this.cachedTypes[slot] = hashMapOf()
+        this.isLoad[slot] = true
     }
 
     private fun expandSize() {

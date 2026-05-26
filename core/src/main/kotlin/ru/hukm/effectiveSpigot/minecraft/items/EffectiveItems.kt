@@ -3,7 +3,7 @@ package ru.hukm.effectiveSpigot.minecraft.items
 import org.bukkit.Material
 import org.bukkit.inventory.meta.ItemMeta
 import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
@@ -24,7 +24,7 @@ enum class EffectiveItems(val item: EffectiveItem) {
         }
 
         override fun editMeta(meta: ItemMeta) {
-            meta.setDisplayName(LanguageModule.getMessage("items.zone_selector.name"))
+            meta.setDisplayName(Locale.getMessage("items.zone_selector.name"))
         }
 
         override fun getMaterial() = Material.BLAZE_ROD
@@ -40,7 +40,7 @@ enum class EffectiveItems(val item: EffectiveItem) {
             val pos = EffectiveBlockPos(loc.blockX, loc.blockY, loc.blockZ)
             val uuid = options.player.uniqueId
             EffectiveZoneSelection.setSelection(uuid, pos, posNum, loc.world.uid)
-            options.player.sendMessage(LanguageModule.getMessage("items.zone_selector.pos$posNum", loc.blockX, loc.blockY, loc.blockZ))
+            options.player.sendMessage(Locale.getMessage("items.zone_selector.pos$posNum", loc.blockX, loc.blockY, loc.blockZ))
             return EffectiveAbstractInteract.Result.CANCEL_EVENT
         }
     });

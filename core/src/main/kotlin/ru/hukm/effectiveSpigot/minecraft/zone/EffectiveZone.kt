@@ -14,7 +14,7 @@ import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
@@ -203,7 +203,7 @@ abstract class EffectiveZone {
     init {
         val namespacedName = getNamespacedName()
         if (namespacedKeyToZone.containsKey(namespacedName)) {
-            throw IllegalArgumentException(LanguageModule.getMessage("errors.zones.already_registered", namespacedName))
+            throw IllegalArgumentException(Locale.getMessage("errors.zones.already_registered", namespacedName))
         }
         namespacedKeyToZone[namespacedName] = this
     }

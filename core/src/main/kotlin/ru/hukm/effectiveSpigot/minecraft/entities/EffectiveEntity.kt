@@ -14,7 +14,7 @@ import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.InteractCallback
@@ -61,7 +61,7 @@ abstract class EffectiveEntity {
         }
 
         fun getEntitiesByNamespacedKey(namespacedKey: String): ArrayList<Entity> {
-            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: throw IllegalArgumentException(LanguageModule.getMessage("errors.entities.key_not_registered", namespacedKey))
+            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: throw IllegalArgumentException(Locale.getMessage("errors.entities.key_not_registered", namespacedKey))
             return effectiveEntity.getEntities()
         }
 
@@ -88,7 +88,7 @@ abstract class EffectiveEntity {
     init {
         val namespacedName = getNamespacedKey()
         if (namespacedKeyToEffectiveEntity.containsKey(namespacedName)) {
-            throw IllegalArgumentException(LanguageModule.getMessage("errors.entities.already_registered", namespacedName))
+            throw IllegalArgumentException(Locale.getMessage("errors.entities.already_registered", namespacedName))
         }
         namespacedKeyToEffectiveEntity[namespacedName] = this
     }
@@ -113,7 +113,7 @@ abstract class EffectiveEntity {
     }
 
     fun spawnEntity(location: Location): Entity {
-        val world = location.world ?: throw IllegalArgumentException(LanguageModule.getMessage("errors.world.location_null"))
+        val world = location.world ?: throw IllegalArgumentException(Locale.getMessage("errors.world.location_null"))
         val entity = createEntity(location)
         addEntityToCache(entity)
 

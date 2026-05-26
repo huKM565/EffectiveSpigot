@@ -8,7 +8,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerMoveEvent
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 
 typealias EntityPredicate = (Entity) -> Boolean
@@ -49,7 +49,7 @@ interface EffectiveEntityLookable {
         ) {
             //TODO()
             if (lookDistance > MAX_LOOK_DISTANCE) {
-                throw IllegalArgumentException(LanguageModule.getMessage("errors.entities.look_distance_exceeded"))
+                throw IllegalArgumentException(Locale.getMessage("errors.entities.look_distance_exceeded"))
             }
 
             lookableEntities.add(

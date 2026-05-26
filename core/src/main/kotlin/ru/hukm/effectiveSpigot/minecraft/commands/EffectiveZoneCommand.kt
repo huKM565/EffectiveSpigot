@@ -3,7 +3,7 @@ package ru.hukm.effectiveSpigot.minecraft.commands
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZoneSelection
 
@@ -15,7 +15,7 @@ object EffectiveZoneCommand : EffectiveCommand() {
 
     override fun commandTree() = CommandNode.build {
         executes { _ ->
-            sendMessage(LanguageModule.getMessage("commands.ezone.usage"))
+            sendMessage(Locale.getMessage("commands.ezone.usage"))
         }
 
         choice("list") {
@@ -33,25 +33,25 @@ object EffectiveZoneCommand : EffectiveCommand() {
         choice("create") {
             executes { args ->
                 if (this !is Player) {
-                    sendMessage(LanguageModule.getMessage("commands.ezone.not_player"))
+                    sendMessage(Locale.getMessage("commands.ezone.not_player"))
                     return@executes
                 }
                 val player = this
                 if (args.size < 2) {
-                    sendMessage(LanguageModule.getMessage("commands.ezone.create_usage"))
-                    sendMessage(LanguageModule.getMessage("commands.ezone.available_zones"))
+                    sendMessage(Locale.getMessage("commands.ezone.create_usage"))
+                    sendMessage(Locale.getMessage("commands.ezone.available_zones"))
                     EffectiveZone.namespacedKeyToZone.keys.forEach { sendMessage(" - $it") }
                     return@executes
                 }
                 val selection = EffectiveZoneSelection.getSelection(player.uniqueId)
                 if (selection == null || selection.first == null || selection.second == null) {
-                    sendMessage(LanguageModule.getMessage("commands.ezone.no_selection"))
+                    sendMessage(Locale.getMessage("commands.ezone.no_selection"))
                     return@executes
                 }
                 val zoneType = args[1]
                 EffectiveZoneSelection.playerToSelectedCoords.remove(player.uniqueId)
                 EffectiveZone.registerSelection(Triple(selection.first!!, selection.second!!, selection.third), zoneType)
-                sendMessage(LanguageModule.getMessage("commands.ezone.create_success", zoneType))
+                sendMessage(Locale.getMessage("commands.ezone.create_success", zoneType))
             }
             dynamic { EffectiveZone.namespacedKeyToZone.keys.toList() }
         }
@@ -59,18 +59,18 @@ object EffectiveZoneCommand : EffectiveCommand() {
         choice("delete") {
             executes { args ->
                 if (args.size < 2) {
-                    sendMessage(LanguageModule.getMessage("commands.ezone.delete_usage"))
+                    sendMessage(Locale.getMessage("commands.ezone.delete_usage"))
                     return@executes
                 }
                 val id = args[1].toIntOrNull()
                 if (id == null) {
-                    sendMessage(LanguageModule.getMessage("commands.ezone.invalid_id"))
+                    sendMessage(Locale.getMessage("commands.ezone.invalid_id"))
                     return@executes
                 }
                 if (EffectiveZone.deleteZoneBoxById(id)) {
-                    sendMessage(LanguageModule.getMessage("commands.ezone.delete_success", id))
+                    sendMessage(Locale.getMessage("commands.ezone.delete_success", id))
                 } else {
-                    sendMessage(LanguageModule.getMessage("commands.ezone.not_found"))
+                    sendMessage(Locale.getMessage("commands.ezone.not_found"))
                 }
             }
             dynamic {

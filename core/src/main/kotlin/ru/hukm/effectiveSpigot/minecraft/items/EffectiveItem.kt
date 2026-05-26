@@ -11,7 +11,7 @@ import org.bukkit.loot.LootTables
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.*
@@ -74,7 +74,7 @@ abstract class EffectiveItem {
         //TODO(Сделать, чтобы нельзя было использовать названия обычных предметов)
         val namespacedName = getNamespacedName()
         if (namespacedKeyToItem.containsKey(namespacedName)) {
-            throw IllegalArgumentException(LanguageModule.getMessage("errors.items.already_registered", namespacedName))
+            throw IllegalArgumentException(Locale.getMessage("errors.items.already_registered", namespacedName))
         }
         namespacedKeyToItem[namespacedName] = this
     }
@@ -88,6 +88,7 @@ abstract class EffectiveItem {
         editMeta(meta)
         item.itemMeta = meta
         EffectiveDataContainerUtils.setContainerValue(item, ITEM_KEY, PersistentDataType.STRING, getNamespacedName())
+        createItemStackCallback(item)
         return item
     }
 
@@ -126,6 +127,16 @@ abstract class EffectiveItem {
         )
     }
 
+    fun addBrewRecipe(inputIngredient: ItemStack, inputBase: ItemStack, fuelUse: Int, cookingTime: Int) {
+        EffectiveBrewable.registerRecipe(EffectiveBrewable.Data(
+            result = createItemStack(),
+            inputIngredient = inputIngredient,
+            inputBase = inputBase,
+            fuelUse = fuelUse,
+            cookingTime = cookingTime
+        ))
+    }
+
     fun makeWearable() {
         EffectiveWearable.makeWearable(this)
     }
@@ -133,6 +144,7 @@ abstract class EffectiveItem {
     abstract fun editMeta(meta: ItemMeta)
     abstract fun getMaterial(): Material
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
+    open fun createItemStackCallback(item: ItemStack) {}
 
     fun getNamespacedName(): String {
         return getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()

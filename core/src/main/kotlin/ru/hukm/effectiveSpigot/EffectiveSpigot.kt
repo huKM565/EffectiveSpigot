@@ -3,7 +3,6 @@ package ru.hukm.effectiveSpigot
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.interfaces.IModule
-import ru.hukm.effectiveSpigot.language.LanguageModule
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMenuCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
@@ -13,6 +12,7 @@ import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItems
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveBrewable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveDropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
@@ -44,7 +44,7 @@ class EffectiveSpigot : JavaPlugin() {
                 else "ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_9.McvModuleV1_21_9"
               } else
                       throw IllegalArgumentException(
-                              LanguageModule.getMessage("errors.unsupported_version", Bukkit.getServer().version)
+                              Locale.getMessage("errors.unsupported_version", Bukkit.getServer().version)
                       )
 
       mcvModule = EffectiveUtils.loadMcvModule(className, instance) ?: return
@@ -52,15 +52,15 @@ class EffectiveSpigot : JavaPlugin() {
   }
 
   override fun onLoad() {
-    instance = this
+      instance = this
 
-    LanguageModule.init()
+      Locale.init()
 
       EffectiveGiveCommand.init()
       EffectiveMobCommand.init()
       EffectiveMenuCommand.init()
-    EffectiveScreenCommand.init()
-    EffectiveZoneCommand.init()
+      EffectiveScreenCommand.init()
+      EffectiveZoneCommand.init()
   }
 
   override fun onEnable() {
@@ -76,7 +76,6 @@ class EffectiveSpigot : JavaPlugin() {
 
     val modulesList =
             listOf<IModule>(
-                LanguageModule,
                 EffectiveWorld.Companion.EffectiveWorldModule,
                 EffectiveDropable.getModule(),
                 EffectiveClickable.getModule(),
@@ -85,7 +84,8 @@ class EffectiveSpigot : JavaPlugin() {
                 EffectiveEntityInteractable.getModule(),
                 EffectiveMenu.getModule(),
                 EffectiveEntityLookable.getModule(),
-                EffectiveZone.getModule()
+                EffectiveZone.getModule(),
+                EffectiveBrewable.getModule()
             )
 
     EffectiveItems.ZONE_SELECTOR

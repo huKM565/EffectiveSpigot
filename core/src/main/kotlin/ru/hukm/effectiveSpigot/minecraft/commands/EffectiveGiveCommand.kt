@@ -4,7 +4,7 @@ import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 
@@ -17,7 +17,7 @@ object EffectiveGiveCommand : EffectiveCommand() {
     override fun commandTree() = CommandNode.build {
         executes { args ->
             if (args.size < 3) {
-                sendMessage(LanguageModule.getMessage("commands.egive.usage"))
+                sendMessage(Locale.getMessage("commands.egive.usage"))
                 return@executes
             }
             val targets = ArrayList<Player>()
@@ -25,12 +25,12 @@ object EffectiveGiveCommand : EffectiveCommand() {
             catch (e: IllegalArgumentException) { Bukkit.getPlayer(args[0])?.let { targets.add(it) } }
 
             if (targets.isEmpty()) {
-                sendMessage(LanguageModule.getMessage("commands.egive.player_not_found"))
+                sendMessage(Locale.getMessage("commands.egive.player_not_found"))
                 return@executes
             }
             val item = EffectiveItem.getItemByNamespacedKey(args[1])
             if (item == null) {
-                sendMessage(LanguageModule.getMessage("commands.egive.item_not_found", args[1]))
+                sendMessage(Locale.getMessage("commands.egive.item_not_found", args[1]))
                 return@executes
             }
             val count = args[2].toIntOrNull() ?: 0

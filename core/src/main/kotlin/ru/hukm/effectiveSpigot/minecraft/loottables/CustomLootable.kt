@@ -3,7 +3,7 @@ package ru.hukm.effectiveSpigot.minecraft.loottables
 import org.bukkit.Location
 import org.bukkit.block.Container
 import org.bukkit.inventory.ItemStack
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 
 object CustomLootable {
     data class ItemCellData(
@@ -31,7 +31,7 @@ object CustomLootable {
             if (Math.random() > cell.chanceSpawn) continue
 
             if (slotIndex >= freeSlots.size) {
-                throw IllegalStateException(LanguageModule.getMessage("errors.loot.container_full"))
+                throw IllegalStateException(Locale.getMessage("errors.loot.container_full"))
             }
 
             inventory.setItem(freeSlots[slotIndex], cell.item)

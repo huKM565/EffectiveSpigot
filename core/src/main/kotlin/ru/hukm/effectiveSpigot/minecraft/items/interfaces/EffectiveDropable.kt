@@ -1,5 +1,6 @@
 package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
+import com.destroystokyo.paper.event.block.BlockDestroyEvent
 import org.bukkit.Material
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.EntityType
@@ -84,15 +85,20 @@ interface EffectiveDropable {
         }
 
         @EventHandler(priority = EventPriority.MONITOR)
-        fun onBlockBreak(event: BlockBreakEvent) {
-            val block = event.block
-            val player = event.player
+        fun onBlockBreak(event: BlockBreakEvent) =
+            dropFromBlock(event.block, event.player)
 
+        @EventHandler(priority = EventPriority.MONITOR)
+        fun onBlockDestroy(event: BlockDestroyEvent) =
+            dropFromBlock(event.block, null)
+
+        private fun dropFromBlock(block: org.bukkit.block.Block, player: Player?) {
             for (data in foundableItems) {
                 if (data.blocks != null && data.blocks.contains(block.type)) {
                     if (Math.random() <= data.chance.invoke(player)) {
                         val item = data.item.clone()
                         data.amount?.let {
+                            println(it.invoke(player).random())
                             item.amount = it.invoke(player).random()
                         }
                         block.world.dropItemNaturally(block.location.add(0.5, 0.5, 0.5), item)

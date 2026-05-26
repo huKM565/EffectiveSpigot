@@ -12,7 +12,7 @@ import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
@@ -108,12 +108,12 @@ abstract class EffectiveBlock {
         val namespacedName = getNamespacedName()
 
         if (!getBlockMaterial().isBlock || getBlockMaterial() == Material.AIR) {
-            throw IllegalArgumentException(LanguageModule.getMessage("errors.blocks.invalid_material", namespacedName))
+            throw IllegalArgumentException(Locale.getMessage("errors.blocks.invalid_material", namespacedName))
         }
 
         //TODO(Сделать, чтобы нельзя было использовать названия обычных блоков)
         if (namespacedKeyToBlock.containsKey(namespacedName)) {
-            throw IllegalArgumentException(LanguageModule.getMessage("errors.blocks.already_registered", namespacedName)) //TODO имя в текст добавить
+            throw IllegalArgumentException(Locale.getMessage("errors.blocks.already_registered", namespacedName)) //TODO имя в текст добавить
         }
         namespacedKeyToBlock[namespacedName] = this
 

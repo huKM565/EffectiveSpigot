@@ -10,7 +10,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataHolder
 import org.bukkit.persistence.PersistentDataType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
@@ -120,7 +120,7 @@ interface EffectiveAbstractInteract {
                     val remainingSeconds = remainingMillis / 1000
                     EffectiveMinecraftUtils.sendMessageToActionBar(
                         eventsCallOptions.player,
-                        LanguageModule.getMessage("errors.cooldown.wait", remainingSeconds),
+                        Locale.getMessage("errors.cooldown.wait", remainingSeconds),
                         ChatColor.RED
                     )
                     return Result.CANCEL_EVENT

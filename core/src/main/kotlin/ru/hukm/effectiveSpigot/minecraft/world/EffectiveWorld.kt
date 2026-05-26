@@ -6,7 +6,7 @@ import org.bukkit.World
 import org.bukkit.block.Block
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.EffectiveSpigot.Companion.instance
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA
@@ -100,8 +100,8 @@ class EffectiveWorld private constructor(val name: String) {
     }
 
     fun tryUploadChunk(chunk: Chunk) {
-        if(!chunk.isLoaded) throw IllegalArgumentException(LanguageModule.getMessage("errors.chunk_not_loaded", chunk.x, chunk.z, name))
-        if(EffectiveWorldParser.worldToString(chunk.world) != name) throw IllegalArgumentException(LanguageModule.getMessage("errors.chunk_wrong_world", chunk.x, chunk.z, chunk.world.name, name))
+        if(!chunk.isLoaded) throw IllegalArgumentException(Locale.getMessage("errors.chunk_not_loaded", chunk.x, chunk.z, name))
+        if(EffectiveWorldParser.worldToString(chunk.world) != name) throw IllegalArgumentException(Locale.getMessage("errors.chunk_wrong_world", chunk.x, chunk.z, chunk.world.name, name))
 
         val cursor = effectiveChunkSoA.find(chunk.x, chunk.z)?.apply {
             this.setLoad(true, effectiveChunkSoA)
@@ -117,7 +117,7 @@ class EffectiveWorld private constructor(val name: String) {
     }
 
     fun setIsUnload(chunk: Chunk) {
-        effectiveChunkSoA.find(chunk.x, chunk.z)!!.setLoad(false, effectiveChunkSoA)
+        effectiveChunkSoA.find(chunk.x, chunk.z)?.setLoad(false, effectiveChunkSoA)
     }
 
     fun updateBlocks(blocks: List<Block>) {
@@ -179,7 +179,7 @@ class EffectiveWorld private constructor(val name: String) {
         val cursor = effectiveChunkSoA.find(chunkX, chunkZ)
         if (cursor == null) {
             instance.logger.warning(
-                LanguageModule.getMessage("errors.world.update_unloaded_chunk", chunkX, chunkZ, name)
+                Locale.getMessage("errors.world.update_unloaded_chunk", chunkX, chunkZ, name)
             )
             return null
         }

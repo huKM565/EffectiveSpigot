@@ -8,7 +8,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.RecipeChoice
 import org.bukkit.inventory.ShapelessRecipe
 import org.bukkit.plugin.Plugin
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.utils.EffectiveCombinator
 
 interface EffectiveCraftable {
@@ -26,26 +26,26 @@ interface EffectiveCraftable {
                     is Tag<*> -> {
                         val firstElement = ingredient.values.firstOrNull()
                         if (firstElement != null && firstElement !is Material) {
-                            throw ClassCastException(LanguageModule.getMessage("errors.tag_invalid_material", firstElement::class.simpleName ?: "unknown"))
+                            throw ClassCastException(Locale.getMessage("errors.tag_invalid_material", firstElement::class.simpleName ?: "unknown"))
                         }
                         @Suppress("UNCHECKED_CAST")
                         (ingredient as Tag<Material>).values.toList()
                     }
                     is List<*> -> {
                         if (ingredient.isEmpty()) {
-                            throw IllegalArgumentException(LanguageModule.getMessage("errors.ingredient_empty"))
+                            throw IllegalArgumentException(Locale.getMessage("errors.ingredient_empty"))
                         }
 
                         val first = ingredient.first()!!
 
                         if (first !is Material && first !is ItemStack) {
-                            throw IllegalArgumentException(LanguageModule.getMessage("errors.list_invalid_material", first::class.simpleName ?: "unknown"))
+                            throw IllegalArgumentException(Locale.getMessage("errors.list_invalid_material", first::class.simpleName ?: "unknown"))
                         }
 
                         @Suppress("UNCHECKED_CAST")
                         ingredient as List<Any>
                     }
-                    else -> throw IllegalArgumentException(LanguageModule.getMessage("errors.ingredient_invalid_type", ingredient::class.simpleName ?: "unknown"))
+                    else -> throw IllegalArgumentException(Locale.getMessage("errors.ingredient_invalid_type", ingredient::class.simpleName ?: "unknown"))
                 }
             }
 

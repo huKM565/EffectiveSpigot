@@ -3,7 +3,7 @@ package ru.hukm.effectiveSpigot.minecraft.commands
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.language.LanguageModule
+import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 
 object EffectiveMobCommand : EffectiveCommand() {
@@ -15,21 +15,21 @@ object EffectiveMobCommand : EffectiveCommand() {
     override fun commandTree() = CommandNode.build {
         executes { args ->
             if (this !is Player) {
-                sendMessage(LanguageModule.getMessage("commands.emob.only_players"))
+                sendMessage(Locale.getMessage("commands.emob.only_players"))
                 return@executes
             }
             if (args.isEmpty()) {
-                sendMessage(LanguageModule.getMessage("commands.emob.usage"))
+                sendMessage(Locale.getMessage("commands.emob.usage"))
                 return@executes
             }
             val entityKey = args[0]
             val effectiveEntity = EffectiveEntity.namespacedKeyToEffectiveEntity[entityKey]
             if (effectiveEntity == null) {
-                sendMessage(LanguageModule.getMessage("commands.emob.entity_not_found", entityKey))
+                sendMessage(Locale.getMessage("commands.emob.entity_not_found", entityKey))
                 return@executes
             }
             effectiveEntity.spawnEntity(location)
-            sendMessage(LanguageModule.getMessage("commands.emob.success", entityKey))
+            sendMessage(Locale.getMessage("commands.emob.success", entityKey))
         }
         dynamic { EffectiveEntity.namespacedKeyToEffectiveEntity.keys.toList() }
     }
