@@ -76,7 +76,7 @@ class EffectiveSpigot : JavaPlugin() {
 
     val modulesList =
             listOf<IModule>(
-                EffectiveWorld.Companion.EffectiveWorldModule,
+                //EffectiveWorld.Companion.EffectiveWorldModule,
                 EffectiveDropable.getModule(),
                 EffectiveClickable.getModule(),
                 EffectiveWearable.getModule(),

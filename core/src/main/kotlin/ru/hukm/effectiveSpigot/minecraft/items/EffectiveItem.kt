@@ -7,6 +7,7 @@ import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
+import org.bukkit.inventory.meta.PotionMeta
 import org.bukkit.loot.LootTables
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
@@ -127,11 +128,11 @@ abstract class EffectiveItem {
         )
     }
 
-    fun addBrewRecipe(inputIngredient: ItemStack, inputBase: ItemStack, fuelUse: Int, cookingTime: Int) {
+    fun addBrewRecipe(inputIngredient: ItemStack, inputBasePotionMeta: PotionMeta, fuelUse: Int, cookingTime: Int) {
         EffectiveBrewable.registerRecipe(EffectiveBrewable.Data(
             result = createItemStack(),
             inputIngredient = inputIngredient,
-            inputBase = inputBase,
+            inputBasePotionMeta = inputBasePotionMeta,
             fuelUse = fuelUse,
             cookingTime = cookingTime
         ))

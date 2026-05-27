@@ -2,6 +2,7 @@ package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.Sound
 import org.bukkit.block.BrewingStand
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -9,7 +10,9 @@ import org.bukkit.event.Listener
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.BrewerInventory
+import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.PotionMeta
 import org.bukkit.scheduler.BukkitRunnable
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
@@ -19,7 +22,7 @@ interface EffectiveBrewable {
     data class Data(
         val result: ItemStack,
         val inputIngredient: ItemStack,
-        val inputBase: ItemStack,
+        val inputBasePotionMeta: PotionMeta,
         val fuelUse: Int,
         val cookingTime: Int
     ) {
@@ -27,8 +30,7 @@ interface EffectiveBrewable {
             if (other !is Data) return false
             return EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(inputIngredient, other.inputIngredient) &&
                     inputIngredient.amount == other.inputIngredient.amount &&
-                    EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(inputBase, other.inputBase) &&
-                    inputBase.amount == other.inputBase.amount &&
+                    inputBasePotionMeta.equals(other) &&
                     EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(result, other.result) &&
                     result.amount == other.result.amount &&
                     fuelUse == other.fuelUse &&
@@ -40,7 +42,7 @@ interface EffectiveBrewable {
             result1 = 31 * result1 + cookingTime
             result1 = 31 * result1 + result.hashCode()
             result1 = 31 * result1 + inputIngredient.hashCode()
-            result1 = 31 * result1 + inputBase.hashCode()
+            result1 = 31 * result1 + inputBasePotionMeta.hashCode()
             return result1
         }
 
@@ -67,23 +69,96 @@ interface EffectiveBrewable {
                 EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it, base) && it.amount == base.amount
             }
             if (!allSame) return null
-            return getRecipeBy(ingredient, base)
+            val meta = base.itemMeta as PotionMeta
+            return getRecipeBy(ingredient, meta)
         }
 
         fun registerRecipe(data: Data) {
             brewRecipes.add(data)
         }
 
-        fun getRecipeBy(inputIngredient: ItemStack, inputBase: ItemStack): Data? {
+        fun getRecipeBy(inputIngredient: ItemStack, inputBasePotionMeta: PotionMeta): Data? {
             for (recipe in brewRecipes) {
-                if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(recipe.inputIngredient, inputIngredient) && inputIngredient.amount >= recipe.inputIngredient.amount &&
-                    EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(recipe.inputBase, inputBase) && recipe.inputBase.amount == inputBase.amount
-                    ) {
-                        return recipe
-                    }
+                if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(
+                        recipe.inputIngredient,
+                        inputIngredient
+                    ) && inputIngredient.amount >= recipe.inputIngredient.amount &&
+                    inputBasePotionMeta == recipe.inputBasePotionMeta
+                ) {
+                    return recipe
+                }
             }
 
             return null
+        }
+
+        fun tryStartBrewing(inventory: Inventory) {
+            if (inventory !is BrewerInventory) return
+
+            inventory.holder ?: return
+
+            val recipe = getRecipeFromBlock(inventory.holder!!)
+            if (recipe != null) {
+                inventory.holder!!.let {
+                    it.recipeBrewTime = recipe.cookingTime
+                    it.brewingTime = recipe.cookingTime
+                    it.fuelLevel = (it.fuelLevel - recipe.fuelUse).coerceAtLeast(0)
+                    it.update()
+                }
+
+                object : BukkitRunnable() {
+                    var ticksLeft = recipe.cookingTime
+                    override fun run() {
+                        val brewingStand = inventory.holder
+
+                        if (brewingStand == null) {
+                            cancel()
+                            return
+                        }
+
+                        val currentRecipe = getRecipeFromBlock(brewingStand)
+
+                        if (currentRecipe == null || currentRecipe !== recipe) {
+                            brewingStand.brewingTime = 0
+                            brewingStand.update()
+                            cancel()
+                            return
+                        }
+
+                        if (ticksLeft <= 0) {
+                            val snapshot = brewingStand.snapshotInventory
+                            for (i in 0..2) {
+                                val base = snapshot.getItem(i)
+                                if (base != null && base.type != Material.AIR) {
+                                    snapshot.setItem(i, recipe.result.clone())
+                                }
+                            }
+                            val ingredient = snapshot.ingredient!!
+                            if (ingredient.amount <= recipe.inputIngredient.amount) {
+                                snapshot.ingredient = ItemStack(Material.AIR)
+                            } else {
+                                ingredient.amount -= recipe.inputIngredient.amount
+                                snapshot.ingredient = ingredient
+                            }
+                            brewingStand.brewingTime = 0
+                            brewingStand.location.world.playSound(
+                                brewingStand.location,
+                                Sound.BLOCK_BREWING_STAND_BREW,
+                                1.0f,
+                                1.0f
+                            )
+                            brewingStand.update()
+                            cancel()
+                            return
+                        }
+
+                        brewingStand.brewingTime = ticksLeft
+                        brewingStand.update()
+
+                        ticksLeft--
+                    }
+                }.runTaskTimer(EffectiveSpigot.instance, 0, 1)
+            }
         }
     }
 
@@ -93,7 +168,7 @@ interface EffectiveBrewable {
 
             val p = event.whoClicked as Player
             val slot = event.currentItem ?: ItemStack(Material.AIR)
-            var held = event.cursor ?: ItemStack(Material.AIR)
+            val held = event.cursor
             val empty = ItemStack(Material.AIR)
 
             val slotC = slot.amount
@@ -190,6 +265,8 @@ interface EffectiveBrewable {
         @EventHandler
         fun onInventoryClickEvent(event: InventoryClickEvent) {
             if (event.view.topInventory !is BrewerInventory) return
+            if (event.clickedInventory !is BrewerInventory) return
+
 
             if (event.rawSlot == 3) {
                 val cursor = event.cursor
@@ -203,74 +280,11 @@ interface EffectiveBrewable {
                 }
             }
 
+            val inventory = event.view.topInventory as BrewerInventory
+            if (inventory.holder?.brewingTime != 0) return
+
             Bukkit.getScheduler().runTaskLater(EffectiveSpigot.instance, Runnable {
-                val brewerInventory = event.view.topInventory as BrewerInventory
-
-                brewerInventory.holder ?: return@Runnable
-
-                val recipe = getRecipeFromBlock(brewerInventory.holder!!)
-                if (recipe != null) {
-                    brewerInventory.holder!!.let {
-                        it.recipeBrewTime = recipe.cookingTime
-                        it.brewingTime = recipe.cookingTime
-                        it.fuelLevel = (it.fuelLevel - recipe.fuelUse).coerceAtLeast(0)
-                        it.update()
-                    }
-
-                    object : BukkitRunnable() {
-                        var ticksLeft = recipe.cookingTime
-                        override fun run() {
-                            val brewingStand = brewerInventory.holder
-                            println("OK1")
-                            if (brewingStand == null) {
-                                cancel()
-                                return
-                            }
-                            println("OK2")
-                            val currentRecipe = getRecipeFromBlock(brewingStand)
-                            if (currentRecipe == null || currentRecipe != recipe) {
-                                brewingStand.brewingTime = 0
-                                brewingStand.update()
-                                cancel()
-                                return
-                            }
-                            println("OK3")
-
-                            if (ticksLeft <= 0) {
-                                for (i in 0..2) {
-                                    val base = brewerInventory.getItem(i)
-                                    if (base != null && base.type != Material.AIR) {
-                                        brewerInventory.setItem(i, recipe.result.clone())
-                                        brewingStand.update()
-                                    }
-                                }
-                                val ingredient = brewerInventory.ingredient!!
-
-                                if (ingredient.amount <= recipe.inputIngredient.amount) {
-                                    brewerInventory.ingredient = ItemStack(Material.AIR)
-                                } else {
-                                    ingredient.amount -= recipe.inputIngredient.amount
-                                    brewerInventory.ingredient = ingredient
-                                }
-
-                                brewingStand.brewingTime = 0
-                                brewingStand.update()
-                                cancel()
-                                return
-                            }
-
-                            println(ticksLeft)
-                            //TODO(сделать, чтобы заново варка начиналась, если ингридиенты есть* 2.) при добавлении айтемов варка начинается заново/
-
-                            brewingStand.brewingTime = ticksLeft
-                            brewingStand.update()
-                            
-                            ticksLeft--
-                        }
-                    }.runTaskTimer(EffectiveSpigot.instance, 0L, 1L)
-                }
-
-                println("inv: ${(0..2).map { brewerInventory.getItem(it) }} ingredient=${brewerInventory.ingredient} fuel=${brewerInventory.fuel}")
+                tryStartBrewing(inventory)
             }, 1)
         }
     }
