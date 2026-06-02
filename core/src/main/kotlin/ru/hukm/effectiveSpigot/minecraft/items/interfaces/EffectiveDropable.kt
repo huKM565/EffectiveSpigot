@@ -9,6 +9,10 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockExplodeEvent
+import org.bukkit.event.block.BlockPistonExtendEvent
+import org.bukkit.event.block.BlockPistonRetractEvent
+import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.world.LootGenerateEvent
 import org.bukkit.inventory.ItemStack
@@ -91,6 +95,14 @@ interface EffectiveDropable {
         @EventHandler(priority = EventPriority.MONITOR)
         fun onBlockDestroy(event: BlockDestroyEvent) =
             dropFromBlock(event.block, null)
+
+        @EventHandler(priority = EventPriority.MONITOR)
+        fun onEntityExplode(event: EntityExplodeEvent) =
+            event.blockList().forEach { dropFromBlock(it, null) }
+
+        @EventHandler(priority = EventPriority.MONITOR)
+        fun onBlockExplode(event: BlockExplodeEvent) =
+            event.blockList().forEach { dropFromBlock(it, null) }
 
         private fun dropFromBlock(block: org.bukkit.block.Block, player: Player?) {
             for (data in foundableItems) {

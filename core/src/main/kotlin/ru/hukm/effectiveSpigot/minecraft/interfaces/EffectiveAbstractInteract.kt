@@ -55,30 +55,24 @@ interface EffectiveAbstractInteract {
         private fun <T : EventsCallOptions<out Target>> checkCooldownAndRunCall(data: Data<T>, eventsCallOptions: T): Result {
             if (data.click != eventsCallOptions.click) return Result.ALLOW_EVENT
 
-            val target = eventsCallOptions.target
-            val instanceNamespacedKeyOrName = when (target) {
-                is Target.Item -> EffectiveItem.getNamespacedKeyByItem(target.itemStack)
-                is Target.Entity -> EffectiveEntity.getNamespacedKeyByEntity(target.entity)
-                is Target.Block -> EffectiveEntity.getNamespacedKeyByEntity(target.itemDisplay)
-            }!!
-
             if (data.cooldownData == null || data.cooldownData!!.cooldownToUseInTicks <= 0) return data.callback(eventsCallOptions)
             if (data.cooldownData!!.conditionForSkipCooldown?.invoke(eventsCallOptions) == true) return Result.ALLOW_EVENT
+
+            val target = eventsCallOptions.target
+            val instanceNamespacedKeyOrName = when (target) {
+                is Target.Item -> EffectiveItem.getNamespacedKeyByItemElseMaterial(target.itemStack)
+                is Target.Entity -> EffectiveEntity.getNamespacedKeyByEntity(target.entity)
+                is Target.Block -> EffectiveEntity.getNamespacedKeyByEntity(target.itemDisplay)
+            } ?: return data.callback(eventsCallOptions)
             val timeLatestUsed = if (data.cooldownData!!.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
                 val namespacedKey = NamespacedKey(
                     EffectiveSpigot.instance,
                     instanceNamespacedKeyOrName
                 )
 
-                EffectiveDataContainerUtils.getContainerValue(
-                    EffectiveDataContainerUtils.getContainerValue(
-                        eventsCallOptions.player,
-                        COOLDOWN_KEY,
-                        PersistentDataType.TAG_CONTAINER
-                    )!!,
-                    namespacedKey,
-                    PersistentDataType.LONG
-                )
+                EffectiveDataContainerUtils.getContainer(eventsCallOptions.player, COOLDOWN_KEY) { container ->
+                    EffectiveDataContainerUtils.getContainerValue(container, namespacedKey, PersistentDataType.LONG)
+                }
             } else  {
                 if (target is Target.Block && target.itemDisplay == null) {
                     0L
@@ -117,7 +111,7 @@ interface EffectiveAbstractInteract {
                 val millisPassed = System.currentTimeMillis() - timeLatestUsed
                 if (millisPassed < cooldownToUseInMillis) {
                     val remainingMillis = cooldownToUseInMillis - millisPassed
-                    val remainingSeconds = remainingMillis / 1000
+                    val remainingSeconds = remainingMillis / 1000.0
                     EffectiveMinecraftUtils.sendMessageToActionBar(
                         eventsCallOptions.player,
                         Locale.getMessage("errors.cooldown.wait", remainingSeconds),

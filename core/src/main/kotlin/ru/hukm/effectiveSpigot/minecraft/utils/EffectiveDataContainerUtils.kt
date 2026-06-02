@@ -1,5 +1,7 @@
 package ru.hukm.effectiveSpigot.minecraft.utils
 
+import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
@@ -7,11 +9,19 @@ import org.bukkit.persistence.PersistentDataHolder
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
+import ru.hukm.effectiveSpigot.EffectiveSpigot
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.Base64
 
 object EffectiveDataContainerUtils {
+    private val LOC_WORLD_KEY by lazy { NamespacedKey(EffectiveSpigot.instance, "world") }
+    private val LOC_X_KEY by lazy { NamespacedKey(EffectiveSpigot.instance, "x") }
+    private val LOC_Y_KEY by lazy { NamespacedKey(EffectiveSpigot.instance, "y") }
+    private val LOC_Z_KEY by lazy { NamespacedKey(EffectiveSpigot.instance, "z") }
+    private val LOC_YAW_KEY by lazy { NamespacedKey(EffectiveSpigot.instance, "yaw") }
+    private val LOC_PITCH_KEY by lazy { NamespacedKey(EffectiveSpigot.instance, "pitch") }
+
     fun <Z : Any, T : Any> getContainerValue(
         item: ItemStack,
         key: NamespacedKey,
@@ -161,6 +171,85 @@ object EffectiveDataContainerUtils {
             return null
         }
     }
+
+    fun <T> getContainer(
+        holder: PersistentDataHolder,
+        key: NamespacedKey,
+        block: (PersistentDataContainer) -> T
+    ): T? {
+        val container = getContainerValue(holder, key, PersistentDataType.TAG_CONTAINER) ?: return null
+        return block(container)
+    }
+
+    fun <T> getContainer(
+        item: ItemStack,
+        key: NamespacedKey,
+        block: (PersistentDataContainer) -> T
+    ): T? {
+        val container = getContainerValue(item, key, PersistentDataType.TAG_CONTAINER) ?: return null
+        return block(container)
+    }
+
+
+    fun setLocation(holder: PersistentDataHolder, key: NamespacedKey, location: Location?) {
+        if (location == null) {
+            holder.persistentDataContainer.remove(key)
+            return
+        }
+        setContainer(holder, key) { container ->
+            container.set(LOC_WORLD_KEY, PersistentDataType.STRING, location.world?.name ?: return@setContainer)
+            container.set(LOC_X_KEY, PersistentDataType.DOUBLE, location.x)
+            container.set(LOC_Y_KEY, PersistentDataType.DOUBLE, location.y)
+            container.set(LOC_Z_KEY, PersistentDataType.DOUBLE, location.z)
+            container.set(LOC_YAW_KEY, PersistentDataType.FLOAT, location.yaw)
+            container.set(LOC_PITCH_KEY, PersistentDataType.FLOAT, location.pitch)
+        }
+    }
+
+    fun setLocation(item: ItemStack, key: NamespacedKey, location: Location?): ItemStack {
+        if (location == null) {
+            val meta = item.itemMeta ?: return item
+            meta.persistentDataContainer.remove(key)
+            item.itemMeta = meta
+            return item
+        }
+        return setContainer(item, key) { container ->
+            container.set(LOC_WORLD_KEY, PersistentDataType.STRING, location.world?.name ?: return@setContainer)
+            container.set(LOC_X_KEY, PersistentDataType.DOUBLE, location.x)
+            container.set(LOC_Y_KEY, PersistentDataType.DOUBLE, location.y)
+            container.set(LOC_Z_KEY, PersistentDataType.DOUBLE, location.z)
+            container.set(LOC_YAW_KEY, PersistentDataType.FLOAT, location.yaw)
+            container.set(LOC_PITCH_KEY, PersistentDataType.FLOAT, location.pitch)
+        }
+    }
+
+
+    fun getLocation(holder: PersistentDataHolder, key: NamespacedKey): Location? {
+        return getContainer(holder, key) { container ->
+            val worldName = container.get(LOC_WORLD_KEY, PersistentDataType.STRING) ?: return@getContainer null
+            val x = container.get(LOC_X_KEY, PersistentDataType.DOUBLE) ?: return@getContainer null
+            val y = container.get(LOC_Y_KEY, PersistentDataType.DOUBLE) ?: return@getContainer null
+            val z = container.get(LOC_Z_KEY, PersistentDataType.DOUBLE) ?: return@getContainer null
+            val yaw = container.get(LOC_YAW_KEY, PersistentDataType.FLOAT) ?: 0f
+            val pitch = container.get(LOC_PITCH_KEY, PersistentDataType.FLOAT) ?: 0f
+            val world = Bukkit.getWorld(worldName) ?: return@getContainer null
+            Location(world, x, y, z, yaw, pitch)
+        }
+    }
+
+    fun getLocation(item: ItemStack, key: NamespacedKey): Location? {
+        return getContainer(item, key) { container ->
+            val worldName = container.get(LOC_WORLD_KEY, PersistentDataType.STRING) ?: return@getContainer null
+            val x = container.get(LOC_X_KEY, PersistentDataType.DOUBLE) ?: return@getContainer null
+            val y = container.get(LOC_Y_KEY, PersistentDataType.DOUBLE) ?: return@getContainer null
+            val z = container.get(LOC_Z_KEY, PersistentDataType.DOUBLE) ?: return@getContainer null
+            val yaw = container.get(LOC_YAW_KEY, PersistentDataType.FLOAT) ?: 0f
+            val pitch = container.get(LOC_PITCH_KEY, PersistentDataType.FLOAT) ?: 0f
+            val world = Bukkit.getWorld(worldName) ?: return@getContainer null
+            Location(world, x, y, z, yaw, pitch)
+        }
+    }
+
 
     fun setContainer(
         holder: PersistentDataHolder,
