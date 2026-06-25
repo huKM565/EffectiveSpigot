@@ -59,6 +59,10 @@ errors:
     already_registered: "Команда с ключом '%s' уже зарегистрирована"
   items:
     already_registered: "Предмет с ключом '%s' уже зарегистрирован"
+    wrong_additional_args_count: "Неверное количество дополнительных аргументов: ожидалось %s, получено %s"
+    cannot_parse_additional_arg: "Не удалось распарсить аргумент #%s = '%s' для ключа '%s'"
+    no_additional_args_defined: "Дополнительные аргументы не определены"
+    unknown_additional_arg_key: "Неизвестный ключ дополнительного аргумента: '%s'"
   advancement:
     already_registered: "Достижение с ключом '%s' уже зарегистрировано"
   menu:

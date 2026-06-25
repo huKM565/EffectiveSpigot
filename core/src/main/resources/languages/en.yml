@@ -59,6 +59,10 @@ errors:
     already_registered: "Command with namespaced name '%s' is already registered"
   items:
     already_registered: "Item with namespaced name '%s' is already registered"
+    wrong_additional_args_count: "Wrong number of additional arguments: expected %s, got %s"
+    cannot_parse_additional_arg: "Cannot parse argument #%s = '%s' for key '%s'"
+    no_additional_args_defined: "No additional args defined"
+    unknown_additional_arg_key: "Unknown additional arg key: '%s'"
   advancement:
     already_registered: "Advancement with namespaced key '%s' is already registered"
   menu:

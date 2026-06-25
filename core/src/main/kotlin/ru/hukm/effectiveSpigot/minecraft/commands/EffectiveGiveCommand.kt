@@ -16,7 +16,7 @@ object EffectiveGiveCommand : EffectiveCommand() {
 
     override fun commandTree() = CommandNode.build {
         executes { args ->
-            if (args.size < 3) {
+            if (args.size < 2) {
                 sendMessage(Locale.getMessage("commands.egive.usage"))
                 return@executes
             }
@@ -28,13 +28,18 @@ object EffectiveGiveCommand : EffectiveCommand() {
                 sendMessage(Locale.getMessage("commands.egive.player_not_found"))
                 return@executes
             }
-            val item = EffectiveItem.getItemByNamespacedKey(args[1])
-            if (item == null) {
+            val effectiveItem = EffectiveItem.getEffectiveItemByNamespacedKey(args[1])
+            if (effectiveItem == null) {
                 sendMessage(Locale.getMessage("commands.egive.item_not_found", args[1]))
                 return@executes
             }
-            val count = args[2].toIntOrNull() ?: 0
-            for (target in targets) repeat(count) { EffectiveInventoryUtils.giveItem(item, target) }
+            val count = args.getOrNull(2)?.toIntOrNull() ?: 1
+
+            val additionalArgs = args.drop(3)
+
+            for (target in targets) repeat(count) {
+                EffectiveInventoryUtils.giveItem(effectiveItem.createItemStack(additionalArgs), target)
+            }
         }
         dynamic({ listOf("@a", "@p") + Bukkit.getOnlinePlayers().map { it.name } }) {
             dynamic({ EffectiveItem.namespacedKeyToItem.keys.toList() }) {

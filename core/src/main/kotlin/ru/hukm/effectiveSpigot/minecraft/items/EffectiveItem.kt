@@ -17,7 +17,6 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.*
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
-import kotlin.text.lowercase
 
 abstract class EffectiveItem {
     companion object {
@@ -50,8 +49,12 @@ abstract class EffectiveItem {
             return false
         }
 
+        fun getEffectiveItemByNamespacedKey(namespacedKey: String): EffectiveItem? {
+            return namespacedKeyToItem[namespacedKey]
+        }
+
         fun getItemByNamespacedKey(namespacedKey: String): ItemStack? {
-            return namespacedKeyToItem[namespacedKey]?.createItemStack()
+            return getEffectiveItemByNamespacedKey(namespacedKey)?.createItemStack()
         }
 
         fun getNamespacedKeyByItem(item: ItemStack?): String? {
@@ -69,7 +72,13 @@ abstract class EffectiveItem {
         fun getGrayLore(lines: List<String>): List<String> {
             return lines.map { ChatColor.GRAY.toString() + it }
         }
+
     }
+
+    data class AdditionalArgs(
+        val instance: JavaPlugin,
+        val keys: List<Pair<String, PersistentDataType<*, *>>>
+    )
 
     init {
         //TODO(Сделать, чтобы нельзя было использовать названия обычных предметов)
@@ -84,6 +93,10 @@ abstract class EffectiveItem {
 
     fun createItemStack(amount: Int): ItemStack {
         val item = ItemStack(getMaterial())
+        return finalizeItem(item, amount)
+    }
+
+    private fun finalizeItem(item: ItemStack, amount: Int): ItemStack {
         item.amount = amount
         val meta = item.itemMeta ?: return item
         editMeta(meta)
@@ -91,6 +104,62 @@ abstract class EffectiveItem {
         EffectiveDataContainerUtils.setContainerValue(item, ITEM_KEY, PersistentDataType.STRING, getNamespacedName())
         createItemStackCallback(item)
         return item
+    }
+
+    fun createItemStack(additionalArgs: List<String>): ItemStack {
+        return createItemStack(1, additionalArgs)
+    }
+
+    fun createItemStack(amount: Int, additionalArgs: List<String>): ItemStack {
+        val item = ItemStack(getMaterial())
+        if (additionalArgs.isEmpty()) return createItemStack(amount)
+
+        val namespacedKeysToPersistenceType = getAdditionalArgsNamespacedKeys() ?: return createItemStack(amount)
+        if (namespacedKeysToPersistenceType.isEmpty()) return createItemStack(amount)
+        if (additionalArgs.size != namespacedKeysToPersistenceType.size) throw IllegalArgumentException(
+            Locale.getMessage(
+                "errors.items.wrong_additional_args_count",
+                namespacedKeysToPersistenceType.size,
+                additionalArgs.size
+            )
+        )
+
+        namespacedKeysToPersistenceType.forEachIndexed { index, pair ->
+            val raw = additionalArgs[index]
+            val value = parseArg(raw, pair.second)
+                ?: throw IllegalArgumentException(
+                    Locale.getMessage(
+                        "errors.items.cannot_parse_additional_arg",
+                        index + 1,
+                        raw,
+                        pair.first.key
+                    )
+                )
+            @Suppress("UNCHECKED_CAST")
+            EffectiveDataContainerUtils.setContainerValue(
+                item,
+                pair.first,
+                pair.second as PersistentDataType<Any, Any>,
+                value
+            )
+        }
+
+        return finalizeItem(item, amount)
+    }
+
+    private fun parseArg(raw: String, type: PersistentDataType<*, *>): Any? = when (type) {
+        PersistentDataType.STRING       -> raw
+        PersistentDataType.BYTE         -> raw.toByteOrNull()
+        PersistentDataType.SHORT        -> raw.toShortOrNull()
+        PersistentDataType.INTEGER      -> raw.toIntOrNull()
+        PersistentDataType.LONG         -> raw.toLongOrNull()
+        PersistentDataType.FLOAT        -> raw.toFloatOrNull()
+        PersistentDataType.DOUBLE       -> raw.toDoubleOrNull()
+        PersistentDataType.BOOLEAN      -> raw.toBooleanStrictOrNull()
+        PersistentDataType.BYTE_ARRAY   -> raw.split(",").mapNotNull { it.trim().toByteOrNull() }.toByteArray()
+        PersistentDataType.INTEGER_ARRAY -> raw.split(",").mapNotNull { it.trim().toIntOrNull() }.toIntArray()
+        PersistentDataType.LONG_ARRAY   -> raw.split(",").mapNotNull { it.trim().toLongOrNull() }.toLongArray()
+        else -> null
     }
 
     fun equalByNamespacedKey(effectiveItem: EffectiveItem) = getNamespacedName() == effectiveItem.getNamespacedName()
@@ -146,6 +215,34 @@ abstract class EffectiveItem {
     abstract fun getMaterial(): Material
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
     open fun createItemStackCallback(item: ItemStack) {}
+    open fun getAdditionalArgs(): AdditionalArgs? {
+        return null
+    }
+
+    fun getAdditionalArgsNamespacedKeys(): List<Pair<NamespacedKey, PersistentDataType<*, *>>>? {
+        val namespacedKeys = arrayListOf<Pair<NamespacedKey, PersistentDataType<*, *>>>()
+        val additionalArgs = getAdditionalArgs() ?: return null
+
+        for (pair in additionalArgs.keys) {
+            namespacedKeys.add(
+                Pair(
+                    NamespacedKey(additionalArgs.instance, pair.first),
+                    pair.second
+                )
+            )
+        }
+
+        return namespacedKeys
+    }
+
+    fun additionalKey(name: String): NamespacedKey {
+        val args = getAdditionalArgs()
+            ?: throw IllegalStateException(Locale.getMessage("errors.items.no_additional_args_defined"))
+        require(args.keys.any { it.first == name }) {
+            Locale.getMessage("errors.items.unknown_additional_arg_key", name)
+        }
+        return NamespacedKey(args.instance, name)
+    }
 
     fun getNamespacedName(): String {
         return getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
