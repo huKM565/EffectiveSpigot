@@ -49,6 +49,9 @@ items:
     name: "&6Селектор зоны"
     pos1: "&dПервая позиция установлена на %d, %d, %d"
     pos2: "&dВторая позиция установлена на %d, %d, %d"
+  zone_registering_selector:
+    registered: "&aЗона типа '%s' зарегистрирована с ID %d."
+    zone_not_registered: "&cТип зоны '%s' не зарегистрирован на сервере."
 
 errors:
   unsupported_version: "Неподдерживаемая версия Minecraft: %s"
@@ -56,6 +59,8 @@ errors:
     already_registered: "Команда с ключом '%s' уже зарегистрирована"
   items:
     already_registered: "Предмет с ключом '%s' уже зарегистрирован"
+  advancement:
+    already_registered: "Достижение с ключом '%s' уже зарегистрировано"
   menu:
     already_registered: "Меню с ключом '%s' уже зарегистрировано"
   entities:

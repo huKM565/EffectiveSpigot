@@ -20,11 +20,11 @@ import java.util.UUID
 object EffectiveZoneRenderer {
     private val UUIDToTaskId = hashMapOf<UUID, Int>()
 
-    fun startRendering(selectionOrZoneBox: Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, isRegistered: Boolean = true) {
-        startRendering(selectionOrZoneBox, null, isRegistered)
+    fun startRendering(selectionOrZoneBox: Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, color: Color? = null) {
+        startRendering(selectionOrZoneBox, null, color)
     }
 
-    fun startRendering(selectionOrZoneBox: Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, selectionOwnerUUID: UUID?, isRegistered: Boolean = true) {
+    fun startRendering(selectionOrZoneBox: Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>?, selectionOwnerUUID: UUID?, color: Color? = null) {
         if (selectionOwnerUUID != null) {
             val oldTaskId = UUIDToTaskId[selectionOwnerUUID]
             if (oldTaskId != null) {
@@ -32,7 +32,8 @@ object EffectiveZoneRenderer {
             }
         }
 
-        val dustOptions = DustOptions(if (!isRegistered) Color.fromRGB(102, 178, 255) else Color.fromRGB(255, 255, 0), 1.0f)
+        val finalColor = color ?: Color.fromRGB(255, 255, 255)
+        val dustOptions = DustOptions(finalColor, 1.0f)
 
         val region = selectionOrZoneBox ?: return
 
@@ -47,10 +48,12 @@ object EffectiveZoneRenderer {
         val taskId = object : BukkitRunnable() {
             override fun run() {
                 val players = Bukkit.getOnlinePlayers().filter { player ->
-                    EffectiveItem.getNamespacedKeyByItem(
+                    val key = EffectiveItem.getNamespacedKeyByItem(
                         EffectiveInventoryUtils.getUsedItemFromHands(player)
-                    ) == EffectiveItems.ZONE_SELECTOR.item.getNamespacedName() &&
-                    player.world.uid == worldUUID
+                    )
+                    val isViewer = key == EffectiveItems.ZONE_SELECTOR.item.getNamespacedName()
+                        || key in ZoneRegisteringSelector.registeredItemKeys
+                    isViewer && player.world.uid == worldUUID
                 }
 
                 if (players.isNotEmpty()) renderZone(players, pos1, pos2, dustOptions)
@@ -108,7 +111,7 @@ object EffectiveZoneRenderer {
         val length = sqrt(dx * dx + dy * dy + dz * dz)
         if (length == 0.0) return
         
-        val iterations = (length / step).toInt()
+        val iterations = max(1, (length / step).toInt())
         
         for (i in 0..iterations) {
             val t = i.toDouble() / iterations

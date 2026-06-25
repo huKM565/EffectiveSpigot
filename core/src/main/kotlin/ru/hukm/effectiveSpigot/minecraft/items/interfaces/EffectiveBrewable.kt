@@ -181,27 +181,27 @@ interface EffectiveBrewable {
                             slot.amount = slot.maxStackSize
                             event.currentItem = slot
                             held.amount = heldC - (slot.maxStackSize - slotC)
-                            p.itemOnCursor = held
+                            p.setItemOnCursor(held)
                         } else {
                             slot.amount = slotC + heldC
                             event.currentItem = slot
-                            p.itemOnCursor = empty
+                            p.setItemOnCursor(empty)
                         }
                     } else {
                         event.currentItem = held
-                        p.itemOnCursor = slot
+                        p.setItemOnCursor(slot)
                     }
                 }
                 ClickType.RIGHT -> {
                     if (heldC > 0 && (slot.isSimilar(held) || slotC == 0) && slotC + 1 <= held.maxStackSize) {
                         event.currentItem = held.clone().also { it.amount = slotC + 1 }
-                        p.itemOnCursor = if (heldC - 1 > 0) held.also { it.amount = heldC - 1 } else empty
+                        p.setItemOnCursor(if (heldC - 1 > 0) held.also { it.amount = heldC - 1 } else empty)
                     } else if (heldC == 0) {
                         event.currentItem = slot.clone().also { it.amount = slotC / 2 }
-                        p.itemOnCursor = slot.also { it.amount = slotC - slotC / 2 }
+                        p.setItemOnCursor(slot.also { it.amount = slotC - slotC / 2 })
                     } else {
                         event.currentItem = held
-                        p.itemOnCursor = slot
+                        p.setItemOnCursor(slot)
                     }
                 }
                 ClickType.SHIFT_LEFT, ClickType.SHIFT_RIGHT -> {
@@ -238,7 +238,7 @@ interface EffectiveBrewable {
                             held.amount += stackC
                             event.inventory.setItem(i, empty)
                         }
-                        p.itemOnCursor = held
+                        p.setItemOnCursor(held)
                     }
                     if (held.amount < held.maxStackSize) {
                         for ((i, stack) in p.inventory.contents.withIndex()) {
@@ -252,7 +252,7 @@ interface EffectiveBrewable {
                                 held.amount += stackC
                                 p.inventory.setItem(i, empty)
                             }
-                            p.itemOnCursor = held
+                            p.setItemOnCursor(held)
                         }
                     }
                 }

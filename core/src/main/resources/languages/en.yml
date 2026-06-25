@@ -49,6 +49,9 @@ items:
     name: "&6Zone Selector"
     pos1: "&dFirst position set to %d, %d, %d"
     pos2: "&dSecond position set to %d, %d, %d"
+  zone_registering_selector:
+    registered: "&aZone of type '%s' registered with ID %d."
+    zone_not_registered: "&cZone type '%s' is not registered on this server."
 
 errors:
   unsupported_version: "Unsupported Minecraft version: %s"
@@ -56,6 +59,8 @@ errors:
     already_registered: "Command with namespaced name '%s' is already registered"
   items:
     already_registered: "Item with namespaced name '%s' is already registered"
+  advancement:
+    already_registered: "Advancement with namespaced key '%s' is already registered"
   menu:
     already_registered: "Menu with namespaced name '%s' is already registered"
   npcs:

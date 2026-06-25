@@ -3,6 +3,8 @@ package ru.hukm.effectiveSpigot.minecraft.utils
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
+import org.bukkit.block.Container
+import org.bukkit.entity.Entity
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 import org.bukkit.persistence.PersistentDataHolder
@@ -13,6 +15,7 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.Base64
+import java.util.UUID
 
 object EffectiveDataContainerUtils {
     private val LOC_WORLD_KEY by lazy { NamespacedKey(EffectiveSpigot.instance, "world") }
@@ -57,6 +60,14 @@ object EffectiveDataContainerUtils {
         }
         return null
     };
+
+    fun getEntityByUUIDValue(
+        container: PersistentDataHolder,
+        key: NamespacedKey,
+    ): Entity? {
+        val entityUUID = getContainerValue(container, key, PersistentDataType.STRING) ?: return null
+        return Bukkit.getEntity(UUID.fromString(entityUUID))
+    }
 
 
     fun <Z : Any, T : Any> setContainerValue(

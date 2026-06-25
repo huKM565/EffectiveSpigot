@@ -50,7 +50,7 @@ object EffectiveZoneCommand : EffectiveCommand() {
                 }
                 val zoneType = args[1]
                 EffectiveZoneSelection.playerToSelectedCoords.remove(player.uniqueId)
-                EffectiveZone.registerSelection(Triple(selection.first!!, selection.second!!, selection.third), zoneType)
+                EffectiveZone.registerSelection(Triple(selection.first!!, selection.second!!, selection.third), zoneType, player.uniqueId)
                 sendMessage(Locale.getMessage("commands.ezone.create_success", zoneType))
             }
             dynamic { EffectiveZone.namespacedKeyToZone.keys.toList() }

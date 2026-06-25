@@ -3,6 +3,7 @@ package ru.hukm.effectiveSpigot
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.advancements.EffectiveAdvancement
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMenuCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
@@ -23,73 +24,74 @@ import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
 import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 
 class EffectiveSpigot : JavaPlugin() {
-  companion object {
-    lateinit var instance: EffectiveSpigot
-      private set
-    lateinit var mcvModule: IMcvEffectiveModule
-      private set
+	companion object {
+		lateinit var instance: EffectiveSpigot
+			private set
+		lateinit var mcvModule: IMcvEffectiveModule
+			private set
 
-    private fun initMcvModule() {
-      val version =
-              Bukkit.getServer().version.split(".").map {
-                it.take(2).filter { it.isDigit() }.toInt()
-              }
+		private fun initMcvModule() {
+			val version =
+				Bukkit.getServer().version.split(".").map {
+					it.take(2).filter { it.isDigit() }.toInt()
+				}
 
-      EffectiveEntity.namespacedKeyToEffectiveEntity
+			EffectiveEntity.namespacedKeyToEffectiveEntity
 
-      val className =
-              if (version[1] == 21) {
-                if (version[2] >= 11)
-                        "ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_11.McvModuleV1_21_11"
-                else "ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_9.McvModuleV1_21_9"
-              } else
-                      throw IllegalArgumentException(
-                              Locale.getMessage("errors.unsupported_version", Bukkit.getServer().version)
-                      )
+			val className =
+				if (version[1] == 21) {
+					if (version[2] >= 11)
+						"ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_11.McvModuleV1_21_11"
+					else "ru.hukm.effectiveSpigot.minecraft.mcv.v1_21_9.McvModuleV1_21_9"
+				} else
+					throw IllegalArgumentException(
+						Locale.getMessage("errors.unsupported_version", Bukkit.getServer().version)
+					)
 
-      mcvModule = EffectiveUtils.loadMcvModule(className, instance) ?: return
-    }
-  }
+			mcvModule = EffectiveUtils.loadMcvModule(className, instance) ?: return
+		}
+	}
 
-  override fun onLoad() {
-      instance = this
+	override fun onLoad() {
+		instance = this
 
-      Locale.init()
+		Locale.init()
 
-      EffectiveGiveCommand.init()
-      EffectiveMobCommand.init()
-      EffectiveMenuCommand.init()
-      EffectiveScreenCommand.init()
-      EffectiveZoneCommand.init()
-  }
+		EffectiveGiveCommand.init()
+		EffectiveMobCommand.init()
+		EffectiveMenuCommand.init()
+		EffectiveScreenCommand.init()
+		EffectiveZoneCommand.init()
+	}
 
-  override fun onEnable() {
-    initMcvModule()
+	override fun onEnable() {
+		initMcvModule()
 
-    Bukkit.getScheduler()
-            .runTaskTimer(
-                this,
-                Runnable { EffectiveClickable.resetPlayerUUIDInteractedWithEntity() },
-                0,
-                1
-            )
+		Bukkit.getScheduler()
+			.runTaskTimer(
+				this,
+				Runnable { EffectiveClickable.resetPlayerUUIDInteractedWithEntity() },
+				0,
+				1
+			)
 
-    val modulesList =
-            listOf<IModule>(
-                //EffectiveWorld.Companion.EffectiveWorldModule,
-                EffectiveDropable.getModule(),
-                EffectiveClickable.getModule(),
-                EffectiveWearable.getModule(),
-                EffectiveEntity.getModule(),
-                EffectiveEntityInteractable.getModule(),
-                EffectiveMenu.getModule(),
-                EffectiveEntityLookable.getModule(),
-                EffectiveZone.getModule(),
-                EffectiveBrewable.getModule()
-            )
+		val modulesList =
+			listOf<IModule>(
+				//EffectiveWorld.Companion.EffectiveWorldModule,
+				EffectiveDropable.getModule(),
+				EffectiveClickable.getModule(),
+				EffectiveWearable.getModule(),
+				EffectiveEntity.getModule(),
+				EffectiveEntityInteractable.getModule(),
+				EffectiveMenu.getModule(),
+				EffectiveEntityLookable.getModule(),
+				EffectiveZone.getModule(),
+				EffectiveBrewable.getModule(),
+				EffectiveAdvancement.getModule()
+			)
 
-    EffectiveItems.ZONE_SELECTOR
+		EffectiveItems.ZONE_SELECTOR
 
-    modulesList.forEach { it.init() }
-  }
+		modulesList.forEach { it.init() }
+	}
 }

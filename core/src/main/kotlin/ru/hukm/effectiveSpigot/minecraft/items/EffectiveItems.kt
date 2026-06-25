@@ -6,8 +6,7 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
-import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
-import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZoneSelection
+import ru.hukm.effectiveSpigot.minecraft.zone.ZoneSelectionInput
 
 enum class EffectiveItems(val item: EffectiveItem) {
     EMPTY(object : EffectiveItem() {
@@ -34,14 +33,10 @@ enum class EffectiveItems(val item: EffectiveItem) {
             options: EffectiveClickable.EventsCallOptions,
             posNum: String
         ): EffectiveAbstractInteract.Result {
-            val block = options.clickedBlock ?: return EffectiveAbstractInteract.Result.ALLOW_EVENT
-            val loc = block.location
-
-            val pos = EffectiveBlockPos(loc.blockX, loc.blockY, loc.blockZ)
-            val uuid = options.player.uniqueId
-            EffectiveZoneSelection.setSelection(uuid, pos, posNum, loc.world.uid)
-            options.player.sendMessage(Locale.getMessage("items.zone_selector.pos$posNum", loc.blockX, loc.blockY, loc.blockZ))
-            return EffectiveAbstractInteract.Result.CANCEL_EVENT
+            return if (ZoneSelectionInput.applyClick(options, posNum))
+                EffectiveAbstractInteract.Result.CANCEL_EVENT
+            else
+                EffectiveAbstractInteract.Result.ALLOW_EVENT
         }
     });
 
