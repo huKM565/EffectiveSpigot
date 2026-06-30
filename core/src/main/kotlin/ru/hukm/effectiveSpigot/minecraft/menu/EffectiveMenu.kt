@@ -77,6 +77,10 @@ abstract class EffectiveMenu {
         return inventoryHolder.inventory
     }
 
+    fun getViewers(): List<Player> = Bukkit.getOnlinePlayers().filter {
+        it.openInventory.topInventory.holder === inventoryHolder
+    }
+
     abstract fun getMenuTitle(): String
     abstract fun getPattern(): List<String>?
     abstract fun getSymbolsToItems(): Map<Char, SlotData>
