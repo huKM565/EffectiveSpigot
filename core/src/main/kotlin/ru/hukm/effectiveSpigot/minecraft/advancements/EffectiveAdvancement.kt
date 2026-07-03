@@ -41,7 +41,7 @@ abstract class EffectiveAdvancement {
 
     enum class FrameType(val frame: String) {
         TASK("task"),
-        GOAL("goal"),
+        GOAL("goal")            ,
         CHALLENGE("challenge")
     }
 

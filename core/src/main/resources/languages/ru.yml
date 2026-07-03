@@ -70,6 +70,10 @@ errors:
   entities:
     already_registered: "Сущность с ключом '%s' уже зарегистрирована"
     key_not_registered: "Namespaced key '%s' не зарегистрирован"
+    wrong_additional_args_count: "Неверное количество дополнительных аргументов: ожидалось %s, получено %s"
+    cannot_parse_additional_arg: "Не удалось распарсить аргумент #%s = '%s' для ключа '%s'"
+    no_additional_args_defined: "Дополнительные аргументы не определены"
+    unknown_additional_arg_key: "Неизвестный ключ дополнительного аргумента: '%s'"
     look_distance_exceeded: "Дистанция обзора превышает максимально допустимое значение"
   crafts:
     tag_invalid_material: "Тег содержит %s, но требуется Material"

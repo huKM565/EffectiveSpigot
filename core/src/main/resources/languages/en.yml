@@ -73,6 +73,10 @@ errors:
     already_registered: "Entity with namespaced key '%s' is already registered"
     key_not_registered: "Namespaced key '%s' is not registered"
     look_distance_exceeded: "Look distance exceeds the maximum allowed value"
+    wrong_additional_args_count: "Wrong number of additional arguments: expected %s, got %s"
+    cannot_parse_additional_arg: "Cannot parse argument #%s = '%s' for key '%s'"
+    no_additional_args_defined: "No additional args defined"
+    unknown_additional_arg_key: "Unknown additional arg key: '%s'"
   crafts:
     tag_invalid_material: "Tag contains %s, but Material is required"
     list_invalid_material: "List must contain Materials. Provided: %s"

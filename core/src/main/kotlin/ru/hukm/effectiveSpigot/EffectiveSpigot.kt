@@ -9,6 +9,7 @@ import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMenuCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveScreenCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveZoneCommand
+import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveCompositeEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
@@ -82,6 +83,7 @@ class EffectiveSpigot : JavaPlugin() {
 				EffectiveClickable.getModule(),
 				EffectiveWearable.getModule(),
 				EffectiveEntity.getModule(),
+				EffectiveCompositeEntity.getModule(),
 				EffectiveEntityInteractable.getModule(),
 				EffectiveMenu.getModule(),
 				EffectiveEntityLookable.getModule(),

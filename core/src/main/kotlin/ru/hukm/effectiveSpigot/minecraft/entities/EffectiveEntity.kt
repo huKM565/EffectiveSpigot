@@ -3,10 +3,12 @@ package ru.hukm.effectiveSpigot.minecraft.entities
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
+import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent
 import org.bukkit.event.entity.EntityRemoveEvent
 import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.event.world.ChunkUnloadEvent
@@ -20,6 +22,8 @@ import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLook
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.InteractCallback
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
+import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgs
+import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgsSupport
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 import java.util.*
 import kotlin.collections.arrayListOf
@@ -85,12 +89,33 @@ abstract class EffectiveEntity {
         cachedEntities.removeIf { it.uniqueId == entity.uniqueId }
     }
 
+    fun getEntitiesInBlock(block: Block): List<Entity> {
+        return getEntities().filter {
+            it.location.blockX == block.x
+                && it.location.blockY == block.y
+                && it.location.blockZ == block.z
+                && it.world == block.world
+        }
+    }
+
     init {
         val namespacedName = getNamespacedKey()
         if (namespacedKeyToEffectiveEntity.containsKey(namespacedName)) {
             throw IllegalArgumentException(Locale.getMessage("errors.entities.already_registered", namespacedName))
         }
         namespacedKeyToEffectiveEntity[namespacedName] = this
+
+        // Подобрать уже загруженные энтити с этим ключом, которые могли быть пропущены
+        // в ChunkLoadEvent до регистрации этого EffectiveEntity (например на старте сервера).
+        for (world in Bukkit.getWorlds()) {
+            for (entity in world.entities) {
+                if (getNamespacedKeyByEntity(entity) == namespacedName
+                    && cachedEntities.none { it.uniqueId == entity.uniqueId }
+                ) {
+                    cachedEntities.add(entity)
+                }
+            }
+        }
     }
 
     fun createEntity(location: Location?): Entity {
@@ -100,21 +125,43 @@ abstract class EffectiveEntity {
         val loc = location ?: Location(world, 0.0, 0.0, 0.0)
 
         val entity = world.createEntity(loc, typeClass as Class<out Entity>)
-        editEntity(entity)
+        return finalizeEntity(entity)
+    }
 
+    fun createEntity(location: Location?, additionalArgs: List<String>): Entity {
+        val world = location?.world ?: Bukkit.getWorlds()[0]
+        val typeClass = getEntityType().entityClass
+        val loc = location ?: Location(world, 0.0, 0.0, 0.0)
+        val entity = world.createEntity(loc, typeClass as Class<out Entity>)
+        AdditionalArgsSupport.applyToHolder(entity, getAdditionalArgs(), additionalArgs, "entities")
+        return finalizeEntity(entity)
+    }
+
+    private fun finalizeEntity(entity: Entity): Entity {
+        editEntity(entity)
         EffectiveDataContainerUtils.setContainerValue(
             entity,
             ENTITY_KEY,
             PersistentDataType.STRING,
             getNamespacedKey()
         )
-
         return entity
     }
 
     fun spawnEntity(location: Location): Entity {
         val world = location.world ?: throw IllegalArgumentException(Locale.getMessage("errors.world.location_null"))
         val entity = createEntity(location)
+        addEntityToCache(entity)
+
+        world.addEntity(entity)
+        entity.teleport(location)
+
+        return entity
+    }
+
+    fun spawnEntity(location: Location, additionalArgs: List<String>): Entity {
+        val world = location.world ?: throw IllegalArgumentException(Locale.getMessage("errors.world.location_null"))
+        val entity = createEntity(location, additionalArgs)
         addEntityToCache(entity)
 
         world.addEntity(entity)
@@ -154,6 +201,11 @@ abstract class EffectiveEntity {
     abstract fun editEntity(entity: Entity)
     abstract fun getEntityType(): EntityType
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
+    open fun getAdditionalArgs(): AdditionalArgs? = null
+
+    fun getAdditionalArgsNamespacedKeys() = AdditionalArgsSupport.namespacedKeys(getAdditionalArgs())
+
+    fun additionalKey(name: String) = AdditionalArgsSupport.additionalKey(getAdditionalArgs(), name, "entities")
 
     fun getNamespacedKey(): String {
         return getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
@@ -163,13 +215,11 @@ abstract class EffectiveEntity {
         @EventHandler
         fun onChunkLoad(event: ChunkLoadEvent) {
             event.chunk.entities.forEach {
-                val namespacedKey = getNamespacedKeyByEntity(it)
-                if (namespacedKey != null) {
-                    val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey]!!
-                    val list = effectiveEntity.cachedEntities
-                    if (list.none { entity -> it.uniqueId == entity.uniqueId }) {
-                        list.add(it)
-                    }
+                val namespacedKey = getNamespacedKeyByEntity(it) ?: return@forEach
+                val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return@forEach
+                val list = effectiveEntity.cachedEntities
+                if (list.none { entity -> it.uniqueId == entity.uniqueId }) {
+                    list.add(it)
                 }
             }
         }
@@ -179,11 +229,20 @@ abstract class EffectiveEntity {
         @EventHandler
         fun onChunkUnload(event: ChunkUnloadEvent) {
             event.chunk.entities.forEach {
-                val namespacedKey = getNamespacedKeyByEntity(it)
-                if (namespacedKey != null) {
-                    val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey]!!
-                    effectiveEntity.removeEntityFromCache(it)
-                }
+                val namespacedKey = getNamespacedKeyByEntity(it) ?: return@forEach
+                val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return@forEach
+                effectiveEntity.removeEntityFromCache(it)
+            }
+        }
+
+        @EventHandler
+        fun onEntityAddToWorld(event: EntityAddToWorldEvent) {
+            val entity = event.entity
+            val namespacedKey = getNamespacedKeyByEntity(entity) ?: return
+            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return
+            val list = effectiveEntity.cachedEntities
+            if (list.none { it.uniqueId == entity.uniqueId }) {
+                list.add(entity)
             }
         }
 
@@ -191,7 +250,7 @@ abstract class EffectiveEntity {
         fun onEntityDeath(event: EntityRemoveEvent) {
             val namespacedKey = getNamespacedKeyByEntity(event.entity) ?: return
 
-            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey]!!
+            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return
             effectiveEntity.removeEntityFromCache(event.entity)
         }
     }
