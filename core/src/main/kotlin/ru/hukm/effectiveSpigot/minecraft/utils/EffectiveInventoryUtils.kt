@@ -45,7 +45,7 @@ object EffectiveInventoryUtils {
         }
     }
 
-    fun getUsedItemFromHands(player: Player): ItemStack? {
+    fun getUsedItemFromHands(player: Player): ItemStack {
         val inventory = player.inventory
 
         val mainItem = inventory.itemInMainHand

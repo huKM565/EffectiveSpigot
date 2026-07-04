@@ -11,7 +11,14 @@ commands:
     no_permission: "&cYou do not have permission to execute this command!"
     only_players: "&cOnly players can execute this command!"
     entity_not_found: "&cError: entity %s is not found"
+    composite_part_not_allowed: "&cEntity %s is a part of a composite. Use /ecomposite"
     success: "&aEntity %s successfully spawned!"
+  ecomposite:
+    usage: "&cUsage: /ecomposite <composite_name> [args...]"
+    no_permission: "&cYou do not have permission to execute this command!"
+    only_players: "&cOnly players can execute this command!"
+    entity_not_found: "&cError: composite entity %s is not found"
+    success: "&aComposite entity %s successfully spawned!"
   emenu:
     usage: "&cUsage: /emenu <menu_name>"
     no_permission: "&cYou do not have permission to execute this command!"
@@ -71,6 +78,8 @@ errors:
     already_registered: "NPC with namespaced key '%s' is already registered"
   entities:
     already_registered: "Entity with namespaced key '%s' is already registered"
+    composite_already_registered: "Composite entity with namespaced key '%s' is already registered"
+    composite_not_enough_parts: "Composite entity '%s' must contain at least 2 parts"
     key_not_registered: "Namespaced key '%s' is not registered"
     look_distance_exceeded: "Look distance exceeds the maximum allowed value"
     wrong_additional_args_count: "Wrong number of additional arguments: expected %s, got %s"

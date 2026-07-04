@@ -4,6 +4,7 @@ import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.advancements.EffectiveAdvancement
+import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveCompositeCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveGiveCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMenuCommand
 import ru.hukm.effectiveSpigot.minecraft.commands.EffectiveMobCommand
@@ -63,6 +64,7 @@ class EffectiveSpigot : JavaPlugin() {
 		EffectiveMenuCommand.init()
 		EffectiveScreenCommand.init()
 		EffectiveZoneCommand.init()
+		EffectiveCompositeCommand.init()
 	}
 
 	override fun onEnable() {

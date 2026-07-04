@@ -16,6 +16,8 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.Base64
 import java.util.UUID
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 object EffectiveDataContainerUtils {
     private val LOC_WORLD_KEY by lazy { NamespacedKey(EffectiveSpigot.instance, "world") }
@@ -60,6 +62,98 @@ object EffectiveDataContainerUtils {
         }
         return null
     };
+
+    @PublishedApi
+    internal fun persistentDataTypeFor(type: KType): PersistentDataType<*, *>? = when (type) {
+        typeOf<String>(), typeOf<String?>() -> PersistentDataType.STRING
+        typeOf<Int>(), typeOf<Int?>() -> PersistentDataType.INTEGER
+        typeOf<Long>(), typeOf<Long?>() -> PersistentDataType.LONG
+        typeOf<Double>(), typeOf<Double?>() -> PersistentDataType.DOUBLE
+        typeOf<Float>(), typeOf<Float?>() -> PersistentDataType.FLOAT
+        typeOf<Byte>(), typeOf<Byte?>() -> PersistentDataType.BYTE
+        typeOf<Short>(), typeOf<Short?>() -> PersistentDataType.SHORT
+        typeOf<Boolean>(), typeOf<Boolean?>() -> PersistentDataType.BOOLEAN
+        typeOf<ByteArray>(), typeOf<ByteArray?>() -> PersistentDataType.BYTE_ARRAY
+        typeOf<IntArray>(), typeOf<IntArray?>() -> PersistentDataType.INTEGER_ARRAY
+        typeOf<LongArray>(), typeOf<LongArray?>() -> PersistentDataType.LONG_ARRAY
+        typeOf<List<String>>(), typeOf<List<String>?>() -> PersistentDataType.LIST.strings()
+        typeOf<List<Int>>(), typeOf<List<Int>?>() -> PersistentDataType.LIST.integers()
+        typeOf<List<Long>>(), typeOf<List<Long>?>() -> PersistentDataType.LIST.longs()
+        typeOf<List<Double>>(), typeOf<List<Double>?>() -> PersistentDataType.LIST.doubles()
+        typeOf<List<Float>>(), typeOf<List<Float>?>() -> PersistentDataType.LIST.floats()
+        typeOf<List<Byte>>(), typeOf<List<Byte>?>() -> PersistentDataType.LIST.bytes()
+        typeOf<List<Short>>(), typeOf<List<Short>?>() -> PersistentDataType.LIST.shorts()
+        typeOf<List<Boolean>>(), typeOf<List<Boolean>?>() -> PersistentDataType.LIST.booleans()
+        typeOf<List<ByteArray>>(), typeOf<List<ByteArray>?>() -> PersistentDataType.LIST.byteArrays()
+        typeOf<List<IntArray>>(), typeOf<List<IntArray>?>() -> PersistentDataType.LIST.integerArrays()
+        typeOf<List<LongArray>>(), typeOf<List<LongArray>?>() -> PersistentDataType.LIST.longArrays()
+        else -> null
+    }
+
+    inline fun <reified T : Any> getContainerValue(item: ItemStack, key: NamespacedKey): T? {
+        @Suppress("UNCHECKED_CAST")
+        val type = persistentDataTypeFor(typeOf<T>()) as? PersistentDataType<*, T>
+            ?: throw IllegalArgumentException("Unsupported type: ${T::class}")
+        return try {
+            item.itemMeta?.persistentDataContainer?.get(key, type)
+        } catch (_: NullPointerException) { null }
+    }
+
+    inline fun <reified T : Any> getContainerValue(holder: PersistentDataHolder, key: NamespacedKey): T? {
+        @Suppress("UNCHECKED_CAST")
+        val type = persistentDataTypeFor(typeOf<T>()) as? PersistentDataType<*, T>
+            ?: throw IllegalArgumentException("Unsupported type: ${T::class}")
+        return try {
+            holder.persistentDataContainer.get(key, type)
+        } catch (_: NullPointerException) { null }
+    }
+
+    inline fun <reified T : Any> getContainerValue(container: PersistentDataContainer, key: NamespacedKey): T? {
+        @Suppress("UNCHECKED_CAST")
+        val type = persistentDataTypeFor(typeOf<T>()) as? PersistentDataType<*, T>
+            ?: throw IllegalArgumentException("Unsupported type: ${T::class}")
+        return try {
+            container.get(key, type)
+        } catch (_: NullPointerException) { null }
+    }
+
+    inline fun <reified T : Any> setContainerValue(item: ItemStack, key: NamespacedKey, value: T?): ItemStack {
+        val meta = item.itemMeta ?: return item
+        val container = meta.persistentDataContainer
+        if (value == null) {
+            container.remove(key)
+        } else {
+            @Suppress("UNCHECKED_CAST")
+            val type = persistentDataTypeFor(typeOf<T>()) as? PersistentDataType<*, T>
+                ?: throw IllegalArgumentException("Unsupported type: ${T::class}")
+            container.set(key, type, value)
+        }
+        item.itemMeta = meta
+        return item
+    }
+
+    inline fun <reified T : Any> setContainerValue(holder: PersistentDataHolder, key: NamespacedKey, value: T?) {
+        val container = holder.persistentDataContainer
+        if (value == null) {
+            container.remove(key)
+        } else {
+            @Suppress("UNCHECKED_CAST")
+            val type = persistentDataTypeFor(typeOf<T>()) as? PersistentDataType<*, T>
+                ?: throw IllegalArgumentException("Unsupported type: ${T::class}")
+            container.set(key, type, value)
+        }
+    }
+
+    inline fun <reified T : Any> setContainerValue(container: PersistentDataContainer, key: NamespacedKey, value: T?) {
+        if (value == null) {
+            container.remove(key)
+        } else {
+            @Suppress("UNCHECKED_CAST")
+            val type = persistentDataTypeFor(typeOf<T>()) as? PersistentDataType<*, T>
+                ?: throw IllegalArgumentException("Unsupported type: ${T::class}")
+            container.set(key, type, value)
+        }
+    }
 
     fun getEntityByUUIDValue(
         container: PersistentDataHolder,

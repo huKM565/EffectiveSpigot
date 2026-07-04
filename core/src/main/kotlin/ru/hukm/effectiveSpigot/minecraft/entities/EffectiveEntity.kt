@@ -30,7 +30,7 @@ import kotlin.collections.arrayListOf
 
 abstract class EffectiveEntity {
     companion object {
-        private val ENTITY_KEY = NamespacedKey(EffectiveSpigot.instance, "entity")
+        internal val ENTITY_KEY = NamespacedKey(EffectiveSpigot.instance, "entity")
 
         val namespacedKeyToEffectiveEntity = hashMapOf<String, EffectiveEntity>()
 
