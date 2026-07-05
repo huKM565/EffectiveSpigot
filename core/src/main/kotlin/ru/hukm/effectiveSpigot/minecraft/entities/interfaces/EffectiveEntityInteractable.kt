@@ -17,7 +17,6 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Cl
 typealias InteractCallback = (EffectiveEntityInteractable.EventsCallOptions) -> EffectiveAbstractInteract.Result
 
 interface EffectiveEntityInteractable {
-
     data class Data(
         override val target: EffectiveAbstractInteract.Target.Entity,
         override val click: Click,
