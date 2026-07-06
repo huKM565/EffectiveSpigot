@@ -163,6 +163,38 @@ object EffectiveDataContainerUtils {
         return Bukkit.getEntity(UUID.fromString(entityUUID))
     }
 
+    fun getUUIDFromLongArray(
+        container: PersistentDataHolder,
+        key: NamespacedKey
+    ): UUID? {
+        val longArray = getContainerValue(container, key, PersistentDataType.LONG_ARRAY) ?: return null
+        return UUID(longArray[0], longArray[1])
+    }
+
+    fun getUUIDsFromLongArray(
+        container: PersistentDataHolder,
+        key: NamespacedKey
+    ): List<UUID>? {
+        val longArray = getContainerValue(container, key, PersistentDataType.LONG_ARRAY) ?: return null
+        return longArray.toList().chunked(2) { (msb, lsb) -> UUID(msb, lsb) }
+    }
+
+    fun getEntityFromLongArray(
+        container: PersistentDataHolder,
+        key: NamespacedKey
+    ): Entity? {
+        val uuid = getUUIDFromLongArray(container, key) ?: return null
+        return Bukkit.getEntity(uuid)
+    }
+
+    fun getEntitiesFromLongArray(
+        container: PersistentDataHolder,
+        key: NamespacedKey
+    ): List<Entity?>? {
+        val uuids = getUUIDsFromLongArray(container, key) ?: return null
+        return uuids.map { Bukkit.getEntity(it) }
+    }
+
 
     fun <Z : Any, T : Any> setContainerValue(
         item: ItemStack,

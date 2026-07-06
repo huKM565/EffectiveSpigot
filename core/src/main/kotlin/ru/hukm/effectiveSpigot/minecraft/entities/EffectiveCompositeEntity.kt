@@ -160,8 +160,16 @@ abstract class EffectiveCompositeEntity {
             entities.add(entity)
         }
 
+        val longlyUuids = entities.drop(1).map {
+            val uuid = it.uniqueId
+            listOf(
+                uuid.mostSignificantBits,
+                uuid.leastSignificantBits
+            )
+        }.flatten().toLongArray()
+
         EffectiveDataContainerUtils.setContainerValue(
-            entities[0], CHILD_ENTITIES_KEY, entities.drop(1).map { it.uniqueId.toString() }
+            entities[0], CHILD_ENTITIES_KEY, PersistentDataType.LONG_ARRAY, longlyUuids
         )
 
         return entities
