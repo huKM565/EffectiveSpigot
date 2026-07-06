@@ -168,7 +168,7 @@ abstract class EffectiveCompositeEntity {
             )
         }.flatten().toLongArray()
 
-        EffectiveDataContainerUtils.setContainerValue(
+        EffectiveDataContainerUtils.(
             entities[0], CHILD_ENTITIES_KEY, PersistentDataType.LONG_ARRAY, longlyUuids
         )
 

@@ -3,7 +3,6 @@ package ru.hukm.effectiveSpigot.minecraft.utils
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
-import org.bukkit.block.Container
 import org.bukkit.entity.Entity
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
@@ -156,43 +155,56 @@ object EffectiveDataContainerUtils {
     }
 
     fun getEntityByUUIDValue(
-        container: PersistentDataHolder,
+        holder: PersistentDataHolder,
         key: NamespacedKey,
     ): Entity? {
-        val entityUUID = getContainerValue(container, key, PersistentDataType.STRING) ?: return null
+        val entityUUID = getContainerValue(holder, key, PersistentDataType.STRING) ?: return null
         return Bukkit.getEntity(UUID.fromString(entityUUID))
     }
 
     fun getUUIDFromLongArray(
-        container: PersistentDataHolder,
+        holder: PersistentDataHolder,
         key: NamespacedKey
     ): UUID? {
-        val longArray = getContainerValue(container, key, PersistentDataType.LONG_ARRAY) ?: return null
+        val longArray = getContainerValue(holder, key, PersistentDataType.LONG_ARRAY) ?: return null
         return UUID(longArray[0], longArray[1])
     }
 
     fun getUUIDsFromLongArray(
-        container: PersistentDataHolder,
+        holder: PersistentDataHolder,
         key: NamespacedKey
     ): List<UUID>? {
-        val longArray = getContainerValue(container, key, PersistentDataType.LONG_ARRAY) ?: return null
+        val longArray = getContainerValue(holder, key, PersistentDataType.LONG_ARRAY) ?: return null
         return longArray.toList().chunked(2) { (msb, lsb) -> UUID(msb, lsb) }
     }
 
     fun getEntityFromLongArray(
-        container: PersistentDataHolder,
+        holder: PersistentDataHolder,
         key: NamespacedKey
     ): Entity? {
-        val uuid = getUUIDFromLongArray(container, key) ?: return null
+        val uuid = getUUIDFromLongArray(holder, key) ?: return null
         return Bukkit.getEntity(uuid)
     }
 
     fun getEntitiesFromLongArray(
-        container: PersistentDataHolder,
+        holder: PersistentDataHolder,
         key: NamespacedKey
     ): List<Entity?>? {
-        val uuids = getUUIDsFromLongArray(container, key) ?: return null
+        val uuids = getUUIDsFromLongArray(holder, key) ?: return null
         return uuids.map { Bukkit.getEntity(it) }
+    }
+
+    fun setUUIDToLongArray(
+        holder: PersistentDataHolder,
+        key: NamespacedKey,
+        uuid: UUID
+    ) {
+        setContainerValue(
+            holder,
+            key,
+            PersistentDataType.LONG_ARRAY,
+            longArrayOf(uuid.mostSignificantBits, uuid.leastSignificantBits)
+        )
     }
 
 
