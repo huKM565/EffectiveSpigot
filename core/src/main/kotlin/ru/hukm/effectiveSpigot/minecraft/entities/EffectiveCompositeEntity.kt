@@ -87,6 +87,11 @@ abstract class EffectiveCompositeEntity {
         return allCompositesEntities
     }
 
+    fun getParent(possibleChild: Entity) = EffectiveDataContainerUtils.getEntityByUUIDValue(
+            possibleChild,
+            PARENT_ENTITY_KEY
+    )
+
     fun isParent(possibleChild: Entity, possibleParent: Entity): Boolean {
         val parentUuid = EffectiveDataContainerUtils.getContainerValue(
             possibleChild, PARENT_ENTITY_KEY, PersistentDataType.STRING
