@@ -6,6 +6,7 @@ import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.World
+import org.bukkit.entity.Entity
 import org.bukkit.entity.LivingEntity
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -22,6 +23,8 @@ import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlockData
 import java.awt.Color as AwtColor
 import java.util.UUID
+import kotlin.math.max
+import kotlin.math.min
 
 abstract class EffectiveZone {
     enum class ActivationType {
@@ -65,12 +68,12 @@ abstract class EffectiveZone {
         fun getBlocksInside(): List<EffectiveBlockData> {
             val blocks = mutableListOf<EffectiveBlockData>()
 
-            val minX = kotlin.math.min(firstPos.x, secondPos.x)
-            val maxX = kotlin.math.max(firstPos.x, secondPos.x)
-            val minY = kotlin.math.min(firstPos.y, secondPos.y)
-            val maxY = kotlin.math.max(firstPos.y, secondPos.y)
-            val minZ = kotlin.math.min(firstPos.z, secondPos.z)
-            val maxZ = kotlin.math.max(firstPos.z, secondPos.z)
+            val minX = min(firstPos.x, secondPos.x)
+            val maxX = max(firstPos.x, secondPos.x)
+            val minY = min(firstPos.y, secondPos.y)
+            val maxY = max(firstPos.y, secondPos.y)
+            val minZ = min(firstPos.z, secondPos.z)
+            val maxZ = max(firstPos.z, secondPos.z)
 
             val world = Bukkit.getWorld(worldUUID)!!
             for (x in minX..maxX) {
@@ -88,6 +91,25 @@ abstract class EffectiveZone {
             }
 
             return blocks
+        }
+
+        fun getEntitiesInside(): List<Entity> {
+            val minX = min(firstPos.x, secondPos.x)
+            val maxX = max(firstPos.x, secondPos.x)
+            val minY = min(firstPos.y, secondPos.y)
+            val maxY = max(firstPos.y, secondPos.y)
+            val minZ = min(firstPos.z, secondPos.z)
+            val maxZ = max(firstPos.z, secondPos.z)
+
+
+            return Bukkit.getWorld(worldUUID)!!.entities.filter {
+                val loc = it.location
+
+                minX < loc.blockX && loc.blockX < maxX &&
+                        minY < loc.blockY && loc.blockY < maxY &&
+                        minZ < loc.blockZ && loc.blockZ < maxZ
+            }
+
         }
         
         fun serialize(): String {
