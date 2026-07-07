@@ -207,6 +207,18 @@ object EffectiveDataContainerUtils {
         )
     }
 
+    fun setUUIDsToLongArray(
+        holder: PersistentDataHolder,
+        key: NamespacedKey,
+        uuids: List<UUID>
+    ) {
+        setContainerValue(
+            holder,
+            key,
+            PersistentDataType.LONG_ARRAY,
+            uuids.flatMap { listOf(it.mostSignificantBits, it.leastSignificantBits) }.toLongArray()
+        )
+    }
 
     fun <Z : Any, T : Any> setContainerValue(
         item: ItemStack,

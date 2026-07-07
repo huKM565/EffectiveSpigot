@@ -87,16 +87,29 @@ abstract class EffectiveCompositeEntity {
         return allCompositesEntities
     }
 
-    fun getParent(possibleChild: Entity) = EffectiveDataContainerUtils.getEntityByUUIDValue(
+    fun getChildren(parent: Entity): List<Entity?>? = EffectiveDataContainerUtils.getEntitiesFromLongArray(
+            parent,
+            CHILD_ENTITIES_KEY
+    )
+
+    fun getChild(parent: Entity, namespacedKey: String): Entity? {
+        val children = getChildren(parent) ?: return null
+
+        if (children.isEmpty()) return null
+
+        return children.find { EffectiveEntity.getNamespacedKeyByEntity(it) == namespacedKey }
+    }
+
+    fun getParent(possibleChild: Entity) = EffectiveDataContainerUtils.getEntityFromLongArray(
             possibleChild,
             PARENT_ENTITY_KEY
     )
 
     fun isParent(possibleChild: Entity, possibleParent: Entity): Boolean {
-        val parentUuid = EffectiveDataContainerUtils.getContainerValue(
-            possibleChild, PARENT_ENTITY_KEY, PersistentDataType.STRING
+        val parentUuid = EffectiveDataContainerUtils.getUUIDFromLongArray(
+            possibleChild, PARENT_ENTITY_KEY
         )
-        return parentUuid == possibleParent.uniqueId.toString()
+        return parentUuid == possibleParent.uniqueId
     }
 
     abstract fun getEffectiveEntities(): List<EffectiveEntity>
@@ -117,16 +130,20 @@ abstract class EffectiveCompositeEntity {
             val entity = effectiveEntity.createEntity(loc)
 
             if (index != 0) {
-                EffectiveDataContainerUtils.setContainerValue(entity, PARENT_ENTITY_KEY, PersistentDataType.STRING, entities[0].uniqueId.toString())
+                EffectiveDataContainerUtils.setUUIDToLongArray(
+                    entity,
+                    PARENT_ENTITY_KEY,
+                    entities[0].uniqueId
+                )
             }
 
             entities.add(entity)
         }
 
-        EffectiveDataContainerUtils.setContainerValue(
+        EffectiveDataContainerUtils.setUUIDsToLongArray(
             entities[0],
             CHILD_ENTITIES_KEY,
-            entities.drop(1).map { it.uniqueId.toString() }
+            entities.drop(1).map { it.uniqueId }
         )
 
         return entities
@@ -153,23 +170,16 @@ abstract class EffectiveCompositeEntity {
             }
 
             if (index != 0) {
-                EffectiveDataContainerUtils.setContainerValue(
-                    entity, PARENT_ENTITY_KEY, PersistentDataType.STRING, entities[0].uniqueId.toString()
+                EffectiveDataContainerUtils.setUUIDToLongArray(
+                    entity, PARENT_ENTITY_KEY, entities[0].uniqueId
                 )
             }
             entities.add(entity)
         }
 
-        val longlyUuids = entities.drop(1).map {
-            val uuid = it.uniqueId
-            listOf(
-                uuid.mostSignificantBits,
-                uuid.leastSignificantBits
-            )
-        }.flatten().toLongArray()
 
-        EffectiveDataContainerUtils.(
-            entities[0], CHILD_ENTITIES_KEY, PersistentDataType.LONG_ARRAY, longlyUuids
+        EffectiveDataContainerUtils.setUUIDsToLongArray(
+            entities[0], CHILD_ENTITIES_KEY, entities.drop(1).map { it.uniqueId }
         )
 
         return entities
@@ -215,22 +225,21 @@ abstract class EffectiveCompositeEntity {
             val key = getNamespacedKeyByEntity(entity) ?: return
             val composite = namespacedKeyToEffectiveCompositeEntity[key] ?: return
 
-            val parentUuidStr = EffectiveDataContainerUtils.getContainerValue(
-                entity, composite.PARENT_ENTITY_KEY, PersistentDataType.STRING
+            val parentUuid = EffectiveDataContainerUtils.getUUIDFromLongArray(
+                entity, composite.PARENT_ENTITY_KEY
             )
-            val root = if (parentUuidStr == null) entity
-                else Bukkit.getEntity(UUID.fromString(parentUuidStr)) ?: return
+            val root = if (parentUuid == null) entity
+                else Bukkit.getEntity(parentUuid) ?: return
 
             if (!removingRoots.add(root.uniqueId)) return
             try {
-                val childrenUuids = EffectiveDataContainerUtils.getContainerValue<List<String>>(
+                val childrenUuids = EffectiveDataContainerUtils.getUUIDsFromLongArray(
                     root, composite.CHILD_ENTITIES_KEY
                 ) ?: emptyList()
 
                 if (root.uniqueId != entity.uniqueId && !root.isDead) root.remove()
 
-                for (uuidStr in childrenUuids) {
-                    val uuid = UUID.fromString(uuidStr)
+                for (uuid in childrenUuids) {
                     if (uuid == entity.uniqueId) continue
                     val child = Bukkit.getEntity(uuid) ?: continue
                     if (!child.isDead) child.remove()
