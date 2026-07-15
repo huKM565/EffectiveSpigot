@@ -1,5 +1,8 @@
 package ru.hukm.effectiveSpigot
 
+import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.ticks
+import kotlinx.coroutines.delay
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.interfaces.IModule
@@ -18,6 +21,7 @@ import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItems
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveBrewable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveDropable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveUndropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
 import ru.hukm.effectiveSpigot.minecraft.mcv.interfaces.IMcvEffectiveModule
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
@@ -70,13 +74,12 @@ class EffectiveSpigot : JavaPlugin() {
 	override fun onEnable() {
 		initMcvModule()
 
-		Bukkit.getScheduler()
-			.runTaskTimer(
-				this,
-				Runnable { EffectiveClickable.resetPlayerUUIDInteractedWithEntity() },
-				0,
-				1
-			)
+		launch {
+			while (true) {
+				EffectiveClickable.resetPlayerUUIDInteractedWithEntity()
+				delay(1.ticks)
+			}
+		}
 
 		val modulesList =
 			listOf<IModule>(
@@ -84,6 +87,7 @@ class EffectiveSpigot : JavaPlugin() {
 				EffectiveDropable.getModule(),
 				EffectiveClickable.getModule(),
 				EffectiveWearable.getModule(),
+				EffectiveUndropable.getModule(),
 				EffectiveEntity.getModule(),
 				EffectiveCompositeEntity.getModule(),
 				EffectiveEntityInteractable.getModule(),

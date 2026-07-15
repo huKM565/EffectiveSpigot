@@ -181,27 +181,27 @@ interface EffectiveBrewable {
                             slot.amount = slot.maxStackSize
                             event.currentItem = slot
                             held.amount = heldC - (slot.maxStackSize - slotC)
-                            p.setItemOnCursor(held)
+                            p.itemOnCursor = held
                         } else {
                             slot.amount = slotC + heldC
                             event.currentItem = slot
-                            p.setItemOnCursor(empty)
+                            p.itemOnCursor = empty
                         }
                     } else {
                         event.currentItem = held
-                        p.setItemOnCursor(slot)
+                        p.itemOnCursor = slot
                     }
                 }
                 ClickType.RIGHT -> {
                     if (heldC > 0 && (slot.isSimilar(held) || slotC == 0) && slotC + 1 <= held.maxStackSize) {
                         event.currentItem = held.clone().also { it.amount = slotC + 1 }
-                        p.setItemOnCursor(if (heldC - 1 > 0) held.also { it.amount = heldC - 1 } else empty)
+                        p.itemOnCursor = if (heldC - 1 > 0) held.also { it.amount = heldC - 1 } else empty
                     } else if (heldC == 0) {
                         event.currentItem = slot.clone().also { it.amount = slotC / 2 }
-                        p.setItemOnCursor(slot.also { it.amount = slotC - slotC / 2 })
+                        p.itemOnCursor = slot.also { it.amount = slotC - slotC / 2 }
                     } else {
                         event.currentItem = held
-                        p.setItemOnCursor(slot)
+                        p.itemOnCursor = slot
                     }
                 }
                 ClickType.SHIFT_LEFT, ClickType.SHIFT_RIGHT -> {
@@ -271,8 +271,7 @@ interface EffectiveBrewable {
             if (event.rawSlot == 3) {
                 val cursor = event.cursor
                 val current = event.currentItem
-                val cursorIsCustom = cursor != null && cursor.type != Material.AIR &&
-                    brewRecipes.any { EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it.inputIngredient, cursor) }
+                val cursorIsCustom = cursor.type != Material.AIR && brewRecipes.any { EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it.inputIngredient, cursor) }
                 val slotIsCustom = current != null && current.type != Material.AIR &&
                     brewRecipes.any { EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it.inputIngredient, current) }
                 if (cursorIsCustom || slotIsCustom) {

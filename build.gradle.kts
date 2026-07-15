@@ -40,8 +40,13 @@ tasks {
     archiveClassifier.set("all")
 
     // Релокация
+    relocate("kotlinx", "ru.hukm.effectiveSpigot.libs.kotlinx")
     relocate("kotlin", "ru.hukm.effectiveSpigot.libs.kotlin")
     relocate("org.jetbrains", "ru.hukm.effectiveSpigot.libs.org.jetbrains")
+    relocate(
+        "com.github.shynixn.mccoroutine",
+        "ru.hukm.effectiveSpigot.libs.com.github.shynixn.mccoroutine"
+    )
 
     mergeServiceFiles()
 

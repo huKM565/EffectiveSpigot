@@ -166,6 +166,10 @@ abstract class EffectiveItem {
         EffectiveWearable.makeWearable(this)
     }
 
+    fun makeUndropable() {
+        EffectiveUndropable.makeUndropable(this)
+    }
+
     abstract fun editMeta(meta: ItemMeta)
     abstract fun getMaterial(): Material
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>

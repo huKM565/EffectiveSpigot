@@ -4,6 +4,8 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Entity
+import org.bukkit.entity.Item
+import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataContainer
 import org.bukkit.persistence.PersistentDataHolder
@@ -15,6 +17,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.Base64
 import java.util.UUID
+import javax.naming.Name
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
@@ -409,6 +412,40 @@ object EffectiveDataContainerUtils {
             val world = Bukkit.getWorld(worldName) ?: return@getContainer null
             Location(world, x, y, z, yaw, pitch)
         }
+    }
+
+    fun setItems(holder: PersistentDataHolder, key: NamespacedKey, items: List<ItemStack?>?) {
+        if (items == null) {
+            holder.persistentDataContainer.remove(key)
+            return
+        }
+
+        base64SetContainerValue(holder, key, items)
+    }
+
+    fun getItems(holder: PersistentDataHolder, key: NamespacedKey): List<ItemStack?>? {
+        val list = base64GetContainerValue(
+            holder, key, ArrayList::class.java as Class<ArrayList<*>?>
+        ) ?: return null
+        return list.map { it as ItemStack? }
+    }
+
+    fun setItems(item: ItemStack, key: NamespacedKey, items: List<ItemStack?>?): ItemStack {
+        if (items == null) {
+            val meta = item.itemMeta ?: return item
+            meta.persistentDataContainer.remove(key)
+            item.itemMeta = meta
+            return item
+        }
+
+        return base64SetContainerValue(item, key, ArrayList(items))
+    }
+
+    fun getItems(item: ItemStack, key: NamespacedKey): List<ItemStack?>? {
+        val list = base64GetContainerValue(
+            item, key, ArrayList::class.java as Class<ArrayList<*>?>
+        ) ?: return null
+        return list.map { it as ItemStack? }
     }
 
 

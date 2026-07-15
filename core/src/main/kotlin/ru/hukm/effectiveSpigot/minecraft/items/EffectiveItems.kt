@@ -2,6 +2,7 @@ package ru.hukm.effectiveSpigot.minecraft.items
 
 import org.bukkit.Material
 import org.bukkit.inventory.meta.ItemMeta
+import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
