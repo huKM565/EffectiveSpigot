@@ -5,34 +5,27 @@ plugins {
   `maven-publish`
 }
 
-allprojects {
-  group = "ru.hukm"
-  version = "1.0-SNAPSHOT"
+group = "ru.hukm"
+version = "1.0-SNAPSHOT"
 
-  repositories {
-    mavenLocal()
-    mavenCentral()
-    maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
-    maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
-  }
-}
-
-subprojects {
-  apply(plugin = "org.jetbrains.kotlin.jvm")
-
-  dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-  }
-
-  kotlin { jvmToolchain(21) }
+repositories {
+  mavenLocal()
+  mavenCentral()
+  maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+  maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
 }
 
 dependencies {
-  implementation(project(":core"))
-  implementation(project(":mcv:v1_21_9"))
-  implementation(project(":mcv:v1_21_11"))
+  implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+  compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+
+  implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-api:2.22.0")
+  implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-core:2.22.0")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+  implementation("xyz.jpenilla:reflection-remapper:0.1.1")
 }
+
+kotlin { jvmToolchain(21) }
 // TODO(дочерний плагин (без all) не видит релокацию)
 
 tasks {
@@ -47,6 +40,8 @@ tasks {
         "com.github.shynixn.mccoroutine",
         "ru.hukm.effectiveSpigot.libs.com.github.shynixn.mccoroutine"
     )
+    relocate("xyz.jpenilla.reflectionremapper", "ru.hukm.effectiveSpigot.libs.xyz.jpenilla.reflectionremapper")
+    relocate("net.fabricmc.mappingio", "ru.hukm.effectiveSpigot.libs.net.fabricmc.mappingio")
 
     mergeServiceFiles()
 
@@ -57,10 +52,6 @@ tasks {
   jar {
     enabled = true
     archiveClassifier.set("dev")
-
-    // Собираем классы и ресурсы из всех подпроектов
-    val subprojectsOutputs = subprojects.map { it.sourceSets.main.get().output }
-    from(subprojectsOutputs)
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
   }
@@ -114,7 +105,7 @@ val copyJarToServer =
 // 2. Копирование исходников
 val copySourceToDecomp =
         tasks.register<Copy>("copySourceToDecomp") {
-          from(project(":core").file("src/main/kotlin/ru/hukm"))
+          from(file("src/main/kotlin/ru/hukm"))
           into(rootProject.file("/home/hukm/pluginLibs"))
           duplicatesStrategy = DuplicatesStrategy.INCLUDE
         }

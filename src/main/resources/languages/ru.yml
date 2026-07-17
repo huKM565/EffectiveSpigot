@@ -1,0 +1,106 @@
+commands:
+  no_permission: "<red>У вас недостаточно прав на выполнение этой команды!"
+  egive:
+    usage: "<red>Использование: /egive <селектор> <название_предмета> <количество>"
+    no_permission: "<red>У вас недостаточно прав на выполнение этой команды!"
+    player_not_found: "<red>Игроки не найдены."
+    item_not_found: "<red>Ошибка: предмет %s не найден"
+    success: "<green>Выдано %d шт. %s игроку %s"
+  emob:
+    usage: "<red>Использование: /emob <название_сущности>"
+    no_permission: "<red>У вас недостаточно прав на выполнение этой команды!"
+    only_players: "<red>Эту команду могут выполнять только игроки!"
+    entity_not_found: "<red>Ошибка: сущность %s не найдена"
+    composite_part_not_allowed: "<red>Сущность %s является частью композита. Используйте /ecomposite"
+    success: "<green>Сущность %s успешно заспавнена!"
+  ecomposite:
+    usage: "<red>Использование: /ecomposite <название_композита> [аргументы...]"
+    no_permission: "<red>У вас недостаточно прав на выполнение этой команды!"
+    only_players: "<red>Эту команду могут выполнять только игроки!"
+    entity_not_found: "<red>Ошибка: композитная сущность %s не найдена"
+    success: "<green>Композитная сущность %s успешно заспавнена!"
+  emenu:
+    usage: "<red>Использование: /emenu <название_меню>"
+    no_permission: "<red>У вас недостаточно прав на выполнение этой команды!"
+    only_players: "<red>Эту команду могут выполнять только игроки!"
+    menu_not_found: "<red>Ошибка: меню %s не найдено"
+  escreen:
+    usage: "<red>Использование: /escreen <селектор> <FADE|SHAKE> [интенсивность] [длительность]"
+    no_permission: "<red>У вас недостаточно прав на выполнение этой команды!"
+    player_not_found: "<red>Игроки не найдены."
+    success_fade: "<green>Эффект затухания применен!"
+    success_shake: "<green>Эффект тряски применен!"
+    unknown_effect: "<red>Неизвестный эффект. Используйте FADE или SHAKE."
+    usage_shake: "<red>Использование: /escreen <селектор> SHAKE <интенсивность> <длительность>"
+    completions:
+      fade_in: "<появление>"
+      stay: "<статика>"
+      fade_out: "<затухание>"
+      intensity: "<интенсивность>"
+      duration: "<длительность>"
+  ezone:
+    usage: "<red>Использование: /ezone <list|create|delete> [аргументы]"
+    no_permission: "<red>У вас недостаточно прав на выполнение этой команды!"
+    create_usage: "<red>Использование: /ezone create <тип_зоны>"
+    delete_usage: "<red>Использование: /ezone delete <id>"
+    invalid_id: "<red>ID должен быть числом."
+    delete_success: "<green>Зона с ID %d успешно удалена."
+    not_found: "<red>Зона с таким ID не найдена."
+    available_zones: "<yellow>Доступные типы зон:"
+    create_success: "<green>Создание зоны типа: %s (заглушка)"
+    no_selection: "<red>Используйте селектор зоны для выбора области перед созданием зоны!"
+    not_player: "<red>Только игроки могут выполнять эту команду!"
+
+items:
+  zone_selector:
+    name: "<gold>Селектор зоны"
+    pos1: "<light_purple>Первая позиция установлена на %d, %d, %d"
+    pos2: "<light_purple>Вторая позиция установлена на %d, %d, %d"
+  summoning_egg:
+    name: "<white>Яйцо призыва %s</white>"
+  zone_registering_selector:
+    registered: "<green>Зона типа '%s' зарегистрирована с ID %d."
+    zone_not_registered: "<red>Тип зоны '%s' не зарегистрирован на сервере."
+  spawn_egg:
+    name: "Яйцо призыва "
+
+errors:
+  unsupported_version: "Неподдерживаемая версия Minecraft: %s"
+  commands:
+    already_registered: "Команда с ключом '%s' уже зарегистрирована"
+  items:
+    already_registered: "Предмет с ключом '%s' уже зарегистрирован"
+    wrong_additional_args_count: "Неверное количество дополнительных аргументов: ожидалось %s, получено %s"
+    cannot_parse_additional_arg: "Не удалось распарсить аргумент #%s = '%s' для ключа '%s'"
+    no_additional_args_defined: "Дополнительные аргументы не определены"
+    unknown_additional_arg_key: "Неизвестный ключ дополнительного аргумента: '%s'"
+  advancement:
+    already_registered: "Достижение с ключом '%s' уже зарегистрировано"
+  menu:
+    already_registered: "Меню с ключом '%s' уже зарегистрировано"
+  entities:
+    already_registered: "Сущность с ключом '%s' уже зарегистрирована"
+    composite_already_registered: "Составная сущность с ключом '%s' уже зарегистрирована"
+    composite_not_enough_parts: "Составная сущность '%s' должна содержать минимум 2 части"
+    key_not_registered: "Namespaced key '%s' не зарегистрирован"
+    wrong_additional_args_count: "Неверное количество дополнительных аргументов: ожидалось %s, получено %s"
+    cannot_parse_additional_arg: "Не удалось распарсить аргумент #%s = '%s' для ключа '%s'"
+    no_additional_args_defined: "Дополнительные аргументы не определены"
+    unknown_additional_arg_key: "Неизвестный ключ дополнительного аргумента: '%s'"
+    look_distance_exceeded: "Дистанция обзора превышает максимально допустимое значение"
+  crafts:
+    tag_invalid_material: "Тег содержит %s, но требуется Material"
+    list_invalid_material: "Список должен содержать Material. Получено: %s"
+    ingredient_empty: "Ингредиент не может быть пустым"
+    ingredient_invalid_type: "Ингредиент должен быть Material, Tag<Material> или List<Material>. Получено: %s"
+  world:
+    chunk_not_loaded: "Чанк %d, %d в мире %s не загружен"
+    chunk_wrong_world: "Чанк %d, %d находится в мире %s, а не в %s"
+    location_null: "World у Location не может быть null"
+    update_unloaded_chunk: "Попытка обновить блок в незагруженном чанке: [%d, %d] в мире %s"
+  loot:
+    container_full: "Не все предметы удалось поместить в контейнер: инвентарь полон"
+    chance_out_of_range: "Шанс должен быть от 0.0 до 1.0"
+    amounts_both_required: "Оба значения minAmount и maxAmount должны быть установлены или оба должны быть null"
+  cooldown:
+    wait: "Подождите еще %.1f сек."

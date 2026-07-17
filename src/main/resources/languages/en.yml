@@ -1,0 +1,106 @@
+commands:
+  no_permission: "<red>You do not have permission to execute this command!"
+  egive:
+    usage: "<red>Usage: /egive <selector> <item_name> <count>"
+    no_permission: "<red>You do not have permission to execute this command!"
+    player_not_found: "<red>Players not found."
+    item_not_found: "<red>Error: item %s is not found"
+    success: "<green>Given %d of %s to %s"
+  emob:
+    usage: "<red>Usage: /emob <entity_name>"
+    no_permission: "<red>You do not have permission to execute this command!"
+    only_players: "<red>Only players can execute this command!"
+    entity_not_found: "<red>Error: entity %s is not found"
+    composite_part_not_allowed: "<red>Entity %s is a part of a composite. Use /ecomposite"
+    success: "<green>Entity %s successfully spawned!"
+  ecomposite:
+    usage: "<red>Usage: /ecomposite <composite_name> [args...]"
+    no_permission: "<red>You do not have permission to execute this command!"
+    only_players: "<red>Only players can execute this command!"
+    entity_not_found: "<red>Error: composite entity %s is not found"
+    success: "<green>Composite entity %s successfully spawned!"
+  emenu:
+    usage: "<red>Usage: /emenu <menu_name>"
+    no_permission: "<red>You do not have permission to execute this command!"
+    only_players: "<red>Only players can execute this command!"
+    menu_not_found: "<red>Error: menu %s is not found"
+  escreen:
+    usage: "<red>Usage: /escreen <selector> <FADE|SHAKE> [intensity] [duration]"
+    no_permission: "<red>You do not have permission to execute this command!"
+    player_not_found: "<red>Players not found."
+    success_fade: "<green>Fade effect applied!"
+    success_shake: "<green>Shake effect applied!"
+    unknown_effect: "<red>Unknown effect. Use FADE or SHAKE."
+    usage_shake: "<red>Usage: /escreen <selector> SHAKE <intensity> <duration>"
+    completions:
+      fade_in: "<fadeIn>"
+      stay: "<stay>"
+      fade_out: "<fadeOut>"
+      intensity: "<intensity>"
+      duration: "<duration>"
+  ezone:
+    usage: "<red>Usage: /ezone <list|create|delete> [args]"
+    no_permission: "<red>You do not have permission to execute this command!"
+    create_usage: "<red>Usage: /ezone create <zone_type>"
+    delete_usage: "<red>Usage: /ezone delete <id>"
+    invalid_id: "<red>ID must be a number."
+    delete_success: "<green>Zone with ID %d successfully deleted."
+    not_found: "<red>Zone with this ID not found."
+    available_zones: "<yellow>Available zone types:"
+    no_selection: "<red>Use zone selector to select an area before creating a zone!"
+    not_player: "<red>Only players can execute this command!"
+    create_success: "<green>Creating zone type: %s (stub)"
+
+items:
+  zone_selector:
+    name: "<gold>Zone Selector"
+    pos1: "<light_purple>First position set to %d, %d, %d"
+    pos2: "<light_purple>Second position set to %d, %d, %d"
+  summoning_egg:
+    name: "<white>Summoning egg %s</white>"
+  zone_registering_selector:
+    registered: "<green>Zone of type '%s' registered with ID %d."
+    zone_not_registered: "<red>Zone type '%s' is not registered on this server."
+
+errors:
+  unsupported_version: "Unsupported Minecraft version: %s"
+  commands:
+    already_registered: "Command with namespaced name '%s' is already registered"
+  items:
+    already_registered: "Item with namespaced name '%s' is already registered"
+    wrong_additional_args_count: "Wrong number of additional arguments: expected %s, got %s"
+    cannot_parse_additional_arg: "Cannot parse argument #%s = '%s' for key '%s'"
+    no_additional_args_defined: "No additional args defined"
+    unknown_additional_arg_key: "Unknown additional arg key: '%s'"
+  advancement:
+    already_registered: "Advancement with namespaced key '%s' is already registered"
+  menu:
+    already_registered: "Menu with namespaced name '%s' is already registered"
+  npcs:
+    already_registered: "NPC with namespaced key '%s' is already registered"
+  entities:
+    already_registered: "Entity with namespaced key '%s' is already registered"
+    composite_already_registered: "Composite entity with namespaced key '%s' is already registered"
+    composite_not_enough_parts: "Composite entity '%s' must contain at least 2 parts"
+    key_not_registered: "Namespaced key '%s' is not registered"
+    look_distance_exceeded: "Look distance exceeds the maximum allowed value"
+    wrong_additional_args_count: "Wrong number of additional arguments: expected %s, got %s"
+    cannot_parse_additional_arg: "Cannot parse argument #%s = '%s' for key '%s'"
+    no_additional_args_defined: "No additional args defined"
+    unknown_additional_arg_key: "Unknown additional arg key: '%s'"
+  crafts:
+    tag_invalid_material: "Tag contains %s, but Material is required"
+    list_invalid_material: "List must contain Materials. Provided: %s"
+    ingredient_empty: "Ingredient cannot be empty"
+    ingredient_invalid_type: "Ingredient must be Material, Tag<Material> or List<Material>. Provided: %s"
+  world:
+    chunk_not_loaded: "Chunk %d, %d in world %s is not loaded"
+    chunk_wrong_world: "Chunk %d, %d is in world %s, not in %s"
+    location_null: "Location world cannot be null"
+    update_unloaded_chunk: "Attempt to update block in unloaded chunk: [%d, %d] in world %s"
+  loot:
+    container_full: "Not all items could be placed in the container: inventory is full"
+    chance_out_of_range: "Chance must be between 0.0 and 1.0"
+    amounts_both_required: "Both minAmount and maxAmount must be set or both must be null"
+  cooldown:
+    wait: "Please wait another %.1f sec."
