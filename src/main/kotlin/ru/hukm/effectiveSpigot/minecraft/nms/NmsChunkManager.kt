@@ -8,13 +8,13 @@ object NmsChunkManager {
 
     fun getBlocks(chunkX: Int, chunkZ: Int, world: String): ShortArray {
         val level = CraftReflection.getWorldHandle(EffectiveWorldParser.stringToWorld(world))
-        val chunk = NmsProxies.serverLevel.getChunk(level, chunkX, chunkZ)
+        val chunk = NmsProxies.level.getChunk(level, chunkX, chunkZ)
 
-        val types = ShortArray(16 * 16 * NmsProxies.serverLevel.getHeight(level))
+        val types = ShortArray(16 * 16 * NmsProxies.heightAccessor.getHeight(level))
         var i = 0
 
-        for (sectionIndex in 0 until NmsProxies.serverLevel.getSectionsCount(level)) {
-            val section = NmsProxies.levelChunk.getSection(chunk, sectionIndex)
+        for (sectionIndex in 0 until NmsProxies.heightAccessor.getSectionsCount(level)) {
+            val section = NmsProxies.chunkAccess.getSection(chunk, sectionIndex)
 
             if (NmsProxies.chunkSection.hasOnlyAir(section)) {
                 i += 16 * 16 * 16

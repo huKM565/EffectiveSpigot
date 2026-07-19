@@ -5,9 +5,7 @@ import org.bukkit.Material
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
-import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockExplodeEvent
 import org.bukkit.event.block.BlockPistonExtendEvent
@@ -17,8 +15,8 @@ import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.world.LootGenerateEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.loot.LootTables
-import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 
 interface EffectiveDropable {
     data class Data(
@@ -36,7 +34,75 @@ interface EffectiveDropable {
         internal fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
+                    event<LootGenerateEvent>(EventPriority.MONITOR) {
+                        val lootTable = it.lootTable
+                        val loot = it.loot
+                        val entity = it.entity
+
+                        for (data in foundableItems) {
+                            if (data.lootTables != null && data.lootTables.map { tables -> tables.lootTable }.contains(lootTable)) {
+                                val player = entity as? Player
+
+                                if (Math.random() <= data.chance.invoke(player)) {
+                                    val item = data.item.clone()
+                                    data.amount?.let { amount ->
+                                        item.amount = amount.invoke(player).random()
+                                    }
+
+                                    loot.add(item)
+                                }
+                            }
+                        }
+                    }
+
+                    event<BlockBreakEvent>(EventPriority.MONITOR) {
+                        dropFromBlock(it.block, it.player)
+                    }
+
+                    event<BlockDestroyEvent>(EventPriority.MONITOR) {
+                        dropFromBlock(it.block, null)
+                    }
+
+                    event<EntityExplodeEvent>(EventPriority.MONITOR) {
+                        it.blockList().forEach { block -> dropFromBlock(block, null) }
+                    }
+
+                    event<BlockExplodeEvent>(EventPriority.MONITOR) {
+                        it.blockList().forEach { block -> dropFromBlock(block, null) }
+                    }
+
+                    event<EntityDeathEvent>(EventPriority.MONITOR) {
+                        val entity = it.entity
+                        val player = entity.killer ?: return@event
+
+                        for (data in foundableItems) {
+                            if (data.entities != null && data.entities.contains(entity.type)) {
+                                if (Math.random() <= data.chance.invoke(player)) {
+                                    val item = data.item.clone()
+                                    data.amount?.let { amount ->
+                                        item.amount = amount.invoke(player).random()
+                                    }
+
+                                    it.drops.add(item)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private fun dropFromBlock(block: org.bukkit.block.Block, player: Player?) {
+            for (data in foundableItems) {
+                if (data.blocks != null && data.blocks.contains(block.type)) {
+                    if (Math.random() <= data.chance.invoke(player)) {
+                        val item = data.item.clone()
+                        data.amount?.let {
+                            println(it.invoke(player).random())
+                            item.amount = it.invoke(player).random()
+                        }
+                        block.world.dropItemNaturally(block.location.add(0.5, 0.5, 0.5), item)
+                    }
                 }
             }
         }
@@ -61,80 +127,6 @@ interface EffectiveDropable {
             return { player ->
                 val item = player?.inventory?.itemInMainHand
                 baseRange.first..(baseRange.last + (getLuckChance(item) * modifier))
-            }
-        }
-    }
-
-    private class Events : Listener {
-        @EventHandler(priority = EventPriority.MONITOR)
-        fun onLootGenerate(event: LootGenerateEvent) {
-            val lootTable = event.lootTable
-            val loot = event.loot
-            val entity = event.entity
-
-            for (data in foundableItems) {
-                if (data.lootTables != null && data.lootTables.map { it.lootTable } .contains(lootTable)) {
-                    val player = entity as? Player
-
-                    if (Math.random() <= data.chance.invoke(player)) {
-                        val item = data.item.clone()
-                        data.amount?.let {
-                            item.amount = it.invoke(player).random()
-                        }
-
-                        loot.add(item)
-                    }
-                }
-            }
-        }
-
-        @EventHandler(priority = EventPriority.MONITOR)
-        fun onBlockBreak(event: BlockBreakEvent) =
-            dropFromBlock(event.block, event.player)
-
-        @EventHandler(priority = EventPriority.MONITOR)
-        fun onBlockDestroy(event: BlockDestroyEvent) =
-            dropFromBlock(event.block, null)
-
-        @EventHandler(priority = EventPriority.MONITOR)
-        fun onEntityExplode(event: EntityExplodeEvent) =
-            event.blockList().forEach { dropFromBlock(it, null) }
-
-        @EventHandler(priority = EventPriority.MONITOR)
-        fun onBlockExplode(event: BlockExplodeEvent) =
-            event.blockList().forEach { dropFromBlock(it, null) }
-
-        private fun dropFromBlock(block: org.bukkit.block.Block, player: Player?) {
-            for (data in foundableItems) {
-                if (data.blocks != null && data.blocks.contains(block.type)) {
-                    if (Math.random() <= data.chance.invoke(player)) {
-                        val item = data.item.clone()
-                        data.amount?.let {
-                            println(it.invoke(player).random())
-                            item.amount = it.invoke(player).random()
-                        }
-                        block.world.dropItemNaturally(block.location.add(0.5, 0.5, 0.5), item)
-                    }
-                }
-            }
-        }
-
-        @EventHandler(priority = EventPriority.MONITOR)
-        fun onEntityDeath(event: EntityDeathEvent) {
-            val entity = event.entity
-            val player = entity.killer ?: return
-
-            for (data in foundableItems) {
-                if (data.entities != null && data.entities.contains(entity.type)) {
-                    if (Math.random() <= data.chance.invoke(player)) {
-                        val item = data.item.clone()
-                        data.amount?.let {
-                            item.amount = it.invoke(player).random()
-                        }
-
-                        event.drops.add(item)
-                    }
-                }
             }
         }
     }

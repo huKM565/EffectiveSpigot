@@ -2,13 +2,11 @@ package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.inventory.ItemStack
-import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
@@ -49,42 +47,37 @@ interface EffectiveWearable {
         internal fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
-                }
-            }
-        }
-    }
+                    //TODO(Не работает надевание предмета для Creative)
+                    event<InventoryClickEvent> {
+                        val player = it.whoClicked as? Player ?: return@event
 
-    class Events : Listener {
-        //TODO(Не работает надевание предмета для Creative)
-        @EventHandler
-        fun onInventoryClick(event: InventoryClickEvent) {
-            val player = event.whoClicked as? Player ?: return
+                        val type = it.view.type
+                        if (type != InventoryType.CRAFTING && type != InventoryType.CREATIVE) return@event
 
-            val type = event.view.type
-            if (type != InventoryType.CRAFTING && type != InventoryType.CREATIVE) return
+                        if (it.rawSlot == 5) {
+                            val cursorItem = it.cursor
+                            if (isWearable(cursorItem)) {
+                                val currentHelmet = it.currentItem
 
-            if (event.rawSlot == 5) {
-                val cursorItem = event.cursor
-                if (isWearable(cursorItem)) {
-                    val currentHelmet = event.currentItem
+                                it.currentItem = cursorItem.clone().apply { amount = 1 }
 
-                    event.currentItem = cursorItem.clone().apply { amount = 1 }
+                                if (cursorItem.amount > 1) {
+                                    cursorItem.amount -= 1
+                                } else {
+                                    it.view.setCursor(null)
+                                }
 
-                    if (cursorItem.amount > 1) {
-                        cursorItem.amount -= 1
-                    } else {
-                        event.view.setCursor(null)
-                    }
-
-                    if (currentHelmet != null && currentHelmet.type != Material.AIR) {
-                        if (cursorItem.amount <= 1) {
-                            event.view.setCursor(currentHelmet)
-                        } else {
-                            EffectiveInventoryUtils.giveItem(currentHelmet, player)
+                                if (currentHelmet != null && currentHelmet.type != Material.AIR) {
+                                    if (cursorItem.amount <= 1) {
+                                        it.view.setCursor(currentHelmet)
+                                    } else {
+                                        EffectiveInventoryUtils.giveItem(currentHelmet, player)
+                                    }
+                                }
+                                it.isCancelled = true
+                            }
                         }
                     }
-                    event.isCancelled = true
                 }
             }
         }

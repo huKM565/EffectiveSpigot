@@ -4,6 +4,36 @@
 
 ---
 
+## 🚀 Подключение
+
+Фреймворк подключается через convention-плагин **`ru.hukm.effective-plugin`**:
+
+**`settings.gradle.kts`**:
+```kotlin
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven("https://maven.hukm.dev/repository/maven-public/")
+    }
+}
+
+rootProject.name = "MyPlugin"
+```
+
+**`build.gradle.kts`**:
+```kotlin
+plugins {
+    id("ru.hukm.effective-plugin") version "1.0.0-SNAPSHOT"
+}
+```
+
+**`plugin.yml`** — не забудьте зависимость от фреймворка:
+```yaml
+depend: [EffectiveSpigot]
+```
+
+---
+
 ### ✨ Работа с миром: `EffectiveWorld`
 
 `EffectiveWorld` — это высокопроизводительный инструмент для мгновенного сканирования сотен чанков. Нагрузка на сервер видна лишь тогда, когда идёт загрузка чанков.
@@ -68,11 +98,10 @@
 `EffectiveZone` — инструмент для создания триггерных регионов (AABB) с отслеживанием входа, выхода и нахождения внутри.
 
 1. 💾 **Персистентность**: зоны сохраняются в `PersistentDataContainer` мира и переживают перезапуск сервера.
-2. 🎯 **Типы активации**: `ENTER` (вход), `EXIT` (выход), `INSIDE` (перемещение внутри).
+2. 🎯 **Кастомные события**: вход/выход/нахождение внутри — это Bukkit-события `EffectiveZoneEnterEvent`, `EffectiveZoneExitEvent`, `EffectiveZoneInsideEvent` (у каждого есть `entity`, `zone`, `zoneBox`). Подписка — через обычный листенер или Event DSL; фильтр по типу сущности делается на стороне обработчика (`if (it.entity is Player)`). Регистрация выделения кидает `EffectiveZoneSelectionRegisteredEvent`.
 3. 🟦 **Визуализация**: во время выделения зоны рисуется каркас из частиц — синий для нового выделения, жёлтый для уже зарегистрированных зон.
-4. 🗡 **Фильтр по типу**: можно указать, какие типы сущностей активируют зону.
-5. 📜 **Команда `/ezone`**: `list` — список зон, `create <тип>` — создать из текущего выделения, `delete <id>` — удалить.
-6. 🔧 **Инструмент выделения**: предмет `ZONE_SELECTOR` (Blaze Rod) — ЛКМ задаёт первую точку, ПКМ — вторую.
+4. 📜 **Команда `/ezone`**: `list` — список зон, `create <тип>` — создать из текущего выделения, `delete <id>` — удалить.
+5. 🔧 **Инструмент выделения**: предмет `ZONE_SELECTOR` (Blaze Rod) — ЛКМ задаёт первую точку, ПКМ — вторую.
 
 ---
 
@@ -141,18 +170,18 @@
 
 Подробное описание методов и примеры использования доступны непосредственно в коде (KDoc) соответствующих классов (на английском языке):
 
-*   [`EffectiveItem`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/EffectiveItem.kt) — основной класс для создания предметов.
-*   [`EffectiveClickable`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveClickable.kt) — интерфейс для обработки кликов.
-*   [`EffectiveCraftable`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveCraftable.kt) — интерфейс для создания крафтов.
-*   [`EffectiveFoundableAndDropable`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveFoundableAndDropable.kt) — интерфейс для настройки лута.
-*   [`EffectiveWearable`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveWearable.kt) — интерфейс для создания одеваемых предметов.
-*   [`EffectiveEntity`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/entities/EffectiveEntity.kt) — основной класс для создания кастомных сущностей.
-*   [`EffectiveBlock`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/blocks/EffectiveBlock.kt) — основной класс для создания кастомных блоков.
-*   [`EffectiveWorld`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/world/EffectiveWorld.kt) — высокопроизводительное кеширование блоков мира.
-*   [`EffectiveZone`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/zone/EffectiveZone.kt) — система триггерных зон.
-*   [`EffectiveMenu`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/menu/EffectiveMenu.kt) — базовый класс для инвентарных GUI.
-*   [`EffectiveCommand`](core/src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/commands/EffectiveCommand.kt) — базовый класс для команд на Brigadier.
-*   [`EffectiveConfig`](core/src/main/kotlin/ru/hukm/effectiveSpigot/config/EffectiveConfig.kt) — базовый класс для YAML-конфигов.
+*   [`EffectiveItem`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/EffectiveItem.kt) — основной класс для создания предметов.
+*   [`EffectiveClickable`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveClickable.kt) — интерфейс для обработки кликов.
+*   [`EffectiveCraftable`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveCraftable.kt) — интерфейс для создания крафтов.
+*   [`EffectiveFoundableAndDropable`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveFoundableAndDropable.kt) — интерфейс для настройки лута.
+*   [`EffectiveWearable`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveWearable.kt) — интерфейс для создания одеваемых предметов.
+*   [`EffectiveEntity`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/entities/EffectiveEntity.kt) — основной класс для создания кастомных сущностей.
+*   [`EffectiveBlock`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/blocks/EffectiveBlock.kt) — основной класс для создания кастомных блоков.
+*   [`EffectiveWorld`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/world/EffectiveWorld.kt) — высокопроизводительное кеширование блоков мира.
+*   [`EffectiveZone`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/zone/EffectiveZone.kt) — система триггерных зон.
+*   [`EffectiveMenu`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/menu/EffectiveMenu.kt) — базовый класс для инвентарных GUI.
+*   [`EffectiveCommand`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/commands/EffectiveCommand.kt) — базовый класс для команд на Brigadier.
+*   [`EffectiveConfig`](src/main/kotlin/ru/hukm/effectiveSpigot/config/EffectiveConfig.kt) — базовый класс для YAML-конфигов.
 
 ---
 

@@ -4,17 +4,18 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
-import org.bukkit.entity.Player
 import org.bukkit.inventory.meta.ItemMeta
-import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
-import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
+import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgs
 import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgsSupport
+import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
+import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
+import kotlin.random.Random
+import kotlin.random.nextInt
 
 abstract class SummoningEggItem : EffectiveItem() {
-
     enum class SpawnPlacement {
         TOP,
         BOTTOM,
@@ -24,11 +25,9 @@ abstract class SummoningEggItem : EffectiveItem() {
     }
 
     companion object {
-
         fun resolveSpawnLocation(
             block: Block,
             placement: SpawnPlacement,
-            player: Player,
             clickedFace: BlockFace? = null
         ): Location {
             val base = block.location
@@ -43,7 +42,7 @@ abstract class SummoningEggItem : EffectiveItem() {
                     target.location.add(0.5, 0.0, 0.5)
                 }
             }.apply {
-                yaw = player.location.yaw
+                yaw = Random.nextInt(0..360).toFloat()
                 pitch = 0f
             }
         }
@@ -51,10 +50,9 @@ abstract class SummoningEggItem : EffectiveItem() {
 
     init {
         addClickHandler(Click.RIGHT, { e ->
-            val block = e.clickedBlock
-                ?: return@addClickHandler EffectiveAbstractInteract.Result.ALLOW_EVENT
+            val block = e.clickedBlock ?: return@addClickHandler EffectiveAbstractInteract.Result.ALLOW_EVENT
 
-            val location = resolveSpawnLocation(block, getSpawnPlacement(), e.player, e.blockFace)
+            val location = resolveSpawnLocation(block, getSpawnPlacement(), e.blockFace)
 
             val additionalArgs = AdditionalArgsSupport.readFromHolder(e.item.itemMeta, getAdditionalArgs())
 

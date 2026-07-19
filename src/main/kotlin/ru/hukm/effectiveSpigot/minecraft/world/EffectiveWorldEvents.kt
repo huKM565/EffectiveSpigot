@@ -1,39 +1,31 @@
 package ru.hukm.effectiveSpigot.minecraft.world
 
-import org.bukkit.Bukkit
 import org.bukkit.Material
-import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
-import org.bukkit.event.Listener
 import org.bukkit.event.block.*
 import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.event.world.ChunkUnloadEvent
-import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
+import ru.hukm.effectiveSpigot.minecraft.events.event
 
-class EffectiveWorldEvents : Listener {
-    @EventHandler(priority = EventPriority.MONITOR)
-    fun onLoadChunkEvent(event: ChunkLoadEvent) {
-        EffectiveWorld.tryUploadChunk(event.chunk)
-    }
+object EffectiveWorldEvents {
+    fun init() {
+        event<ChunkLoadEvent>(EventPriority.MONITOR) {
+            EffectiveWorld.tryUploadChunk(it.chunk)
+        }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    fun onUnloadChunkEvent(event: ChunkUnloadEvent) {
-        EffectiveWorld.setIsUnload(event.chunk)
-    }
+        event<ChunkUnloadEvent>(EventPriority.MONITOR) {
+            EffectiveWorld.setIsUnload(it.chunk)
+        }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockPlaceEvent(event: BlockPlaceEvent) {
-        EffectiveWorld.updateBlock(event.blockPlaced)
-    }
+        event<BlockPlaceEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.updateBlock(it.blockPlaced)
+        }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onMultiBlockPlaceEvent(event: BlockMultiPlaceEvent) {
-        EffectiveWorld.updateBlocks(event.replacedBlockStates.map { it.block })
-    }
+        event<BlockMultiPlaceEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.updateBlocks(it.replacedBlockStates.map { state -> state.block })
+        }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockBreakEvent(event: BlockBreakEvent) {
+        event<BlockBreakEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
 //        val pos = EffectiveBlockPos(event.block.x, event.block.y, event.block.z)
 //
 //// Берем данные ДО того, как превратим блок в воздух в нашей системе
@@ -65,82 +57,71 @@ class EffectiveWorldEvents : Listener {
 //        } else {
 //            event.player.sendMessage("§6[!] Ошибка: Блок по координатам ${pos.x}, ${pos.y}, ${pos.z} не найден в кэше SoA.")
 //        }
-        EffectiveWorld.setAir(event.block)
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockBurnEvent(event: BlockBurnEvent) {
-        EffectiveWorld.setAir(event.block)
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockExplodeEvent(event: BlockExplodeEvent) {
-        EffectiveWorld.setAirs(event.blockList())
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockFadeEvent(event: BlockFadeEvent) {
-        EffectiveWorld.updateBlock(event.newState.block)
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockFertilizeBlockEvent(event: BlockFertilizeEvent) {
-        EffectiveWorld.updateBlocks(event.blocks.map { it.block })
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockFormEvent(event: BlockFormEvent) {
-        EffectiveWorld.updateBlock(event.newState.block)
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockFromToEvent(event: BlockFromToEvent) {
-        val block = event.block
-        val toBlock = event.toBlock
-
-        EffectiveWorld.updateBlock(
-            toBlock.world,
-            toBlock.x,
-            toBlock.y,
-            toBlock.z,
-            block.type
-        )
-
-        if (block.type == Material.DRAGON_EGG) {
-            EffectiveWorld.updateBlock(
-                block.world,
-                block.x,
-                block.y,
-                block.z,
-                Material.AIR
-            )
+            EffectiveWorld.setAir(it.block)
         }
-    }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockPhysicsEvent(event: BlockPhysicsEvent) {
-        val block = event.block
-        EffectiveWorld.updateBlock(block)
-        //TODO(мб все же требуеться таймер)
-    }
+        event<BlockBurnEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.setAir(it.block)
+        }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockIgniteEvent(event: BlockIgniteEvent) {
-        EffectiveWorld.updateBlock(event.ignitingBlock!!)
-    }
+        event<BlockExplodeEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.setAirs(it.blockList())
+        }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBlockGrowEvent(event: BlockGrowEvent) {
-        EffectiveWorld.updateBlock(event.newState.block)
-    }
+        event<BlockFadeEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.updateBlock(it.newState.block)
+        }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onEntityBlockFormEvent(event: EntityBlockFormEvent) {
-        EffectiveWorld.updateBlock(event.newState.block)
-    }
+        event<BlockFertilizeEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.updateBlocks(it.blocks.map { state -> state.block })
+        }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onSpongeAbsorbEvent(event: SpongeAbsorbEvent) {
-        EffectiveWorld.setAirs(event.blocks.map { it.block })
+        event<BlockFormEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.updateBlock(it.newState.block)
+        }
+
+        event<BlockFromToEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            val block = it.block
+            val toBlock = it.toBlock
+
+            EffectiveWorld.updateBlock(
+                toBlock.world,
+                toBlock.x,
+                toBlock.y,
+                toBlock.z,
+                block.type
+            )
+
+            if (block.type == Material.DRAGON_EGG) {
+                EffectiveWorld.updateBlock(
+                    block.world,
+                    block.x,
+                    block.y,
+                    block.z,
+                    Material.AIR
+                )
+            }
+        }
+
+        event<BlockPhysicsEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.updateBlock(it.block)
+            //TODO(мб все же требуеться таймер)
+        }
+
+        event<BlockIgniteEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.updateBlock(it.ignitingBlock!!)
+        }
+
+        event<BlockGrowEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.updateBlock(it.newState.block)
+        }
+
+        event<EntityBlockFormEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.updateBlock(it.newState.block)
+        }
+
+        event<SpongeAbsorbEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+            EffectiveWorld.setAirs(it.blocks.map { state -> state.block })
+        }
     }
 }

@@ -1,16 +1,14 @@
 package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
 import org.bukkit.Material
-import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
-import org.bukkit.event.Listener
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.player.PlayerDropItemEvent
 import org.bukkit.inventory.ItemStack
-import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
 interface EffectiveUndropable {
@@ -31,43 +29,36 @@ interface EffectiveUndropable {
         internal fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
-                }
-            }
-        }
-    }
+                    event<PlayerDropItemEvent>(EventPriority.HIGH, ignoreCancelled = true) {
+                        if (isUndropable(it.itemDrop.itemStack)) {
+                            it.isCancelled = true
+                        }
+                    }
 
-    private class Events : Listener {
-        @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-        fun onPlayerDrop(event: PlayerDropItemEvent) {
-            if (isUndropable(event.itemDrop.itemStack)) {
-                event.isCancelled = true
-            }
-        }
+                    event<InventoryClickEvent>(EventPriority.HIGH, ignoreCancelled = true) {
+                        when (it.action) {
+                            InventoryAction.DROP_ONE_SLOT,
+                            InventoryAction.DROP_ALL_SLOT -> {
+                                if (isUndropable(it.currentItem)) it.isCancelled = true
+                            }
+                            InventoryAction.DROP_ONE_CURSOR,
+                            InventoryAction.DROP_ALL_CURSOR -> {
+                                if (isUndropable(it.cursor)) it.isCancelled = true
+                            }
+                            else -> Unit
+                        }
+                    }
 
-        @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-        fun onInventoryClick(event: InventoryClickEvent) {
-            when (event.action) {
-                InventoryAction.DROP_ONE_SLOT,
-                InventoryAction.DROP_ALL_SLOT -> {
-                    if (isUndropable(event.currentItem)) event.isCancelled = true
-                }
-                InventoryAction.DROP_ONE_CURSOR,
-                InventoryAction.DROP_ALL_CURSOR -> {
-                    if (isUndropable(event.cursor)) event.isCancelled = true
-                }
-                else -> Unit
-            }
-        }
-
-        @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-        fun onPlayerDeath(event: PlayerDeathEvent) {
-            val iterator = event.drops.iterator()
-            while (iterator.hasNext()) {
-                val drop = iterator.next()
-                if (isUndropable(drop)) {
-                    event.itemsToKeep.add(drop)
-                    iterator.remove()
+                    event<PlayerDeathEvent>(EventPriority.HIGH, ignoreCancelled = true) {
+                        val iterator = it.drops.iterator()
+                        while (iterator.hasNext()) {
+                            val drop = iterator.next()
+                            if (isUndropable(drop)) {
+                                it.itemsToKeep.add(drop)
+                                iterator.remove()
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -7,8 +7,6 @@ import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryDragEvent
@@ -18,6 +16,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import kotlin.collections.set
@@ -55,7 +54,114 @@ abstract class EffectiveMenu {
         internal fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
+                    event<InventoryClickEvent> {
+                        val inventory = it.inventory
+                        val inventoryHolder = inventory.holder
+                        val effectiveMenu = namespacedNameToMenu.values.find { menu -> inventoryHolder == menu.inventoryHolder }
+                            ?: return@event
+
+                        val rawSlot = it.rawSlot
+                        val player = it.whoClicked as Player
+
+                        if (rawSlot >= effectiveMenu.countSlot || rawSlot < -99) {
+                            if (it.isShiftClick) {
+                                val freeSlots = effectiveMenu.getFreeSlots()
+                                if (freeSlots.isNullOrEmpty()) {
+                                    it.isCancelled = true
+                                } else {
+                                    val snapshot = freeSlots.associateWith { slot -> inventory.getItem(slot)?.clone() }
+                                    EffectiveSpigot.instance.launch {
+                                        delay(1.ticks)
+                                        freeSlots.forEach { slot ->
+                                            val oldItem = snapshot[slot]?.takeIf { item -> item.type != Material.AIR }
+                                            val newItem = inventory.getItem(slot)?.takeIf { item -> item.type != Material.AIR }
+                                            if (oldItem == null && newItem != null) {
+                                                effectiveMenu.onSlotChanged(player, slot, newItem, true)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            return@event
+                        }
+
+                        val slot = it.slot
+
+                        if (effectiveMenu.getFreeSlots()?.contains(rawSlot) == true) {
+                            val oldItem = it.currentItem?.takeIf { item -> item.type != Material.AIR }
+                            val cursorItem = it.cursor.takeIf { item -> item.type != Material.AIR }
+
+                            when {
+                                oldItem != null && cursorItem != null -> {
+                                    effectiveMenu.onSlotChanged(player, slot, oldItem, false)
+                                    effectiveMenu.onSlotChanged(player, slot, cursorItem, true)
+                                }
+                                cursorItem != null -> {
+                                    val placed = if (it.isRightClick) cursorItem.clone().apply { amount = 1 } else cursorItem
+                                    effectiveMenu.onSlotChanged(player, slot, placed, true)
+                                }
+                                oldItem != null -> effectiveMenu.onSlotChanged(player, slot, null, false)
+                            }
+                            return@event
+                        }
+
+                        if (it.isShiftClick) {
+                            it.isCancelled = true
+                            return@event
+                        }
+
+                        it.isCancelled = true
+
+                        var click: EffectiveAbstractInteract.Click? = null
+                        if (it.isLeftClick) click = EffectiveAbstractInteract.Click.LEFT
+                        else if (it.isRightClick) click = EffectiveAbstractInteract.Click.RIGHT
+                        if (click == null) return@event
+
+                        effectiveMenu.getItemsWithPattern()[slot]?.clickHandlers?.forEach { data ->
+                            if (data.click == click) data.callback.invoke(player)
+                        }
+                    }
+
+                    event<InventoryCloseEvent> {
+                        val inventory = it.inventory
+                        val holder = inventory.holder ?: return@event
+                        val effectiveMenu = namespacedNameToMenu.values.find { menu -> holder == menu.inventoryHolder }
+                            ?: return@event
+                        val player = it.player as? Player ?: return@event
+
+                        effectiveMenu.getFreeSlots()?.forEach { slot ->
+                            val item = inventory.getItem(slot)?.takeIf { item -> item.type != Material.AIR } ?: return@forEach
+                            inventory.setItem(slot, null)
+                            val leftover = player.inventory.addItem(item)
+                            leftover.values.forEach { left -> player.world.dropItemNaturally(player.location, left) }
+                        }
+                    }
+
+                    event<InventoryDragEvent> {
+                        val inventory = it.inventory
+                        val holder = inventory.holder ?: return@event
+                        val effectiveMenu = namespacedNameToMenu.values.find { menu -> holder == menu.inventoryHolder }
+                            ?: return@event
+                        val player = it.whoClicked as Player
+
+                        val menuSlots = it.rawSlots.filter { slot -> slot < effectiveMenu.countSlot }
+                        if (menuSlots.isEmpty()) return@event
+
+                        if (menuSlots.any { slot -> effectiveMenu.getFreeSlots()?.contains(slot) == false }) {
+                            it.isCancelled = true
+                            return@event
+                        }
+
+                        EffectiveSpigot.instance.launch {
+                            delay(1.ticks)
+                            menuSlots.forEach { slot ->
+                                val item = inventory.getItem(slot)?.takeIf { item -> item.type != Material.AIR }
+                                if (item != null) {
+                                    effectiveMenu.onSlotChanged(player, slot, item, true)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -121,116 +227,5 @@ abstract class EffectiveMenu {
         }
 
         return items
-    }
-
-    class Events : Listener {
-        @EventHandler
-        fun onInventoryClick(event: InventoryClickEvent) {
-            val inventory = event.inventory
-            val inventoryHolder = inventory.holder
-            val effectiveMenu = namespacedNameToMenu.values.find { inventoryHolder == it.inventoryHolder }
-            if (effectiveMenu == null) return
-
-            val rawSlot = event.rawSlot
-
-            if (rawSlot >= effectiveMenu.countSlot || rawSlot < -99) {
-                if (event.isShiftClick) {
-                    val freeSlots = effectiveMenu.getFreeSlots()
-                    if (freeSlots.isNullOrEmpty()) {
-                        event.isCancelled = true
-                    } else {
-                        val snapshot = freeSlots.associateWith { inventory.getItem(it)?.clone() }
-                        EffectiveSpigot.instance.launch {
-                            delay(1.ticks)
-                            freeSlots.forEach { slot ->
-                                val oldItem = snapshot[slot]?.takeIf { it.type != Material.AIR }
-                                val newItem = inventory.getItem(slot)?.takeIf { it.type != Material.AIR }
-                                if (oldItem == null && newItem != null) {
-                                    effectiveMenu.onSlotChanged(event.whoClicked as Player, slot, newItem, true)
-                                }
-                            }
-                        }
-                    }
-                }
-                return
-            }
-
-            val slot = event.slot
-
-            if (effectiveMenu.getFreeSlots()?.contains(rawSlot) == true) {
-                val player = event.whoClicked as Player
-                val oldItem = event.currentItem?.takeIf { it.type != Material.AIR }
-                val cursorItem = event.cursor.takeIf { it.type != Material.AIR }
-
-                when {
-                    oldItem != null && cursorItem != null -> {
-                        effectiveMenu.onSlotChanged(player, slot, oldItem, false)
-                        effectiveMenu.onSlotChanged(player, slot, cursorItem, true)
-                    }
-                    cursorItem != null -> {
-                        val placed = if (event.isRightClick) cursorItem.clone().apply { amount = 1 } else cursorItem
-                        effectiveMenu.onSlotChanged(player, slot, placed, true)
-                    }
-                    oldItem != null -> effectiveMenu.onSlotChanged(player, slot, null, false)
-                }
-                return
-            }
-
-            if (event.isShiftClick) {
-                event.isCancelled = true
-                return
-            }
-
-            event.isCancelled = true
-
-            var click: EffectiveAbstractInteract.Click? = null
-            if (event.isLeftClick) click = EffectiveAbstractInteract.Click.LEFT
-            else if (event.isRightClick) click = EffectiveAbstractInteract.Click.RIGHT
-            if (click == null) return
-
-            effectiveMenu.getItemsWithPattern()[slot]?.clickHandlers?.forEach {
-                if (it.click == click) it.callback.invoke(event.whoClicked as Player)
-            }
-        }
-
-        @EventHandler
-        fun onInventoryClose(event: InventoryCloseEvent) {
-            val inventory = event.inventory
-            val holder = inventory.holder ?: return
-            val effectiveMenu = namespacedNameToMenu.values.find { holder == it.inventoryHolder } ?: return
-            val player = event.player as? Player ?: return
-
-            effectiveMenu.getFreeSlots()?.forEach { slot ->
-                val item = inventory.getItem(slot)?.takeIf { it.type != Material.AIR } ?: return@forEach
-                inventory.setItem(slot, null)
-                val leftover = player.inventory.addItem(item)
-                leftover.values.forEach { player.world.dropItemNaturally(player.location, it) }
-            }
-        }
-
-        @EventHandler
-        fun onInventoryDrag(event: InventoryDragEvent) {
-            val inventory = event.inventory
-            val holder = inventory.holder ?: return
-            val effectiveMenu = namespacedNameToMenu.values.find { holder == it.inventoryHolder } ?: return
-
-            val menuSlots = event.rawSlots.filter { it < effectiveMenu.countSlot }
-            if (menuSlots.isEmpty()) return
-
-            if (menuSlots.any { effectiveMenu.getFreeSlots()?.contains(it) == false }) {
-                event.isCancelled = true
-                return
-            }
-
-            EffectiveSpigot.instance.launch {
-                delay(1.ticks)
-                menuSlots.forEach { slot ->
-                    val item = inventory.getItem(slot)?.takeIf { it.type != Material.AIR }
-                    if (item != null) {
-                        effectiveMenu.onSlotChanged(event.whoClicked as Player, slot, item, true)
-                    }
-                }
-            }
-        }
     }
 }

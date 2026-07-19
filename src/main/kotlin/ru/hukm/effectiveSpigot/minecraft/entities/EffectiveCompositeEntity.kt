@@ -4,14 +4,13 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Entity
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityRemoveEvent
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgs
 import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgsSupport
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity.Companion.ENTITY_KEY
@@ -50,7 +49,39 @@ abstract class EffectiveCompositeEntity {
 
         internal fun getModule(): IModule = object : IModule {
             override fun init() {
-                EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
+                val removingRoots = hashSetOf<UUID>()
+
+                event<EntityRemoveEvent> {
+                    if (it.cause == EntityRemoveEvent.Cause.UNLOAD) return@event
+
+                    val entity = it.entity
+                    val key = getNamespacedKeyByEntity(entity) ?: return@event
+                    val composite = namespacedKeyToEffectiveCompositeEntity[key] ?: return@event
+
+                    val parentUuid = EffectiveDataContainerUtils.getUUIDFromLongArray(
+                        entity, composite.PARENT_ENTITY_KEY
+                    )
+                    val root = if (parentUuid == null) entity
+                        else Bukkit.getEntity(parentUuid) ?: return@event
+
+                    if (!removingRoots.add(root.uniqueId)) return@event
+                    try {
+                        val childrenUuids = EffectiveDataContainerUtils.getUUIDsFromLongArray(
+                            root, composite.CHILD_ENTITIES_KEY
+                        ) ?: emptyList()
+
+                        if (root.uniqueId != entity.uniqueId && !root.isDead) root.remove()
+
+                        for (uuid in childrenUuids) {
+                            if (uuid == entity.uniqueId) continue
+                            val child = Bukkit.getEntity(uuid) ?: continue
+                            if (!child.isDead) child.remove()
+                        }
+
+                    } finally {
+                        removingRoots.remove(root.uniqueId)
+                    }
+                }
             }
         }
     }
@@ -211,43 +242,4 @@ abstract class EffectiveCompositeEntity {
 
     fun getNamespacedKey(): String =
         getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
-
-    class Events : Listener {
-        companion object {
-            private val removingRoots = hashSetOf<UUID>()
-        }
-
-        @EventHandler
-        fun onEntityRemove(event: EntityRemoveEvent) {
-            if (event.cause == EntityRemoveEvent.Cause.UNLOAD) return
-
-            val entity = event.entity
-            val key = getNamespacedKeyByEntity(entity) ?: return
-            val composite = namespacedKeyToEffectiveCompositeEntity[key] ?: return
-
-            val parentUuid = EffectiveDataContainerUtils.getUUIDFromLongArray(
-                entity, composite.PARENT_ENTITY_KEY
-            )
-            val root = if (parentUuid == null) entity
-                else Bukkit.getEntity(parentUuid) ?: return
-
-            if (!removingRoots.add(root.uniqueId)) return
-            try {
-                val childrenUuids = EffectiveDataContainerUtils.getUUIDsFromLongArray(
-                    root, composite.CHILD_ENTITIES_KEY
-                ) ?: emptyList()
-
-                if (root.uniqueId != entity.uniqueId && !root.isDead) root.remove()
-
-                for (uuid in childrenUuids) {
-                    if (uuid == entity.uniqueId) continue
-                    val child = Bukkit.getEntity(uuid) ?: continue
-                    if (!child.isDead) child.remove()
-                }
-
-            } finally {
-                removingRoots.remove(root.uniqueId)
-            }
-        }
-    }
 }

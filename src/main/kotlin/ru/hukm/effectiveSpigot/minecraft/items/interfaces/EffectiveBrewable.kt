@@ -7,8 +7,6 @@ import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.block.BrewingStand
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.BrewerInventory
@@ -17,6 +15,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.PotionMeta
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
 interface EffectiveBrewable {
@@ -52,114 +51,6 @@ interface EffectiveBrewable {
     companion object {
         private val brewRecipes = arrayListOf<Data>()
 
-        internal fun getModule(): IModule {
-            return object : IModule {
-                override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
-                }
-            }
-        }
-
-        fun getRecipeFromBlock(brewingStand: BrewingStand): Data? {
-            val inventory = brewingStand.inventory
-            val ingredient = inventory.ingredient ?: return null
-            val bases = (0..2).mapNotNull { inventory.getItem(it) }.filter { it.type != Material.AIR }
-            if (bases.isEmpty()) return null
-            val base = bases[0]
-            val allSame = bases.all {
-                EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it, base) && it.amount == base.amount
-            }
-            if (!allSame) return null
-            val meta = base.itemMeta as PotionMeta
-            return getRecipeBy(ingredient, meta)
-        }
-
-        fun registerRecipe(data: Data) {
-            brewRecipes.add(data)
-        }
-
-        fun getRecipeBy(inputIngredient: ItemStack, inputBasePotionMeta: PotionMeta): Data? {
-            for (recipe in brewRecipes) {
-                if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(
-                        recipe.inputIngredient,
-                        inputIngredient
-                    ) && inputIngredient.amount >= recipe.inputIngredient.amount &&
-                    inputBasePotionMeta == recipe.inputBasePotionMeta
-                ) {
-                    return recipe
-                }
-            }
-
-            return null
-        }
-
-        fun tryStartBrewing(inventory: Inventory) {
-            if (inventory !is BrewerInventory) return
-
-            inventory.holder ?: return
-
-            val recipe = getRecipeFromBlock(inventory.holder!!)
-            if (recipe != null) {
-                inventory.holder!!.let {
-                    it.recipeBrewTime = recipe.cookingTime
-                    it.brewingTime = recipe.cookingTime
-                    it.fuelLevel = (it.fuelLevel - recipe.fuelUse).coerceAtLeast(0)
-                    it.update()
-                }
-
-                EffectiveSpigot.instance.launch {
-                    var ticksLeft = recipe.cookingTime
-
-                    while (true) {
-                        val brewingStand = inventory.holder ?: return@launch
-
-                        val currentRecipe = getRecipeFromBlock(brewingStand)
-
-                        if (currentRecipe == null || currentRecipe !== recipe) {
-                            brewingStand.brewingTime = 0
-                            brewingStand.update()
-                            return@launch
-                        }
-
-                        if (ticksLeft <= 0) {
-                            val snapshot = brewingStand.snapshotInventory
-                            for (i in 0..2) {
-                                val base = snapshot.getItem(i)
-                                if (base != null && base.type != Material.AIR) {
-                                    snapshot.setItem(i, recipe.result.clone())
-                                }
-                            }
-                            val ingredient = snapshot.ingredient!!
-                            if (ingredient.amount <= recipe.inputIngredient.amount) {
-                                snapshot.ingredient = ItemStack(Material.AIR)
-                            } else {
-                                ingredient.amount -= recipe.inputIngredient.amount
-                                snapshot.ingredient = ingredient
-                            }
-                            brewingStand.brewingTime = 0
-                            brewingStand.location.world.playSound(
-                                brewingStand.location,
-                                Sound.BLOCK_BREWING_STAND_BREW,
-                                1.0f,
-                                1.0f
-                            )
-                            brewingStand.update()
-                            return@launch
-                        }
-
-                        brewingStand.brewingTime = ticksLeft
-                        brewingStand.update()
-
-                        ticksLeft--
-
-                        delay(1.ticks)
-                    }
-                }
-            }
-        }
-    }
-
-    class Events : Listener {
         private fun manageBrewerInventory(event: InventoryClickEvent) {
             event.isCancelled = true
 
@@ -259,29 +150,131 @@ interface EffectiveBrewable {
             ((event.inventory as BrewerInventory).holder as BrewingStand).update(true)
         }
 
-        @EventHandler
-        fun onInventoryClickEvent(event: InventoryClickEvent) {
-            if (event.view.topInventory !is BrewerInventory) return
-            if (event.clickedInventory !is BrewerInventory) return
+        internal fun getModule(): IModule {
+            return object : IModule {
+                override fun init() {
+                    event<InventoryClickEvent> {
+                        if (it.view.topInventory !is BrewerInventory) return@event
+                        if (it.clickedInventory !is BrewerInventory) return@event
 
+                        if (it.rawSlot == 3) {
+                            val cursor = it.cursor
+                            val current = it.currentItem
+                            val cursorIsCustom = cursor.type != Material.AIR && brewRecipes.any { recipe -> EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(recipe.inputIngredient, cursor) }
+                            val slotIsCustom = current != null && current.type != Material.AIR &&
+                                brewRecipes.any { recipe -> EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(recipe.inputIngredient, current) }
+                            if (cursorIsCustom || slotIsCustom) {
+                                manageBrewerInventory(it)
+                            }
+                        }
 
-            if (event.rawSlot == 3) {
-                val cursor = event.cursor
-                val current = event.currentItem
-                val cursorIsCustom = cursor.type != Material.AIR && brewRecipes.any { EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it.inputIngredient, cursor) }
-                val slotIsCustom = current != null && current.type != Material.AIR &&
-                    brewRecipes.any { EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it.inputIngredient, current) }
-                if (cursorIsCustom || slotIsCustom) {
-                    manageBrewerInventory(event)
+                        val inventory = it.view.topInventory as BrewerInventory
+                        if (inventory.holder?.brewingTime != 0) return@event
+
+                        EffectiveSpigot.instance.launch {
+                            delay(1.ticks)
+                            tryStartBrewing(inventory)
+                        }
+                    }
+                }
+            }
+        }
+
+        fun getRecipeFromBlock(brewingStand: BrewingStand): Data? {
+            val inventory = brewingStand.inventory
+            val ingredient = inventory.ingredient ?: return null
+            val bases = (0..2).mapNotNull { inventory.getItem(it) }.filter { it.type != Material.AIR }
+            if (bases.isEmpty()) return null
+            val base = bases[0]
+            val allSame = bases.all {
+                EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it, base) && it.amount == base.amount
+            }
+            if (!allSame) return null
+            val meta = base.itemMeta as PotionMeta
+            return getRecipeBy(ingredient, meta)
+        }
+
+        fun registerRecipe(data: Data) {
+            brewRecipes.add(data)
+        }
+
+        fun getRecipeBy(inputIngredient: ItemStack, inputBasePotionMeta: PotionMeta): Data? {
+            for (recipe in brewRecipes) {
+                if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(
+                        recipe.inputIngredient,
+                        inputIngredient
+                    ) && inputIngredient.amount >= recipe.inputIngredient.amount &&
+                    inputBasePotionMeta == recipe.inputBasePotionMeta
+                ) {
+                    return recipe
                 }
             }
 
-            val inventory = event.view.topInventory as BrewerInventory
-            if (inventory.holder?.brewingTime != 0) return
+            return null
+        }
 
-            EffectiveSpigot.instance.launch {
-                delay(1.ticks)
-                tryStartBrewing(inventory)
+        fun tryStartBrewing(inventory: Inventory) {
+            if (inventory !is BrewerInventory) return
+
+            inventory.holder ?: return
+
+            val recipe = getRecipeFromBlock(inventory.holder!!)
+            if (recipe != null) {
+                inventory.holder!!.let {
+                    it.recipeBrewTime = recipe.cookingTime
+                    it.brewingTime = recipe.cookingTime
+                    it.fuelLevel = (it.fuelLevel - recipe.fuelUse).coerceAtLeast(0)
+                    it.update()
+                }
+
+                EffectiveSpigot.instance.launch {
+                    var ticksLeft = recipe.cookingTime
+
+                    while (true) {
+                        val brewingStand = inventory.holder ?: return@launch
+
+                        val currentRecipe = getRecipeFromBlock(brewingStand)
+
+                        if (currentRecipe == null || currentRecipe !== recipe) {
+                            brewingStand.brewingTime = 0
+                            brewingStand.update()
+                            return@launch
+                        }
+
+                        if (ticksLeft <= 0) {
+                            val snapshot = brewingStand.snapshotInventory
+                            for (i in 0..2) {
+                                val base = snapshot.getItem(i)
+                                if (base != null && base.type != Material.AIR) {
+                                    snapshot.setItem(i, recipe.result.clone())
+                                }
+                            }
+                            val ingredient = snapshot.ingredient!!
+                            if (ingredient.amount <= recipe.inputIngredient.amount) {
+                                snapshot.ingredient = ItemStack(Material.AIR)
+                            } else {
+                                ingredient.amount -= recipe.inputIngredient.amount
+                                snapshot.ingredient = ingredient
+                            }
+                            brewingStand.brewingTime = 0
+                            brewingStand.location.world.playSound(
+                                brewingStand.location,
+                                Sound.BLOCK_BREWING_STAND_BREW,
+                                1.0f,
+                                1.0f
+                            )
+                            brewingStand.update()
+                            return@launch
+                        }
+
+                        brewingStand.brewingTime = ticksLeft
+                        brewingStand.update()
+
+                        ticksLeft--
+
+                        delay(1.ticks)
+                    }
+                }
             }
         }
     }

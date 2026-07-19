@@ -6,8 +6,6 @@ import org.bukkit.NamespacedKey
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent
 import org.bukkit.event.entity.EntityRemoveEvent
 import org.bukkit.event.world.ChunkLoadEvent
@@ -16,6 +14,7 @@ import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
@@ -72,7 +71,43 @@ abstract class EffectiveEntity {
         fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
+                    event<ChunkLoadEvent> {
+                        it.chunk.entities.forEach { chunkEntity ->
+                            val namespacedKey = getNamespacedKeyByEntity(chunkEntity) ?: return@forEach
+                            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return@forEach
+                            val list = effectiveEntity.cachedEntities
+                            if (list.none { entity -> chunkEntity.uniqueId == entity.uniqueId }) {
+                                list.add(chunkEntity)
+                            }
+                        }
+                    }
+
+                    //TODO(Срабатывание load и unload при взаимодествии с кастомным мобом, который на самом деле уже не был в загруженном чанке, если юзаеться таймер)
+
+                    event<ChunkUnloadEvent> {
+                        it.chunk.entities.forEach { chunkEntity ->
+                            val namespacedKey = getNamespacedKeyByEntity(chunkEntity) ?: return@forEach
+                            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return@forEach
+                            effectiveEntity.removeEntityFromCache(chunkEntity)
+                        }
+                    }
+
+                    event<EntityAddToWorldEvent> {
+                        val entity = it.entity
+                        val namespacedKey = getNamespacedKeyByEntity(entity) ?: return@event
+                        val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return@event
+                        val list = effectiveEntity.cachedEntities
+                        if (list.none { cached -> cached.uniqueId == entity.uniqueId }) {
+                            list.add(entity)
+                        }
+                    }
+
+                    event<EntityRemoveEvent> {
+                        val namespacedKey = getNamespacedKeyByEntity(it.entity) ?: return@event
+
+                        val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return@event
+                        effectiveEntity.removeEntityFromCache(it.entity)
+                    }
                 }
             }
         }
@@ -209,49 +244,5 @@ abstract class EffectiveEntity {
 
     fun getNamespacedKey(): String {
         return getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
-    }
-
-    class Events: Listener {
-        @EventHandler
-        fun onChunkLoad(event: ChunkLoadEvent) {
-            event.chunk.entities.forEach {
-                val namespacedKey = getNamespacedKeyByEntity(it) ?: return@forEach
-                val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return@forEach
-                val list = effectiveEntity.cachedEntities
-                if (list.none { entity -> it.uniqueId == entity.uniqueId }) {
-                    list.add(it)
-                }
-            }
-        }
-
-        //TODO(Срабатывание load и unload при взаимодествии с кастомным мобом, который на самом деле уже не был в загруженном чанке, если юзаеться таймер)
-
-        @EventHandler
-        fun onChunkUnload(event: ChunkUnloadEvent) {
-            event.chunk.entities.forEach {
-                val namespacedKey = getNamespacedKeyByEntity(it) ?: return@forEach
-                val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return@forEach
-                effectiveEntity.removeEntityFromCache(it)
-            }
-        }
-
-        @EventHandler
-        fun onEntityAddToWorld(event: EntityAddToWorldEvent) {
-            val entity = event.entity
-            val namespacedKey = getNamespacedKeyByEntity(entity) ?: return
-            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return
-            val list = effectiveEntity.cachedEntities
-            if (list.none { it.uniqueId == entity.uniqueId }) {
-                list.add(entity)
-            }
-        }
-
-        @EventHandler
-        fun onEntityDeath(event: EntityRemoveEvent) {
-            val namespacedKey = getNamespacedKeyByEntity(event.entity) ?: return
-
-            val effectiveEntity = namespacedKeyToEffectiveEntity[namespacedKey] ?: return
-            effectiveEntity.removeEntityFromCache(event.entity)
-        }
     }
 }

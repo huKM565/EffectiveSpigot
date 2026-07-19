@@ -22,7 +22,7 @@ class EffectiveWorld private constructor(val name: String) {
     companion object {
         object EffectiveWorldModule: IModule {
             override fun init() {
-                instance.server.pluginManager.registerEvents(EffectiveWorldEvents(), instance)
+                EffectiveWorldEvents.init()
             }
         }
 

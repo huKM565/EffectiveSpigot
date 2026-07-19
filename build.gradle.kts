@@ -6,13 +6,20 @@ plugins {
 }
 
 group = "ru.hukm"
-version = "1.0-SNAPSHOT"
+
+// Базовая версия без суффикса. По умолчанию сборка = снапшот;
+// `./gradlew build -Prelease` = релиз (чистая версия, уходит в maven-releases).
+val baseVersion = "1.0"
+version = if (project.hasProperty("release")) baseVersion else "$baseVersion-SNAPSHOT"
+
+val nexusUrl = (findProperty("nexusUrl") as String?) ?: "https://maven.hukm.dev"
 
 repositories {
   mavenLocal()
   mavenCentral()
   maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
   maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
+  maven { url = uri("$nexusUrl/repository/maven-public/") }
 }
 
 dependencies {
@@ -72,6 +79,22 @@ publishing {
       }
     }
   }
+
+  repositories {
+    maven {
+      name = "nexus"
+      val isSnapshot = version.toString().endsWith("SNAPSHOT")
+      url = uri(
+          if (isSnapshot) "$nexusUrl/repository/maven-snapshots/"
+          else "$nexusUrl/repository/maven-releases/"
+      )
+
+      credentials {
+        username = (findProperty("nexusUsername") as String?) ?: System.getenv("NEXUS_USER")
+        password = (findProperty("nexusPassword") as String?) ?: System.getenv("NEXUS_PASSWORD")
+      }
+    }
+  }
 }
 
 // --- ИСПРАВЛЕННЫЕ ЗАДАЧИ ---
@@ -111,4 +134,4 @@ val copySourceToDecomp =
         }
 
 // Финальная цепочка
-tasks.build { finalizedBy(copySourceToDecomp, "publishToMavenLocal", copyJarToServer) }
+tasks.build { finalizedBy(copySourceToDecomp, "publishMavenPublicationToNexusRepository", copyJarToServer) }

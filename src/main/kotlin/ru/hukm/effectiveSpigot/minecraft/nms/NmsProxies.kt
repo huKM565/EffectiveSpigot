@@ -7,54 +7,45 @@ import xyz.jpenilla.reflectionremapper.proxy.annotation.FieldGetter
 import xyz.jpenilla.reflectionremapper.proxy.annotation.Proxies
 import xyz.jpenilla.reflectionremapper.proxy.annotation.Type
 
-@Proxies(className = "net.minecraft.server.level.ServerLevel")
-interface ServerLevelProxy {
-    fun getChunk(
-        @Type(className = "net.minecraft.server.level.ServerLevel") instance: Any,
-        chunkX: Int,
-        chunkZ: Int
-    ): Any
-
-    fun getSectionsCount(@Type(className = "net.minecraft.server.level.ServerLevel") instance: Any): Int
-
-    fun getHeight(@Type(className = "net.minecraft.server.level.ServerLevel") instance: Any): Int
+@Proxies(className = "net.minecraft.world.level.Level")
+interface LevelProxy {
+    fun getChunk(instance: Any, chunkX: Int, chunkZ: Int): Any
 }
 
-@Proxies(className = "net.minecraft.world.level.chunk.LevelChunk")
-interface LevelChunkProxy {
-    fun getSection(
-        @Type(className = "net.minecraft.world.level.chunk.LevelChunk") instance: Any,
-        index: Int
-    ): Any
+@Proxies(className = "net.minecraft.world.level.LevelHeightAccessor")
+interface LevelHeightAccessorProxy {
+    fun getHeight(instance: Any): Int
+
+    fun getSectionsCount(instance: Any): Int
+}
+
+@Proxies(className = "net.minecraft.world.level.chunk.ChunkAccess")
+interface ChunkAccessProxy {
+    fun getSection(instance: Any, index: Int): Any
 }
 
 @Proxies(className = "net.minecraft.world.level.chunk.LevelChunkSection")
 interface LevelChunkSectionProxy {
-    fun hasOnlyAir(@Type(className = "net.minecraft.world.level.chunk.LevelChunkSection") instance: Any): Boolean
+    fun hasOnlyAir(instance: Any): Boolean
 
-    fun getBlockState(
-        @Type(className = "net.minecraft.world.level.chunk.LevelChunkSection") instance: Any,
-        x: Int,
-        y: Int,
-        z: Int
-    ): Any
+    fun getBlockState(instance: Any, x: Int, y: Int, z: Int): Any
 }
 
-@Proxies(className = "net.minecraft.world.level.block.state.BlockState")
+@Proxies(className = "net.minecraft.world.level.block.state.BlockBehaviour\$BlockStateBase")
 interface BlockStateProxy {
-    fun getBlock(@Type(className = "net.minecraft.world.level.block.state.BlockState") instance: Any): Any
+    fun getBlock(instance: Any): Any
 }
 
 @Proxies(className = "net.minecraft.server.level.ServerPlayer")
 interface ServerPlayerProxy {
     @FieldGetter("connection")
-    fun connection(@Type(className = "net.minecraft.server.level.ServerPlayer") instance: Any): Any
+    fun connection(instance: Any): Any
 }
 
-@Proxies(className = "net.minecraft.server.network.ServerGamePacketListenerImpl")
+@Proxies(className = "net.minecraft.server.network.ServerCommonPacketListenerImpl")
 interface ConnectionProxy {
     fun send(
-        @Type(className = "net.minecraft.server.network.ServerGamePacketListenerImpl") instance: Any,
+        instance: Any,
         @Type(className = "net.minecraft.network.protocol.Packet") packet: Any
     )
 }
@@ -72,8 +63,9 @@ object NmsProxies {
         ReflectionProxyFactory.create(remapper, javaClass.classLoader)
     }
 
-    val serverLevel: ServerLevelProxy by lazy { factory.reflectionProxy(ServerLevelProxy::class.java) }
-    val levelChunk: LevelChunkProxy by lazy { factory.reflectionProxy(LevelChunkProxy::class.java) }
+    val level: LevelProxy by lazy { factory.reflectionProxy(LevelProxy::class.java) }
+    val heightAccessor: LevelHeightAccessorProxy by lazy { factory.reflectionProxy(LevelHeightAccessorProxy::class.java) }
+    val chunkAccess: ChunkAccessProxy by lazy { factory.reflectionProxy(ChunkAccessProxy::class.java) }
     val chunkSection: LevelChunkSectionProxy by lazy { factory.reflectionProxy(LevelChunkSectionProxy::class.java) }
     val blockState: BlockStateProxy by lazy { factory.reflectionProxy(BlockStateProxy::class.java) }
     val serverPlayer: ServerPlayerProxy by lazy { factory.reflectionProxy(ServerPlayerProxy::class.java) }

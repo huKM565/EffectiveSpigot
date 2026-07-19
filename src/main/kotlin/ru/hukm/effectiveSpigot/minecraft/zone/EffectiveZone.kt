@@ -8,14 +8,12 @@ import org.bukkit.NamespacedKey
 import org.bukkit.World
 import org.bukkit.entity.Entity
 import org.bukkit.entity.LivingEntity
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.server.ServerLoadEvent
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
-import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
@@ -27,12 +25,6 @@ import kotlin.math.max
 import kotlin.math.min
 
 abstract class EffectiveZone {
-    enum class ActivationType {
-        ENTER,
-        INSIDE,
-        EXIT
-    }
-
     data class ZoneBox(
         val id: Int,
         val firstPos: EffectiveBlockPos,
@@ -135,11 +127,6 @@ abstract class EffectiveZone {
         }
     }
 
-    abstract class WalkTriggerData {
-        abstract fun getEntityTypesForActivationType(): List<Class<out LivingEntity>>
-        abstract fun trigger(livingEntity: LivingEntity, zoneBox: ZoneBox, activationType: ActivationType)
-    }
-
     companion object {
         val namespacedKeyToZone = hashMapOf<String, EffectiveZone>()
 
@@ -148,7 +135,19 @@ abstract class EffectiveZone {
         internal fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
+                    event<ServerLoadEvent> {
+                        namespacedKeyToZone.values.forEach { zone ->
+                            zone.loadBoxesFromMemory()
+                        }
+                    }
+
+                    event<PlayerMoveEvent> {
+                        tryTrigger(it.player, it.from, it.to)
+                    }
+
+                    event<EntityMoveEvent> {
+                        tryTrigger(it.entity, it.from, it.to)
+                    }
                 }
             }
         }
@@ -209,30 +208,25 @@ abstract class EffectiveZone {
             zone.saveBoxInMemory(zoneBox)
             EffectiveZoneRenderer.startRendering(selection, EffectiveZoneUUID.toUUID(zoneBox.id.toLong()), )
 
-            zone.selectionRegistered(zoneBox)
+            Bukkit.getPluginManager().callEvent(EffectiveZoneRegisteredEvent(zone, zoneBox))
             return zoneBox
         }
 
         fun tryTrigger(entity: LivingEntity, from: Location, to: Location) {
             for (zone in namespacedKeyToZone.values) {
-                val allowedTypes = zone.getWalkTriggerData().getEntityTypesForActivationType()
-                val entityClass = entity::class.java
+                for (zoneBox in zone.zoneBoxes) {
+                    val fromIsInside = zoneBox.isInside(from)
+                    val toIsInside = zoneBox.isInside(to)
 
-                if (allowedTypes.any { it.isAssignableFrom(entityClass) }) {
-                    for (zoneBox in zone.zoneBoxes) {
-                        val fromIsInside = zoneBox.isInside(from)
-                        val toIsInside = zoneBox.isInside(to)
+                    val event = when {
+                        !fromIsInside && toIsInside -> EffectiveZoneEnterEvent(entity, zone, zoneBox)
+                        fromIsInside && !toIsInside -> EffectiveZoneExitEvent(entity, zone, zoneBox)
+                        fromIsInside && toIsInside  -> EffectiveZoneInsideEvent(entity, zone, zoneBox)
+                        else -> null
+                    }
 
-                        val activationType = when {
-                            !fromIsInside && toIsInside -> ActivationType.ENTER
-                            fromIsInside && !toIsInside -> ActivationType.EXIT
-                            fromIsInside && toIsInside  -> ActivationType.INSIDE
-                            else -> null
-                        }
-
-                        if (activationType != null) {
-                            zone.getWalkTriggerData().trigger(entity, zoneBox, activationType)
-                        }
+                    if (event != null) {
+                        Bukkit.getPluginManager().callEvent(event)
                     }
                 }
             }
@@ -249,8 +243,6 @@ abstract class EffectiveZone {
 
     var zoneBoxes: ArrayList<ZoneBox> = arrayListOf()
 
-    abstract fun getWalkTriggerData(): WalkTriggerData
-    abstract fun selectionRegistered(zoneBox: ZoneBox)
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
     abstract fun doRememberOwner(): Boolean
     abstract fun getZoneColor(): Color
@@ -340,24 +332,5 @@ abstract class EffectiveZone {
             namespacedKey,
             PersistentDataType.STRING
         )
-    }
-
-    class Events : Listener {
-        @EventHandler
-        fun onServerLoad(event: ServerLoadEvent) {
-            namespacedKeyToZone.values.forEach {
-                it.loadBoxesFromMemory()
-            }
-        }
-
-        @EventHandler
-        fun onPlayerMove(event: PlayerMoveEvent) {
-            tryTrigger(event.player, event.from, event.to)
-        }
-
-        @EventHandler
-        fun onEntityMove(event: EntityMoveEvent) {
-            tryTrigger(event.entity, event.from, event.to)
-        }
     }
 }

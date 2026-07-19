@@ -3,11 +3,9 @@ package ru.hukm.effectiveSpigot.minecraft.entities.interfaces
 import io.papermc.paper.event.entity.EntityMoveEvent
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerMoveEvent
-import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 
@@ -37,7 +35,13 @@ interface EffectiveEntityLookable {
         internal fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
+                    event<EntityMoveEvent> {
+                        trySetLook(it.entity)
+                    }
+
+                    event<PlayerMoveEvent> {
+                        trySetLook(it.player)
+                    }
                 }
             }
         }
@@ -91,18 +95,6 @@ interface EffectiveEntityLookable {
                     }
                 }
             }
-        }
-    }
-
-    class Events : Listener {
-        @EventHandler
-        fun onEntityMove(event: EntityMoveEvent) {
-            trySetLook(event.entity)
-        }
-
-        @EventHandler
-        fun onPlayerMove(event: PlayerMoveEvent) {
-            trySetLook(event.player)
         }
     }
 }

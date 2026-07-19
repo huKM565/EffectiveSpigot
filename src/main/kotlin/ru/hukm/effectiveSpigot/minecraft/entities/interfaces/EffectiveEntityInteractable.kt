@@ -2,14 +2,12 @@ package ru.hukm.effectiveSpigot.minecraft.entities.interfaces
 
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
-import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.player.PlayerInteractAtEntityEvent
 import org.bukkit.inventory.EquipmentSlot
-import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
@@ -41,7 +39,41 @@ interface EffectiveEntityInteractable {
         internal fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
+                    event<PlayerInteractAtEntityEvent> {
+                        if (tryCall(
+                                EventsCallOptions(
+                                    it.player,
+                                    EffectiveAbstractInteract.Target.Entity(
+                                        it.rightClicked
+                                    ),
+                                    Click.RIGHT,
+                                    it.hand
+                                )
+                            )
+                        ) {
+                            it.isCancelled = true
+                        }
+                    }
+
+                    event<EntityDamageByEntityEvent> {
+                        if (
+                            it.damager is Player &&
+                            it.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                        ) {
+                            if (tryCall(
+                                    EventsCallOptions(
+                                        it.damager as Player,
+                                        EffectiveAbstractInteract.Target.Entity(
+                                            it.entity
+                                        ),
+                                        Click.LEFT,
+                                        EquipmentSlot.HAND
+                                    )
+                            )) {
+                                it.isCancelled = true
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -80,46 +112,6 @@ interface EffectiveEntityInteractable {
             }
 
             return result
-        }
-    }
-
-    class Events : Listener {
-        @EventHandler
-        fun onPlayerInteractWithEntity(event: PlayerInteractAtEntityEvent) {
-            if (tryCall(
-                    EventsCallOptions(
-                        event.player,
-                        EffectiveAbstractInteract.Target.Entity(
-                            event.rightClicked
-                        ),
-                        Click.RIGHT,
-                        event.hand
-                    )
-                )
-            ) {
-                event.isCancelled = true
-            }
-        }
-
-        @EventHandler
-        fun onPlayerHitEntity(event: EntityDamageByEntityEvent) {
-            if (
-                event.damager is Player &&
-                event.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
-            ) {
-                if (tryCall(
-                        EventsCallOptions(
-                            event.damager as Player,
-                            EffectiveAbstractInteract.Target.Entity(
-                                event.entity
-                            ),
-                            Click.LEFT,
-                            EquipmentSlot.HAND
-                        )
-                )) {
-                    event.isCancelled = true
-                }
-            }
         }
     }
 }

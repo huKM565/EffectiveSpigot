@@ -6,9 +6,7 @@ import org.bukkit.block.BlockFace
 import org.bukkit.block.Container
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
-import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
-import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
@@ -16,8 +14,8 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
-import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
@@ -60,7 +58,60 @@ interface EffectiveClickable {
         internal fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
-                    EffectiveSpigot.instance.server.pluginManager.registerEvents(Events(), EffectiveSpigot.instance)
+                    //TODO(Добавить эвент разрушения блока)
+                    event<PlayerInteractEvent>(EventPriority.HIGHEST) {
+                        if (playerUUIDInteractedWithEntity.contains(it.player.uniqueId)) return@event
+                        val click = if (it.action != Action.RIGHT_CLICK_BLOCK && it.action != Action.RIGHT_CLICK_AIR) Click.LEFT else Click.RIGHT
+                        if (tryCall(EventsCallOptions(
+                                it.player,
+                                EffectiveAbstractInteract.Target.Item(it.item ?: ItemStack(Material.AIR)),
+                                click,
+                                it.hand ?: EquipmentSlot.HAND,
+                                it.clickedBlock,
+                                it.blockFace,
+                                null)
+                        )) {
+                            it.isCancelled = true
+                        }
+                    }
+
+                    event<PlayerInteractAtEntityEvent>(EventPriority.HIGHEST) {
+                        playerUUIDInteractedWithEntity.add(it.player.uniqueId)
+                        if (tryCall(EventsCallOptions(
+                                it.player,
+                                EffectiveAbstractInteract.Target.Item(
+                                    EffectiveInventoryUtils.getItemFromEquipmentSlot(it.player, it.hand) ?: ItemStack(Material.AIR)
+                                ),
+                                Click.RIGHT,
+                                it.hand,
+                                null,
+                                null,
+                                it.rightClicked)
+                        )) {
+                            it.isCancelled = true
+                        }
+                    }
+
+                    event<EntityDamageByEntityEvent>(EventPriority.HIGHEST) {
+                        if (
+                            it.damager is Player &&
+                            it.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                            ) {
+                            if (tryCall(EventsCallOptions(
+                                    it.damager as Player,
+                                    EffectiveAbstractInteract.Target.Item(
+                                        EffectiveInventoryUtils.getUsedItemFromHands(it.damager as Player) ?: ItemStack(Material.AIR),
+                                    ),
+                                    Click.LEFT,
+                                    EquipmentSlot.HAND,
+                                    null,
+                                    null,
+                                    it.entity
+                            ))) {
+                                it.isCancelled = true
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -103,68 +154,6 @@ interface EffectiveClickable {
             }
 
             return result
-        }
-    }
-
-    //TODO(Добавить эвент разрушения блока)
-    class Events() : Listener {
-        @EventHandler(priority = EventPriority.HIGHEST)
-        fun onPlayerInteractEvent(event: PlayerInteractEvent) {
-            if (playerUUIDInteractedWithEntity.contains(event.player.uniqueId)) return
-            val click = if (event.action != Action.RIGHT_CLICK_BLOCK && event.action != Action.RIGHT_CLICK_AIR) Click.LEFT else Click.RIGHT
-            if (tryCall(EventsCallOptions(
-                    event.player,
-                    EffectiveAbstractInteract.Target.Item(event.item ?: ItemStack(Material.AIR)),
-                    click,
-                    event.hand ?: EquipmentSlot.HAND,
-                    event.clickedBlock,
-                    event.blockFace,
-                    null)
-            )) {
-                event.isCancelled = true
-            }
-
-        }
-
-        @EventHandler(priority = EventPriority.HIGHEST)
-        fun onPlayerInteractWithEntity(event: PlayerInteractAtEntityEvent) {
-            playerUUIDInteractedWithEntity.add(event.player.uniqueId)
-            if (tryCall(EventsCallOptions(
-                    event.player,
-                    EffectiveAbstractInteract.Target.Item(
-                        EffectiveInventoryUtils.getItemFromEquipmentSlot(event.player, event.hand) ?: ItemStack(Material.AIR)
-                    ),
-                    Click.RIGHT,
-                    event.hand,
-                    null,
-                    null,
-                    event.rightClicked)
-            )) {
-                event.isCancelled = true
-            }
-        }
-
-        @EventHandler(priority = EventPriority.HIGHEST)
-        fun onPlayerHitEntity(event: EntityDamageByEntityEvent) {
-            if (
-                event.damager is Player &&
-                event.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
-                ) {
-                if (tryCall(EventsCallOptions(
-                        event.damager as Player,
-                        EffectiveAbstractInteract.Target.Item(
-                            EffectiveInventoryUtils.getUsedItemFromHands(event.damager as Player) ?: ItemStack(Material.AIR),
-                        ),
-                        Click.LEFT,
-                        EquipmentSlot.HAND,
-                        null,
-                        null,
-                        event.entity
-                ))) {
-                    event.isCancelled = true
-                }
-
-            }
         }
     }
 }
