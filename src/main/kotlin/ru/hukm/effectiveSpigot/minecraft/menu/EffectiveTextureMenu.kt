@@ -1,8 +1,5 @@
 package ru.hukm.effectiveSpigot.minecraft.menu
 
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-
 abstract class EffectiveTextureMenu : EffectiveMenu() {
     enum class BackSpace(val symbol: Char, val size: Int) {
         R128('\u2184', 128),
@@ -32,8 +29,8 @@ abstract class EffectiveTextureMenu : EffectiveMenu() {
         return result.toString()
     }
 
-    final override fun getMenuTitle(): Component {
-        return Component.text(getBackspaces(8) + getTextureSymbol(), NamedTextColor.WHITE)
+    final override fun getMenuTitle(): String {
+        return getBackspaces(8) + getTextureSymbol()
     }
 
     abstract fun getTextureSymbol(): Char

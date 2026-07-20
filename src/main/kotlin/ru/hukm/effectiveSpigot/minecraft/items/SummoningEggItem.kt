@@ -79,4 +79,6 @@ abstract class SummoningEggItem : EffectiveItem() {
             Locale.getComponent("items.summoning_egg.name", getSpawnEffectiveEntity().getNamespacedKey())
         )
     }
+
+    override fun showAdditionArgsInLore() = true
 }

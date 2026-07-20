@@ -3,7 +3,6 @@ package ru.hukm.effectiveSpigot.minecraft.menu
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import kotlinx.coroutines.delay
-import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -191,7 +190,7 @@ abstract class EffectiveMenu {
         return Bukkit.getOnlinePlayers().filter { it.openInventory.topInventory.holder === inventoryHolder }
     }
 
-    abstract fun getMenuTitle(): Component
+    abstract fun getMenuTitle(): String
     abstract fun getPattern(): List<String>?
     abstract fun getSymbolsToItems(): Map<Char, SlotData>
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>

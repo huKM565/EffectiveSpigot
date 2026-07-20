@@ -111,10 +111,26 @@ abstract class EffectiveItem {
     fun createItemStack(amount: Int, additionalArgs: List<String>): ItemStack {
         val item = ItemStack(getMaterial())
         val meta = item.itemMeta
-        if (meta != null) {
-            AdditionalArgsSupport.applyToHolder(meta, getAdditionalArgs(), additionalArgs, "items")
-            item.itemMeta = meta
+
+        val args = getAdditionalArgs()
+
+        AdditionalArgsSupport.applyToHolder(meta, args, additionalArgs, "items")
+
+        if (showAdditionArgsInLore() && args != null) {
+            val tempLore = meta.lore?.toMutableList() ?: mutableListOf()
+
+            val keys = args.keys.map { it.first }
+            val values = AdditionalArgsSupport.readFromHolder(meta, args)
+
+            values.forEachIndexed { index, value ->
+                tempLore.add("${keys[index]}: ${value[index]}")
+            }
+
+            meta.lore = tempLore
         }
+
+        item.itemMeta = meta
+
         return finalizeItem(item, amount)
     }
 
@@ -178,6 +194,7 @@ abstract class EffectiveItem {
     open fun getAdditionalArgs(): AdditionalArgs? {
         return null
     }
+    open fun showAdditionArgsInLore() : Boolean = false
 
     fun getAdditionalArgsNamespacedKeys() = AdditionalArgsSupport.namespacedKeys(getAdditionalArgs())
 

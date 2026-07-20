@@ -1,6 +1,6 @@
 plugins {
   kotlin("jvm") version "2.2.0"
-  id("com.gradleup.shadow") version "8.3.0"
+  id("com.gradleup.shadow") version "8.3.6"
   id("xyz.jpenilla.run-paper") version "2.3.1"
   `maven-publish`
 }
@@ -9,7 +9,7 @@ group = "ru.hukm"
 
 // Базовая версия без суффикса. По умолчанию сборка = снапшот;
 // `./gradlew build -Prelease` = релиз (чистая версия, уходит в maven-releases).
-val baseVersion = "1.0"
+val baseVersion = "1.0.1"
 version = if (project.hasProperty("release")) baseVersion else "$baseVersion-SNAPSHOT"
 
 val nexusUrl = (findProperty("nexusUrl") as String?) ?: "https://maven.hukm.dev"
