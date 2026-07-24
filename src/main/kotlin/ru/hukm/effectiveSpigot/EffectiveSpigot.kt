@@ -22,8 +22,11 @@ import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveDropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveUndropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
+import ru.hukm.effectiveSpigot.http.EffectiveHttpServer
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
-import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
+import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveTextureMenu
+import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveResourcepack
+import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveScreenEffects
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
 
 class EffectiveSpigot : JavaPlugin() {
@@ -35,6 +38,7 @@ class EffectiveSpigot : JavaPlugin() {
 	override fun onLoad() {
 		instance = this
 
+		Config.init()
 		Locale.init()
 
 		EffectiveGiveCommand.init()
@@ -67,11 +71,19 @@ class EffectiveSpigot : JavaPlugin() {
 				EffectiveEntityLookable.getModule(),
 				EffectiveZone.getModule(),
 				EffectiveBrewable.getModule(),
-				EffectiveAdvancement.getModule()
+				EffectiveAdvancement.getModule(),
+				EffectiveHttpServer.getModule(),
+				EffectiveResourcepack.getModule(),
+				EffectiveScreenEffects.getModule(),
+				EffectiveTextureMenu.getModule()
 			)
 
 		EffectiveItems.ZONE_SELECTOR
 
 		modulesList.forEach { it.init() }
+	}
+
+	override fun onDisable() {
+		EffectiveHttpServer.stop()
 	}
 }

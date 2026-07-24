@@ -104,3 +104,10 @@ errors:
     amounts_both_required: "Оба значения minAmount и maxAmount должны быть установлены или оба должны быть null"
   cooldown:
     wait: "Подождите еще %.1f сек."
+  http_server:
+    not_started: "HttpServer не запущен"
+    bind_failed: "Не удалось запустить HTTP-сервер для ресурспаков. Возможно, порт %d уже занят или недоступен. Если вы не понимаете, что делаете — зайдите в config.yml EffectiveSpigot'а и отключите эту функцию (resourcepack.http-server.enable: false)."
+  resourcepack:
+    model_not_found: "Модель '%s' не найдена в ресурсах плагина '%s'"
+    texture_not_found: "Текстура '%s' не найдена в ресурсах плагина '%s'"
+    ip_not_set: "HTTP-сервер ресурспаков включён, но 'resourcepack.http-server.ip' не указан в config.yml EffectiveSpigot'а. Впишите публичный IP/домен вашего сервера или отключите resourcepack.http-server.enable."

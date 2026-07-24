@@ -1,2 +1,7 @@
-debug: true
 language: ru
+
+resourcepack:
+  http-server:
+    enable: false
+    ip: ""
+    port: 25566

@@ -6,7 +6,10 @@ import kotlinx.coroutines.delay
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.title.Title
 import org.bukkit.entity.Player
+import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.nms.NmsPlayerLook
+import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveGlyph
+import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveResourcepack
 import java.time.Duration
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import kotlin.math.pow
@@ -14,6 +17,17 @@ import kotlin.random.Random
 
 object EffectiveScreenEffects {
     const val FADE_SCREEN_SYMBOL = '\ueff3'
+
+    internal fun getModule(): IModule {
+        return object : IModule {
+            override fun init() {
+                EffectiveResourcepack.addGlyph(
+                    EffectiveSpigot.instance,
+                    EffectiveGlyph(FADE_SCREEN_SYMBOL, "font/fade.png", height = 512, ascent = 256)
+                )
+            }
+        }
+    }
 
     enum class ShakeType {
         CONSTANT,

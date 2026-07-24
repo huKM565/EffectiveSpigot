@@ -6,7 +6,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.ChatColor
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
-import ru.hukm.effectiveSpigot.EffectiveSpigot.Companion.instance
+import ru.hukm.effectiveSpigot.Config
 import java.io.File
 import java.util.jar.JarFile
 
@@ -17,7 +17,7 @@ abstract class EffectiveLocale {
 
     init {
         val plugin = getPlugin()
-        val langCode = instance.config.getString("language", "en") ?: "en"
+        val langCode = Config.getLanguage()
         val langFolder = File(plugin.dataFolder, "languages")
 
         val jarPath = File(plugin.javaClass.protectionDomain.codeSource.location.toURI())

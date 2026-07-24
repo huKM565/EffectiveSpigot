@@ -22,6 +22,11 @@ import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgsSupport
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 
 abstract class EffectiveItem {
+    data class ResourcePackData(
+        val texturePath: String,
+        val modelPath: String? = null
+    )
+`
     companion object {
         val ITEM_KEY = NamespacedKey(EffectiveSpigot.instance, "item")
         val namespacedKeyToItem = hashMapOf<String, EffectiveItem>()
@@ -195,6 +200,7 @@ abstract class EffectiveItem {
         return null
     }
     open fun showAdditionArgsInLore() : Boolean = false
+    open fun getResourcePackData(): ResourcePackData? = null
 
     fun getAdditionalArgsNamespacedKeys() = AdditionalArgsSupport.namespacedKeys(getAdditionalArgs())
 
