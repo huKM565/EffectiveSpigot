@@ -3,7 +3,7 @@ package ru.hukm.effectiveSpigot
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.config.EffectiveConfig
 
-object Config : EffectiveConfig() {
+internal object Config : EffectiveConfig() {
     override fun getInstance(): JavaPlugin = EffectiveSpigot.instance
     override fun getFileName(): String = "config.yml"
 

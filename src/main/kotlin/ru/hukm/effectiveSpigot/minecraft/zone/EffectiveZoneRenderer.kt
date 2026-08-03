@@ -19,6 +19,7 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveParticles
 import java.util.UUID
 
+/** Renders zone/selection boxes as dust-particle outlines to nearby players, keyed by a UUID handle. */
 object EffectiveZoneRenderer {
     private val UUIDToJob = hashMapOf<UUID, Job>()
 

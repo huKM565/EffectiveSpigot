@@ -11,8 +11,31 @@ import org.bukkit.plugin.Plugin
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.utils.EffectiveCombinator
 
+/**
+ * Behaviour that registers shapeless crafting recipes for custom items.
+ *
+ * Usually reached via [EffectiveItem.addShapelessCraft]; use the companion directly to craft an
+ * arbitrary result stack.
+ */
 interface EffectiveCraftable {
     companion object {
+        /**
+         * Registers shapeless recipe(s) producing [result].
+         *
+         * Each ingredient may be a [Material], an [ItemStack], a [org.bukkit.Tag] of materials, or a
+         * list of alternatives; the cartesian product of all alternatives is registered as separate
+         * recipes under `name` + index.
+         *
+         * ⚠️ The recipe count is the **product** of the sizes of every alternative-bearing ingredient
+         * (tags and lists), so combinations blow up fast — e.g. two `Tag`s of 30 materials each yield
+         * 900 registered recipes. Keep alternative sets small, or match by [Material]/[ItemStack]
+         * directly, to avoid bloating the recipe registry.
+         *
+         * @param plugin owner of the recipe keys
+         * @param name base recipe key (an index is appended per combination)
+         * @throws IllegalArgumentException if an ingredient has an unsupported type
+         * @throws ClassCastException if a [org.bukkit.Tag] does not contain [Material] values
+         */
         fun addShapelessCraft(
             result: ItemStack,
             ingredients: List<Any>,

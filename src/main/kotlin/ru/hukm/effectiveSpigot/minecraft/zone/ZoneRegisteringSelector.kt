@@ -6,6 +6,7 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 
+/** Base for a selector item that registers the current selection into a specific zone on use. */
 abstract class ZoneRegisteringSelector : EffectiveItem() {
 
     companion object {

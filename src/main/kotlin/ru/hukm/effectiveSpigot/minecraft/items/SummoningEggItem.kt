@@ -15,7 +15,15 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Cl
 import kotlin.random.Random
 import kotlin.random.nextInt
 
+/**
+ * An [EffectiveItem] that spawns a custom entity when right-clicked on a block, like a vanilla spawn egg.
+ *
+ * A subclass provides [getSpawnEffectiveEntity] and optionally [getSpawnPlacement]. Usually you don't
+ * subclass this directly — [ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntityWithSpawnEgg]
+ * creates one automatically for an entity type.
+ */
 abstract class SummoningEggItem : EffectiveItem() {
+    /** Where the entity appears relative to the clicked block. */
     enum class SpawnPlacement {
         TOP,
         BOTTOM,
@@ -25,6 +33,7 @@ abstract class SummoningEggItem : EffectiveItem() {
     }
 
     companion object {
+        /** Computes the spawn location for a [placement] on [block] (with a random yaw), honoring [clickedFace] for VANILLA. */
         fun resolveSpawnLocation(
             block: Block,
             placement: SpawnPlacement,
@@ -66,8 +75,10 @@ abstract class SummoningEggItem : EffectiveItem() {
         })
     }
 
+    /** The entity type spawned when the egg is used. */
     abstract fun getSpawnEffectiveEntity(): EffectiveEntity
 
+    /** Placement of the spawned entity relative to the clicked block (default: vanilla). */
     open fun getSpawnPlacement(): SpawnPlacement = SpawnPlacement.VANILLA
 
     override fun getAdditionalArgs(): AdditionalArgs? = getSpawnEffectiveEntity().getAdditionalArgs()

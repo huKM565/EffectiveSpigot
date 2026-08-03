@@ -17,18 +17,34 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 
 
+/**
+ * Shared vocabulary for click/interact behaviours on items, entities and blocks (used by
+ * [ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable] and
+ * [ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable]).
+ *
+ * Defines the [Click] type, the callback [Result], the interaction [Target], the call context
+ * [EventsCallOptions] and reusable [CooldownData] with per-player / per-instance / all-instances scope.
+ *
+ * @suppress
+ */
 interface EffectiveAbstractInteract {
+    /** Whether a handler cancels the underlying Bukkit event or lets it proceed. */
     enum class Result { CANCEL_EVENT, ALLOW_EVENT }
+
+    /** The interaction button: left-click/attack or right-click. */
     enum class Click { LEFT, RIGHT }
 
+    /** Scope a cooldown applies to: the acting player, this exact instance, or all instances of the item/entity. */
     enum class CooldownType { ON_CURRENT_PLAYER, ON_THIS_INSTANCE, ON_ALL_INSTANCES }
 
+    /** What was interacted with: an item, an entity, or a block (optionally backed by an item display). */
     sealed class Target {
         data class Item(val itemStack: ItemStack) : Target()
         data class Entity(val entity: org.bukkit.entity.Entity) : Target()
         data class Block(val material: Material, val block: org.bukkit.block.Block?, val itemDisplay: ItemDisplay?) : Target()
     }
 
+    /** Context shared by all interaction callbacks: who, which click, on what target, with which hand. */
     interface EventsCallOptions<out T : Target> {
         val player: Player
         val click: Click
@@ -36,12 +52,19 @@ interface EffectiveAbstractInteract {
         val hand: EquipmentSlot
     }
 
+    /**
+     * Cooldown configuration for a handler.
+     * @property cooldownToUseInTicks cooldown length in ticks (≤0 disables it)
+     * @property conditionForSkipCooldown optional predicate to bypass the cooldown for a given call
+     * @property cooldownType scope the cooldown is tracked against
+     */
     data class CooldownData<T : EventsCallOptions<out Target>>(
         val cooldownToUseInTicks: Int = 0,
         val conditionForSkipCooldown: ((T) -> Boolean)? = null,
         val cooldownType: CooldownType? = null
     )
 
+    /** A registered interaction: its [target], [click], [callback] returning a [Result], and optional cooldown. */
     interface Data<T : EventsCallOptions<out Target>> {
         val target: Target
         val click: Click
@@ -201,6 +224,10 @@ interface EffectiveAbstractInteract {
         }
 
 
+        /**
+         * Runs [data]'s callback for [options] (applying its cooldown) and folds the outcome into
+         * [currentResult]: returns true if this or any prior handler requested cancellation.
+         */
         fun <T : EventsCallOptions<out Target>> runCallAndUpdateResult(currentResult: Boolean, data: Data<T>, options: T): Boolean {
             val callResult = checkCooldownAndRunCall(data, options)
             return currentResult || (callResult == Result.CANCEL_EVENT)

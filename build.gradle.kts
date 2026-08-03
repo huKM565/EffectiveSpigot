@@ -2,6 +2,7 @@ plugins {
   kotlin("jvm") version "2.2.0"
   id("com.gradleup.shadow") version "8.3.6"
   id("xyz.jpenilla.run-paper") version "2.3.1"
+  id("org.jetbrains.dokka") version "2.2.0"
   `maven-publish`
 }
 
@@ -33,6 +34,19 @@ dependencies {
 }
 
 kotlin { jvmToolchain(21) }
+
+// Скрываем из документации внутреннюю реализацию (не публичный API для дочерних плагинов).
+// В V2 фильтр по видимости работает штатно: internal-типы в доки не попадают сами;
+// nms прячем пакетом, т.к. его видимость трогать нельзя (reflection-remapper прокси).
+dokka {
+  dokkaSourceSets.configureEach {
+    includes.from("Module.md")
+    perPackageOption {
+      matchingRegex.set(""".*\.(nms|http|world|blocks)(\..*)?""")
+      suppress.set(true)
+    }
+  }
+}
 // TODO(дочерний плагин (без all) не видит релокацию)
 
 tasks {

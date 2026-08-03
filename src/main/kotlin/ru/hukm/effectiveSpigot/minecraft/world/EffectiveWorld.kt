@@ -14,7 +14,7 @@ import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA.EffectiveChunkCursor
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlockData
 
-class EffectiveWorld private constructor(val name: String) {
+internal class EffectiveWorld private constructor(val name: String) {
     data class BlockData(val x: Int, val y: Int, val z: Int, val material: Material)
 
     val effectiveChunkSoA = EffectiveChunkSoA()

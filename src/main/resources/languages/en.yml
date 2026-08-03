@@ -108,6 +108,7 @@ errors:
     not_started: "HttpServer is not started"
     bind_failed: "Failed to start the resource pack HTTP server. Port %d may be busy or unreachable. If you don't know what you're doing — open EffectiveSpigot's config.yml and disable this feature (resourcepack.http-server.enable: false)."
   resourcepack:
+    build_failed: "Failed to build resource pack for plugin '%s': %s"
     model_not_found: "Model '%s' not found in plugin '%s' resources"
     texture_not_found: "Texture '%s' not found in plugin '%s' resources"
     ip_not_set: "Resource pack HTTP server is enabled, but 'resourcepack.http-server.ip' is not set in EffectiveSpigot's config.yml. Set it to the server's public IP/domain, or disable resourcepack.http-server.enable."

@@ -3,6 +3,7 @@ package ru.hukm.effectiveSpigot.minecraft.zone
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 import java.util.UUID
 
+/** Tracks players' in-progress two-corner zone selections before they are registered as boxes. */
 object EffectiveZoneSelection {
     val playerToSelectedCoords = hashMapOf<UUID, Triple<EffectiveBlockPos?, EffectiveBlockPos?, UUID>>()
 

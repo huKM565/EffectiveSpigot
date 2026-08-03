@@ -15,7 +15,16 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import kotlin.math.pow
 import kotlin.random.Random
 
+/**
+ * Client-side screen effects: full-screen camera fades and camera shake.
+ *
+ * The fade is drawn with a bundled full-screen glyph shown via a title, so it needs the framework's
+ * resource pack enabled. Shake nudges the player's yaw/pitch over time with configurable easing.
+ *
+ * A built-in `/escreen <target> <fade|shake> …` command triggers these effects in-game.
+ */
 object EffectiveScreenEffects {
+    /** Private-use character bound to the full-screen fade texture in the resource pack. */
     const val FADE_SCREEN_SYMBOL = '\ueff3'
 
     internal fun getModule(): IModule {
@@ -29,6 +38,8 @@ object EffectiveScreenEffects {
         }
     }
 
+
+    /** Easing curve for camera shake intensity over its duration. */
     enum class ShakeType {
         CONSTANT,
         LINEAR,
@@ -36,6 +47,7 @@ object EffectiveScreenEffects {
         EASE_OUT,
         EASE_IN_OUT;
 
+        /** Intensity multiplier at normalized [progress] `0.0..1.0` for this easing. */
         fun getMultiplier(progress: Double): Double {
             return when (this) {
                 CONSTANT -> 1.0
@@ -50,14 +62,20 @@ object EffectiveScreenEffects {
         }
     }
 
+    /** Plays a default full-screen fade (10/20/10 ticks) for [player]. */
     fun runCameraFade(player: Player) {
         runCameraFade(player, 10, 20, 10)
     }
 
+    /** Plays a full-screen fade with the given fade-in/stay/fade-out durations (in ticks). */
     fun runCameraFade(player: Player, fadeIn: Int, stay: Int, fadeOut: Int) {
         runCameraFade(player, fadeIn, stay, fadeOut, null)
     }
 
+    /**
+     * Plays a full-screen fade and runs [fullCameraFadeRunnable] at the darkest point
+     * (after `fadeIn + stay/2` ticks) — handy for teleporting/updating the world while hidden.
+     */
     fun runCameraFade(player: Player, fadeIn: Int, stay: Int, fadeOut: Int, fullCameraFadeRunnable: Runnable?) {
         player.showTitle(
             Title.title(
@@ -78,6 +96,7 @@ object EffectiveScreenEffects {
         }
     }
 
+    /** Shakes [player]'s camera at [intensity] for [duration] ticks with the given easing [type]. */
     fun runCameraShake(
         player: Player,
         intensity: Float,
@@ -87,6 +106,7 @@ object EffectiveScreenEffects {
         runCameraShake(player, intensity, duration, type, null)
     }
 
+    /** Shakes [player]'s camera indefinitely while [shouldContinue] returns true. */
     fun runCameraShake(
         player: Player,
         intensity: Float,
@@ -96,6 +116,11 @@ object EffectiveScreenEffects {
         runCameraShake(player, intensity, -1, type, shouldContinue)
     }
 
+    /**
+     * Shakes [player]'s camera. Runs for [duration] ticks (`-1` = until [shouldContinue] returns false).
+     * @param intensity max yaw/pitch offset magnitude
+     * @param type easing applied over the duration
+     */
     fun runCameraShake(
         player: Player,
         intensity: Float,

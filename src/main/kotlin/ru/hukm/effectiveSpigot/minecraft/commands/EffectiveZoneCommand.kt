@@ -7,7 +7,8 @@ import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZoneSelection
 
-object EffectiveZoneCommand : EffectiveCommand() {
+/** Built-in `/ezone` command: manages [ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone] selections and boxes. */
+internal object EffectiveZoneCommand : EffectiveCommand() {
 
     override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "ezone")
     override fun getPermission() = "effectivespigot.command.ezone"

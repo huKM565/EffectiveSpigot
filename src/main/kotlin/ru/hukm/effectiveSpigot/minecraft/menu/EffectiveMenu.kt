@@ -20,12 +20,45 @@ import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import kotlin.collections.set
 
+/**
+ * Base class for a chest-style GUI menu laid out with a character pattern.
+ *
+ * A subclass supplies a title, a row-based [getPattern] and a [getSymbolsToItems] mapping each pattern
+ * character to an item plus its click handlers. Optionally, [getFreeSlotSymbol] marks slots the player
+ * may place/take items in — changes are reported through [onSlotChanged]. Like the other bases, the menu
+ * registers itself on construction; open it with [getMenu].
+ *
+ * ```kotlin
+ * object ExampleMenu : EffectiveMenu() {
+ *     override fun getMenuTitle() = "Example"
+ *     override fun getPattern() = listOf(
+ *         "         ",
+ *         "    x    ",
+ *         "         ",
+ *     )
+ *     override fun getSymbolsToItems() = mapOf(
+ *         'x' to SlotData(ItemStack(Material.DIAMOND), listOf(
+ *             ClickData(EffectiveAbstractInteract.Click.LEFT) { player -> player.sendMessage("hi") }
+ *         ))
+ *     )
+ *     override fun getNamespacedData() = ExamplePlugin.instance to "example"
+ *     override fun getFreeSlotSymbol() = null
+ *     override fun getSlotsCount() = 27
+ *     override fun onSlotChanged(player: Player, slot: Int, item: ItemStack?, wasPlaced: Boolean) {}
+ * }
+ * // player.openInventory(ExampleMenu.getMenu())
+ * ```
+ *
+ * A built-in `/emenu <menu>` command opens any registered menu in-game.
+ */
 abstract class EffectiveMenu {
+    /** A click handler for a slot: which [click] and the action to run for the clicking player. */
     data class ClickData(
         val click: EffectiveAbstractInteract.Click,
         val callback: (Player) -> Unit
     )
 
+    /** The item shown in a slot together with its click handlers. */
     data class SlotData(
         val item: ItemStack,
         val clickHandlers: List<ClickData>
@@ -33,6 +66,7 @@ abstract class EffectiveMenu {
 
     private val maxSlotIndex = getItemsWithPattern().keys.maxOfOrNull { it } ?: -1
 
+    /** Actual inventory size: [getSlotsCount] if set, else the smallest multiple of 9 that fits the pattern. */
     val countSlot: Int = getSlotsCount() ?: (POSSIBLE_COUNT_SLOTS.find { it >= maxSlotIndex + 1 } ?: 54)
 
     private val inventoryHolder = object : InventoryHolder {
@@ -48,6 +82,7 @@ abstract class EffectiveMenu {
     }
 
     companion object {
+        /** Valid chest inventory sizes (multiples of 9, up to a double chest). */
         val POSSIBLE_COUNT_SLOTS = intArrayOf(9, 18, 27, 36, 45, 54)
 
         internal fun getModule(): IModule {
@@ -165,7 +200,10 @@ abstract class EffectiveMenu {
             }
         }
 
-        val namespacedNameToMenu = hashMapOf<String, EffectiveMenu>()
+        private val _namespacedNameToMenu = hashMapOf<String, EffectiveMenu>()
+
+        /** Read-only registry of all constructed menus, keyed by [getNamespacedName]. */
+        val namespacedNameToMenu: Map<String, EffectiveMenu> get() = _namespacedNameToMenu
     }
 
     init {
@@ -179,25 +217,44 @@ abstract class EffectiveMenu {
             throw IllegalArgumentException(Locale.getMessage("errors.menu.already_registered", namespacedName))
         }
 
-        namespacedNameToMenu[namespacedName] = this
+        _namespacedNameToMenu[namespacedName] = this
     }
 
+    /** Builds a fresh inventory instance for this menu; pass to `player.openInventory(...)`. */
     fun getMenu(): Inventory {
         return inventoryHolder.inventory
     }
 
+    /** Players who currently have this menu open. */
     fun getViewers(): List<Player> {
         return Bukkit.getOnlinePlayers().filter { it.openInventory.topInventory.holder === inventoryHolder }
     }
 
+    /** Inventory title shown at the top. */
     abstract fun getMenuTitle(): String
+
+    /** Row strings (9 chars each) mapping characters to items via [getSymbolsToItems]; null for empty. */
     abstract fun getPattern(): List<String>?
+
+    /** Maps each pattern character to its [SlotData] (item + click handlers). */
     abstract fun getSymbolsToItems(): Map<Char, SlotData>
+
+    /** Owning plugin and a plugin-unique id; together they form the [getNamespacedName]. */
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
+
+    /** Pattern character marking player-editable slots, or null if the menu is read-only. */
     abstract fun getFreeSlotSymbol(): Char?
+
+    /** Explicit inventory size, or null to size automatically from the pattern. */
     abstract fun getSlotsCount(): Int?
+
+    /**
+     * Called when a free slot's contents change.
+     * @param wasPlaced true if an item was put into the slot, false if taken out
+     */
     abstract fun onSlotChanged(player: Player, slot: Int, item: ItemStack?, wasPlaced: Boolean)
 
+    /** Slot indices marked editable by [getFreeSlotSymbol], or null if none. */
     fun getFreeSlots(): List<Int>? {
         val symbol = getFreeSlotSymbol() ?: return null
         val pattern = getPattern() ?: return null
@@ -208,10 +265,12 @@ abstract class EffectiveMenu {
         }.takeIf { it.isNotEmpty() }
     }
 
+    /** Unique identity as `"<plugin-name>:<id>"`, lowercased. */
     fun getNamespacedName(): String {
         return getNamespacedData().first.description.name.lowercase() + ":" + getNamespacedData().second.lowercase().trim()
     }
 
+    /** Resolves the pattern into a slot-index → [SlotData] map. */
     fun getItemsWithPattern(): Map<Int, SlotData> {
         val items = mutableMapOf<Int, SlotData>()
 

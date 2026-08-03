@@ -4,7 +4,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.World
 
-object EffectiveWorldParser {
+internal object EffectiveWorldParser {
     val materialsToMaterialsIndex: HashMap<Material, Short> = hashMapOf()
     val worldToString: HashMap<World, String> = hashMapOf()
 

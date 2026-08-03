@@ -20,6 +20,7 @@ import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItems
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveBrewable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveDropable
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveThrowable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveUndropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
 import ru.hukm.effectiveSpigot.http.EffectiveHttpServer
@@ -29,8 +30,14 @@ import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveResourcepack
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveScreenEffects
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
 
+/**
+ * The framework's own plugin. On enable it initializes every `Effective*` subsystem module (items,
+ * entities, zones, menus, …). Child plugins depend on this and build on the `Effective*` base classes;
+ * they don't instantiate it — use [instance] to reach the singleton.
+ */
 class EffectiveSpigot : JavaPlugin() {
 	companion object {
+		/** The running framework plugin instance. */
 		lateinit var instance: EffectiveSpigot
 			private set
 	}
@@ -63,6 +70,7 @@ class EffectiveSpigot : JavaPlugin() {
 				EffectiveDropable.getModule(),
 				EffectiveClickable.getModule(),
 				EffectiveWearable.getModule(),
+				EffectiveThrowable.getModule(),
 				EffectiveUndropable.getModule(),
 				EffectiveEntity.getModule(),
 				EffectiveCompositeEntity.getModule(),

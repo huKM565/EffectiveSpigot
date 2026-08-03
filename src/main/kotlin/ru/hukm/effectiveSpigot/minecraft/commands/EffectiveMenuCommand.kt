@@ -6,7 +6,8 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
 
-object EffectiveMenuCommand : EffectiveCommand() {
+/** Built-in `/emenu` command: opens registered [ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu]s. */
+internal object EffectiveMenuCommand : EffectiveCommand() {
 
     override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "emenu")
     override fun getPermission() = "effectivespigot.command.emenu"

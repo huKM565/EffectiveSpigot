@@ -17,13 +17,30 @@ import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity.Companion.ENTI
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 import java.util.UUID
 
+/**
+ * A multi-part entity built from two or more [EffectiveEntity] types linked as parent + children.
+ *
+ * [getEffectiveEntities] returns the parts (index 0 is the parent/root); spawning links them via
+ * persistent data so the group can be queried ([getChildren], [getParent], [getCompositesEntities])
+ * and is cleaned up together — removing any part removes the whole composite. Requires at least two
+ * parts and registers itself on construction.
+ *
+ * A built-in `/ecomposite <key>` command spawns any registered composite in-game.
+ */
 abstract class EffectiveCompositeEntity {
+    /** Persistent-data key on the parent listing its children's UUIDs. */
     val CHILD_ENTITIES_KEY = NamespacedKey(EffectiveSpigot.instance, "child_entities")
+
+    /** Persistent-data key on a child pointing to its parent's UUID. */
     val PARENT_ENTITY_KEY = NamespacedKey(EffectiveSpigot.instance, "parent_entity")
 
     companion object {
-        val namespacedKeyToEffectiveCompositeEntity = hashMapOf<String, EffectiveCompositeEntity>()
+        private val _namespacedKeyToEffectiveCompositeEntity = hashMapOf<String, EffectiveCompositeEntity>()
 
+        /** Read-only registry of all constructed composite types, keyed by [getNamespacedKey]. */
+        val namespacedKeyToEffectiveCompositeEntity: Map<String, EffectiveCompositeEntity> get() = _namespacedKeyToEffectiveCompositeEntity
+
+        /** Reads the entity key stored on [entity] (shared with [EffectiveEntity]), or null. */
         fun getNamespacedKeyByEntity(entity: Entity?): String? {
             return if (entity != null) {
                 EffectiveDataContainerUtils.getContainerValue(entity, ENTITY_KEY, PersistentDataType.STRING)
@@ -32,15 +49,18 @@ abstract class EffectiveCompositeEntity {
             }
         }
 
+        /** Registered composite type for a namespaced key, or null. */
         fun getEffectiveCompositeEntityByNamespacedKey(namespacedKey: String): EffectiveCompositeEntity? {
             return namespacedKeyToEffectiveCompositeEntity[namespacedKey]
         }
 
+        /** Composite type that [entity] belongs to, or null if it is not part of one. */
         fun getEffectiveCompositeEntityByEntity(entity: Entity?): EffectiveCompositeEntity? {
             val key = getNamespacedKeyByEntity(entity) ?: return null
             return namespacedKeyToEffectiveCompositeEntity[key]
         }
 
+        /** Whether both entities share the same composite/entity key. */
         fun equalByNamespacedKey(entity1: Entity?, entity2: Entity?): Boolean {
             val key1 = getNamespacedKeyByEntity(entity1) ?: return false
             val key2 = getNamespacedKeyByEntity(entity2) ?: return false
@@ -94,9 +114,10 @@ abstract class EffectiveCompositeEntity {
         if (namespacedKeyToEffectiveCompositeEntity.containsKey(namespacedName)) {
             throw IllegalArgumentException(Locale.getMessage("errors.entities.composite_already_registered", namespacedName))
         }
-        namespacedKeyToEffectiveCompositeEntity[namespacedName] = this
+        _namespacedKeyToEffectiveCompositeEntity[namespacedName] = this
     }
 
+    /** All live composites of this type as lists of `[parent, child…]` entities. */
     fun getCompositesEntities(): List<List<Entity>> {
         val allCompositesEntities = arrayListOf<ArrayList<Entity>>()
 
@@ -118,11 +139,13 @@ abstract class EffectiveCompositeEntity {
         return allCompositesEntities
     }
 
+    /** Child entities of [parent] (may contain nulls for unloaded entities), or null if none stored. */
     fun getChildren(parent: Entity): List<Entity?>? = EffectiveDataContainerUtils.getEntitiesFromLongArray(
             parent,
             CHILD_ENTITIES_KEY
     )
 
+    /** The child of [parent] whose entity type matches [namespacedKey], or null. */
     fun getChild(parent: Entity, namespacedKey: String): Entity? {
         val children = getChildren(parent) ?: return null
 
@@ -131,11 +154,13 @@ abstract class EffectiveCompositeEntity {
         return children.find { EffectiveEntity.getNamespacedKeyByEntity(it) == namespacedKey }
     }
 
+    /** The parent (root) entity of [possibleChild], or null if it has none. */
     fun getParent(possibleChild: Entity) = EffectiveDataContainerUtils.getEntityFromLongArray(
             possibleChild,
             PARENT_ENTITY_KEY
     )
 
+    /** Whether [possibleParent] is the recorded parent of [possibleChild]. */
     fun isParent(possibleChild: Entity, possibleParent: Entity): Boolean {
         val parentUuid = EffectiveDataContainerUtils.getUUIDFromLongArray(
             possibleChild, PARENT_ENTITY_KEY
@@ -143,14 +168,22 @@ abstract class EffectiveCompositeEntity {
         return parentUuid == possibleParent.uniqueId
     }
 
+    /** The parts of the composite; index 0 is the parent/root. Must contain at least two. */
     abstract fun getEffectiveEntities(): List<EffectiveEntity>
+
+    /** Owning plugin and a plugin-unique id; together they form the [getNamespacedKey]. */
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
+
+    /** Optional per-composite arguments applied to the parent at creation. */
     open fun getAdditionalArgs(): AdditionalArgs? = null
 
+    /** Namespaced keys backing this composite's [getAdditionalArgs]. */
     fun getAdditionalArgsNamespacedKeys() = AdditionalArgsSupport.namespacedKeys(getAdditionalArgs())
 
+    /** Resolves the namespaced key for a single additional arg by [name]. */
     fun additionalKey(name: String) = AdditionalArgsSupport.additionalKey(getAdditionalArgs(), name, "entities")
 
+    /** Builds all parts (linked parent↔children) at [location] without adding them to the world. */
     fun createEntities(location: Location?): List<Entity> {
         val entities = arrayListOf<Entity>()
         val world = location?.world ?: Bukkit.getWorlds()[0]
@@ -180,6 +213,7 @@ abstract class EffectiveCompositeEntity {
         return entities
     }
 
+    /** [createEntities] variant that also applies [additionalArgs] to the parent. */
     fun createEntities(location: Location?, additionalArgs: List<String>): List<Entity> {
         val effectiveEntities = getEffectiveEntities()
         val world = location?.world ?: Bukkit.getWorlds()[0]
@@ -216,6 +250,7 @@ abstract class EffectiveCompositeEntity {
         return entities
     }
 
+    /** Creates and spawns all parts of the composite at [location]. */
     fun spawnEntities(location: Location): List<Entity> {
         val world = location.world ?: throw IllegalArgumentException(Locale.getMessage("errors.world.location_null"))
         val entities = createEntities(location)
@@ -228,6 +263,7 @@ abstract class EffectiveCompositeEntity {
         return entities
     }
 
+    /** [spawnEntities] variant that also applies [additionalArgs]. */
     fun spawnEntities(location: Location, additionalArgs: List<String>): List<Entity> {
         val world = location.world ?: throw IllegalArgumentException(Locale.getMessage("errors.world.location_null"))
         val entities = createEntities(location, additionalArgs)
@@ -240,6 +276,7 @@ abstract class EffectiveCompositeEntity {
         return entities
     }
 
+    /** Unique identity as `"<plugin-name>/<id>"`, both lowercased. */
     fun getNamespacedKey(): String =
         getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
 }

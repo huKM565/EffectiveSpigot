@@ -22,9 +22,40 @@ import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 import java.util.UUID
 
+/** Callback for a click handler; its returned [EffectiveAbstractInteract.Result] cancels or allows the event. */
 typealias InteractCallback = (EffectiveClickable.EventsCallOptions) -> EffectiveAbstractInteract.Result
 
+/**
+ * Behaviour that dispatches left/right-click interactions on custom items.
+ *
+ * A shared module bridges Bukkit interact/attack events into registered [Data] handlers, matching
+ * the clicked stack by namespaced key (falling back to material). [EventsCallOptions] carries the click context.
+ *
+ * Two ways to register:
+ * - [EffectiveItem.addClickHandler] — matches only that custom item (by key);
+ * - [addClickHandler] directly with a **plain, non-custom stack** — since it has no key, matching
+ *   falls back to [org.bukkit.Material], so the handler fires for *every* stack of that material
+ *   (e.g. hook all sticks). Handy when you want behaviour on a vanilla material, not a custom item.
+ *
+ * Click mapping:
+ * - [Click.LEFT] — left-click on air/block **and** attacking an entity (the attacked entity is in
+ *   [EventsCallOptions.clickedEntity]).
+ * - [Click.RIGHT] — right-click on air/block/entity.
+ *
+ * Callback result:
+ * - [EffectiveAbstractInteract.Result.CANCEL_EVENT] cancels the underlying Bukkit event (suppresses
+ *   the vanilla action — block placement, container open, attack, …).
+ * - [EffectiveAbstractInteract.Result.ALLOW_EVENT] lets the vanilla action proceed.
+ *
+ * ```kotlin
+ * addClickHandler(Click.RIGHT, { e ->
+ *     e.player.sendMessage("used ${'$'}{e.item.type}")
+ *     EffectiveAbstractInteract.Result.CANCEL_EVENT
+ * })
+ * ```
+ */
 interface EffectiveClickable {
+    /** A registered click handler: which item, which [Click], the callback and optional cooldown. */
     data class Data(
         override val target: EffectiveAbstractInteract.Target.Item,
         override val click: Click,
@@ -35,6 +66,8 @@ interface EffectiveClickable {
         val item = target.itemStack
     }
 
+    /** Context passed to an [InteractCallback]: the player, the clicked item, the click type and hand,
+     *  plus the clicked block/face/entity when applicable. */
     data class EventsCallOptions (
         override val player: Player,
         override val target: EffectiveAbstractInteract.Target.Item,
@@ -51,6 +84,7 @@ interface EffectiveClickable {
         private val clickableItems = arrayListOf<Data>()
         private val playerUUIDInteractedWithEntity = arrayListOf<UUID>()
 
+        /** Clears the per-tick guard tracking players who already interacted with an entity. */
         fun resetPlayerUUIDInteractedWithEntity() {
             playerUUIDInteractedWithEntity.clear()
         }
@@ -116,6 +150,18 @@ interface EffectiveClickable {
             }
         }
 
+        /**
+         * Registers a click handler for stacks matching [item]: by namespaced key if [item] is a custom
+         * item, otherwise by [item]'s [org.bukkit.Material] (so pass a plain vanilla stack to match all
+         * stacks of that material).
+         *
+         * @param click which button triggers [callback]
+         * @param ifRightClickOpenContainer only relevant for [Click.RIGHT] on a container block
+         *   (chest, barrel, …): when false (default) the handler runs and the container stays closed;
+         *   when true the handler is skipped and the container opens as usual
+         * @param cooldownData optional per-player cooldown gating the callback; while on cooldown the
+         *   callback is not invoked
+         */
         fun addClickHandler(
             item: ItemStack,
             click: Click,
@@ -132,6 +178,10 @@ interface EffectiveClickable {
             ))
         }
 
+        /**
+         * Runs every handler matching the interacted item and returns whether the event should be
+         * cancelled. Called by the module's event listeners; rarely needed directly.
+         */
         fun tryCall(eventsCallOptions: EventsCallOptions): Boolean {
             val item = eventsCallOptions.target.itemStack
 

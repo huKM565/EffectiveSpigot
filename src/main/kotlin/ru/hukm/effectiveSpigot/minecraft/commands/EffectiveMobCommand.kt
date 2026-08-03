@@ -7,7 +7,8 @@ import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveCompositeEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 
-object EffectiveMobCommand : EffectiveCommand() {
+/** Built-in `/emob` command: spawns registered [ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity]s. */
+internal object EffectiveMobCommand : EffectiveCommand() {
 
     override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "emob")
     override fun getPermission() = "effectivespigot.command.emob"

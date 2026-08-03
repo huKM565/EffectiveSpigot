@@ -9,18 +9,31 @@ import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 
+/** Predicate deciding whether a custom entity should turn to look at a given nearby entity. */
 typealias EntityPredicate = (Entity) -> Boolean
 
+/**
+ * Behaviour that makes custom entities rotate to face nearby targets as those targets move.
+ * Register via [EffectiveEntity.doEntityNearLookable].
+ */
 interface EffectiveEntityLookable {
+    /** Ready-made look predicates. */
     enum class Look : EntityPredicate {
+        /** Look only at nearby players. */
         TO_NEAR_PLAYER {
             override fun invoke(it: Entity) = it is Player
         },
+        /** Look at any nearby entity. */
         TO_NEAR_ENTITY {
             override fun invoke(it: Entity) = true
         }
     }
 
+    /**
+     * Look configuration for one entity.
+     * @property whoToLook predicate choosing which nearby entities to face
+     * @property lookDistance max distance to react to, in blocks
+     */
     data class Data(
         val entity: Entity,
         val whoToLook: (Entity) -> Boolean = Look.TO_NEAR_PLAYER,
@@ -28,6 +41,7 @@ interface EffectiveEntityLookable {
     )
 
     companion object {
+        /** Hard cap on look distance, in blocks. */
         const val MAX_LOOK_DISTANCE = 32.0
 
         val lookableEntities = arrayListOf<Data>()
@@ -46,6 +60,10 @@ interface EffectiveEntityLookable {
             }
         }
 
+        /**
+         * Registers look behaviour for entities like [entity].
+         * @throws IllegalArgumentException if [lookDistance] exceeds [MAX_LOOK_DISTANCE]
+         */
         fun doEntityLookable(
             entity: Entity,
             whoToLook: (Entity) -> Boolean = Look.TO_NEAR_PLAYER,

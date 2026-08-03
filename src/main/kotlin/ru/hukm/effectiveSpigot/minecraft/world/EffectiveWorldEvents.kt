@@ -7,7 +7,7 @@ import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.event.world.ChunkUnloadEvent
 import ru.hukm.effectiveSpigot.minecraft.events.event
 
-object EffectiveWorldEvents {
+internal object EffectiveWorldEvents {
     fun init() {
         event<ChunkLoadEvent>(EventPriority.MONITOR) {
             EffectiveWorld.tryUploadChunk(it.chunk)

@@ -4,6 +4,7 @@ import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 
+/** Turns a player's zone-selector tool clicks into corner selections in [EffectiveZoneSelection]. */
 object ZoneSelectionInput {
 
     /**

@@ -12,7 +12,21 @@ import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.events.event
 
+/**
+ * Base class for a custom advancement.
+ *
+ * A subclass defines its [getDisplay] (title, icon, frame, …), optional [getParent] to place it in a
+ * tree, and identity via [getNamespacedData]. Advancements register on construction and are (re)loaded
+ * in parent-before-child order; grant them with [grant] and check with [isGrantedTo].
+ */
 abstract class EffectiveAdvancement {
+    /**
+     * Visual/behavioral display of an advancement.
+     * @property background background texture path (root advancements only)
+     * @property showToast whether the toast pops on grant
+     * @property announceToChat whether the grant is broadcast to chat
+     * @property hidden whether it stays hidden until unlocked
+     */
     data class DisplayData(
         val title: String,
         val description: String,
@@ -24,11 +38,13 @@ abstract class EffectiveAdvancement {
         val hidden: Boolean = false
     )
 
+    /** The advancement icon: a [Material] plus optional item components (e.g. custom item model). */
     data class IconData(
         val material: Material,
         val components: HashMap<String, String>
     ) {
         companion object {
+            /** Builds an [IconData] from an [ItemStack], carrying over its item-model component. */
             fun fromItem(item: ItemStack): IconData {
                 val components = hashMapOf<String, String>()
                 item.itemMeta?.itemModel?.let { components["minecraft:item_model"] = it.toString() }
@@ -37,14 +53,18 @@ abstract class EffectiveAdvancement {
         }
     }
 
+    /** Advancement frame style shown in the UI. */
     enum class FrameType(val frame: String) {
         TASK("task"),
-        GOAL("goal")            ,
+        GOAL("goal"),
         CHALLENGE("challenge")
     }
 
     companion object {
-        val namespacedNameToEffectiveAdvancements = hashMapOf<String, EffectiveAdvancement>()
+        private val _namespacedNameToEffectiveAdvancements = hashMapOf<String, EffectiveAdvancement>()
+
+        /** Read-only registry of all constructed advancements, keyed by their namespaced name. */
+        val namespacedNameToEffectiveAdvancements: Map<String, EffectiveAdvancement> get() = _namespacedNameToEffectiveAdvancements
 
         private fun loadAll() {
             val all = namespacedNameToEffectiveAdvancements.values.toList()
@@ -83,7 +103,7 @@ abstract class EffectiveAdvancement {
             throw IllegalArgumentException(Locale.getMessage("errors.advancement.already_registered", namespacedName))
         }
 
-        namespacedNameToEffectiveAdvancements[namespacedName] = this
+        _namespacedNameToEffectiveAdvancements[namespacedName] = this
     }
 
     internal fun load() {
@@ -91,12 +111,14 @@ abstract class EffectiveAdvancement {
             .loadAdvancement(NamespacedKey(getNamespacedData().first, getNamespacedData().second), buildJson())
     }
 
+    /** Whether [player] has completed this advancement. */
     fun isGrantedTo(player: Player): Boolean {
         val key = NamespacedKey(getNamespacedData().first, getNamespacedData().second)
         val advancement = Bukkit.getAdvancement(key) ?: return false
         return player.getAdvancementProgress(advancement).isDone
     }
 
+    /** Awards all remaining criteria to [player], completing this advancement (no-op if already done). */
     fun grant(player: Player) {
         val key = NamespacedKey(getNamespacedData().first, getNamespacedData().second)
         val advancement = Bukkit.getAdvancement(key) ?: return
@@ -107,7 +129,7 @@ abstract class EffectiveAdvancement {
         }
     }
 
-    fun buildJson(): String {
+    private fun buildJson(): String {
         val display = getDisplay()
 
         val iconJson = linkedMapOf<String, Any>("id" to display.icon.material.key.toString())
@@ -134,8 +156,13 @@ abstract class EffectiveAdvancement {
         return GSON.toJson(root)
     }
 
+    /** Parent advancement key to attach under, or null for a root advancement. */
     abstract fun getParent(): NamespacedKey?
+
+    /** Display data (title, description, icon, frame, flags). */
     abstract fun getDisplay(): DisplayData
+
+    /** Owning plugin and a plugin-unique id; together they form the advancement key. */
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
 
 

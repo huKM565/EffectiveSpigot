@@ -8,7 +8,8 @@ import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 
-object EffectiveGiveCommand : EffectiveCommand() {
+/** Built-in `/egive` command: gives custom [ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem]s to players. */
+internal object EffectiveGiveCommand : EffectiveCommand() {
 
     override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "egive")
     override fun getPermission() = "effectivespigot.command.egive"

@@ -8,12 +8,18 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.PlayerInventory
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
+/**
+ * Inventory helpers. Item matching uses [EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial], so
+ * custom items match by their key and vanilla items by material.
+ */
 object EffectiveInventoryUtils {
+    /** Outcome of [giveItem]: fully added, or overflow dropped on the ground. */
     enum class GiveResult {
         SUCCESS,
         DROPPED
     }
 
+    /** Whether the inventory's storage slots are all occupied (ignores armor/offhand for player inventories). */
     fun isFullInventory(inventory: Inventory): Boolean {
         var countDeleteInventoryContains = 0
         if (inventory.size >= 41) countDeleteInventoryContains = inventory.size - 36
@@ -21,11 +27,13 @@ object EffectiveInventoryUtils {
         return true
     }
 
+    /** Adds [item] to [player]'s inventory; returns the leftover that did not fit (empty if all fit). */
     fun tryGiveItem(item: ItemStack, player: Player): HashMap<Int, ItemStack> {
         val inventory: Inventory = player.inventory
         return inventory.addItem(item)
     }
 
+    /** Gives [item] to [player], dropping any overflow at their feet. Reports whether anything dropped. */
     fun giveItem(item: ItemStack, player: Player): GiveResult {
         val leftOver = tryGiveItem(item, player)
         leftOver.values.forEach { player.world.dropItem(player.location, it) }
@@ -33,6 +41,7 @@ object EffectiveInventoryUtils {
         return if (leftOver.isEmpty()) GiveResult.SUCCESS else GiveResult.DROPPED
     }
 
+    /** The item in [player]'s given equipment [slot] (hands or armor), or null for unsupported slots. */
     fun getItemFromEquipmentSlot(player: Player, slot: EquipmentSlot): ItemStack? {
         return when (slot) {
             EquipmentSlot.HAND -> player.inventory.itemInMainHand
@@ -45,6 +54,7 @@ object EffectiveInventoryUtils {
         }
     }
 
+    /** The main-hand item if not empty, otherwise the off-hand item. */
     fun getUsedItemFromHands(player: Player): ItemStack {
         val inventory = player.inventory
 
@@ -56,6 +66,7 @@ object EffectiveInventoryUtils {
         return offItem
     }
 
+    /** Given that one hand holds [item], returns the item in the *other* hand, or null if neither matches. */
     fun getItemFromAnotherHandByItemInHand(player: Player, item: ItemStack): ItemStack? {
         val inventory = player.inventory
 
@@ -71,6 +82,7 @@ object EffectiveInventoryUtils {
         return null
     }
 
+    /** Which hand holds [item] ([EquipmentSlot.HAND]/[EquipmentSlot.OFF_HAND]), or null if neither. */
     fun getHandThatHoldItem(player: Player, item: ItemStack): EquipmentSlot? {
         return if (EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(player.inventory.itemInMainHand, item)) {
             EquipmentSlot.HAND
@@ -81,11 +93,13 @@ object EffectiveInventoryUtils {
         }
     }
 
+    /** Outcome of [removeItems]: all removed, or not enough were present (nothing removed). */
     enum class RemoveResult {
         SUCCESS,
         NOT_ENOUGH
     }
 
+    /** Whether [inventory] holds at least [count] of [item] (summed across matching stacks). */
     fun hasItems(inventory: Inventory, item: ItemStack, count: Int): Boolean {
         var found = 0
         for (i in 0 until inventory.size) {
@@ -98,6 +112,7 @@ object EffectiveInventoryUtils {
         return false
     }
 
+    /** Removes [count] of [item] from [inventory]; if fewer are present, removes nothing and returns [RemoveResult.NOT_ENOUGH]. */
     fun removeItems(inventory: Inventory, item: ItemStack, count: Int): RemoveResult {
         val inv = inventory as? PlayerInventory ?: inventory
         if (!hasItems(inv, item, count)) return RemoveResult.NOT_ENOUGH

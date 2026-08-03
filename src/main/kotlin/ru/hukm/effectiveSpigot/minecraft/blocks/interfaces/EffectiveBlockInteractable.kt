@@ -8,9 +8,9 @@ import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 
-typealias InteractCallback = (EffectiveBlockInteractable.EventsCallOptions) -> EffectiveAbstractInteract.Result
+internal typealias InteractCallback = (EffectiveBlockInteractable.EventsCallOptions) -> EffectiveAbstractInteract.Result
 
-interface EffectiveBlockInteractable {
+internal interface EffectiveBlockInteractable {
     data class Data(
         override val target: EffectiveAbstractInteract.Target.Block,
         override val click: Click,

@@ -6,7 +6,12 @@ import org.bukkit.entity.Player
 import kotlin.math.max
 import kotlin.math.sqrt
 
+/** Helpers for drawing dust-particle shapes visible only to specific players. */
 object EffectiveParticles {
+    /**
+     * Draws a dust line between two points, sampled every [step] blocks, for the given [players].
+     * @param dustOptions dust color and size
+     */
     fun drawLine(
         players: Collection<Player>,
         x1: Double, y1: Double, z1: Double,
@@ -34,6 +39,7 @@ object EffectiveParticles {
         }
     }
 
+    /** Draws the 12 edges of an axis-aligned box (min→max corners) as dust lines for [players]. */
     fun drawBox(
         players: Collection<Player>,
         minX: Double, minY: Double, minZ: Double,

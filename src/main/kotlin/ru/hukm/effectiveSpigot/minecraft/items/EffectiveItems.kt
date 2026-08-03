@@ -9,6 +9,7 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.zone.ZoneSelectionInput
 
+/** Built-in items shipped by the framework (e.g. the zone-selection tool). Invoke an entry to build its stack. */
 enum class EffectiveItems(val item: EffectiveItem) {
     EMPTY(object : EffectiveItem() {
         override fun editMeta(meta: ItemMeta) {

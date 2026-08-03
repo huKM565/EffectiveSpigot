@@ -11,16 +11,24 @@ import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
+/**
+ * Behaviour that prevents an [EffectiveItem] from leaving the player's inventory.
+ *
+ * Registered items cannot be dropped (Q key or inventory drop actions) and are retained on death.
+ * Register via [EffectiveItem.makeUndropable].
+ */
 interface EffectiveUndropable {
     companion object {
         private val undropableItems = arrayListOf<EffectiveItem>()
 
+        /** Marks [effectiveItem] as undroppable. No-op if already registered. */
         fun makeUndropable(effectiveItem: EffectiveItem) {
             if (undropableItems.none { it.equalByNamespacedKey(effectiveItem) }) {
                 undropableItems.add(effectiveItem)
             }
         }
 
+        /** Whether [item] is a registered undroppable item. */
         fun isUndropable(item: ItemStack?): Boolean {
             if (item == null || item.type == Material.AIR) return false
             return undropableItems.any { it.equalByNamespacedKey(item) }

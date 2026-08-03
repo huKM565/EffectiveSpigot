@@ -12,9 +12,24 @@ import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 
+/** Callback for an entity interact handler; its [EffectiveAbstractInteract.Result] cancels or allows the event. */
 typealias InteractCallback = (EffectiveEntityInteractable.EventsCallOptions) -> EffectiveAbstractInteract.Result
 
+/**
+ * Behaviour that dispatches left/right interactions on custom entities, mirroring
+ * [ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable] for entities.
+ *
+ * `RIGHT` = right-click on the entity, `LEFT` = attacking it. Entities are matched by custom-entity key
+ * (falling back to [org.bukkit.entity.EntityType]).
+ *
+ * Two ways to register:
+ * - [EffectiveEntity.addInteractHandler] — matches only that custom entity type (by key);
+ * - [addInteractHandler] directly with a **plain, non-custom entity** — since it has no key, matching
+ *   falls back to [org.bukkit.entity.EntityType], so the handler fires for *every* vanilla entity of
+ *   that type (e.g. hook all cows). Handy when you want behaviour on a vanilla type, not a custom one.
+ */
 interface EffectiveEntityInteractable {
+    /** A registered entity interact handler: target entity, [Click], callback and optional cooldown. */
     data class Data(
         override val target: EffectiveAbstractInteract.Target.Entity,
         override val click: Click,
@@ -24,6 +39,7 @@ interface EffectiveEntityInteractable {
         val entity = target.entity
     }
 
+    /** Context passed to an [InteractCallback]: the player, the clicked entity, the click type and hand. */
     data class EventsCallOptions(
         override val player: Player,
         override val target: EffectiveAbstractInteract.Target.Entity,
@@ -78,6 +94,11 @@ interface EffectiveEntityInteractable {
             }
         }
 
+        /**
+         * Registers an interact handler matching entities like [entity]: by custom-entity key if
+         * [entity] has one, otherwise by [entity]'s [org.bukkit.entity.EntityType] (so pass a plain
+         * vanilla entity to match all entities of that type).
+         */
         fun addInteractHandler(
             entity: Entity,
             click: Click,
@@ -94,6 +115,7 @@ interface EffectiveEntityInteractable {
             )
         }
 
+        /** Runs matching handlers for the interacted entity; returns whether the event should be cancelled. */
         fun tryCall(eventsCallOptions: EventsCallOptions): Boolean {
             val entity = eventsCallOptions.clickedEntity
 

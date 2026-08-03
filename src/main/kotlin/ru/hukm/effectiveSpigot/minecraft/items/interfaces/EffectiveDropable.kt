@@ -18,7 +18,23 @@ import org.bukkit.loot.LootTables
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.events.event
 
+/**
+ * Behaviour that makes a custom item drop from loot tables, broken blocks or killed entities.
+ *
+ * Usually reached via [EffectiveItem.addToLoot]. Chance and amount are computed per (nullable)
+ * player, so drops can scale with Fortune/Looting via the helper functions here.
+ */
 interface EffectiveDropable {
+    /**
+     * One drop rule.
+     *
+     * @property item the stack template to drop (cloned per drop)
+     * @property chance drop probability in `0.0..1.0`, evaluated per player
+     * @property lootTables vanilla loot tables this item is injected into
+     * @property blocks blocks that may drop this item
+     * @property entities entities that may drop this item
+     * @property amount optional per-drop stack-size range
+     */
     data class Data(
         val item: ItemStack,
         val chance: (Player?) -> Double,
@@ -107,15 +123,31 @@ interface EffectiveDropable {
             }
         }
 
+        /** Registers a drop rule. */
         fun addLoot(data: Data) {
             foundableItems.add(data)
         }
 
+        /** Fortune level of [item], or Looting if it has no Fortune; 0 if neither. */
         fun getLuckChance(item: ItemStack?): Int {
             return item?.getEnchantmentLevel(Enchantment.FORTUNE)?.takeIf { it > 0 }
                 ?: item?.getEnchantmentLevel(Enchantment.LOOTING) ?: 0
         }
 
+        /**
+         * Chance function that adds `luck * modifier` to [baseChance], using the held tool's luck
+         * ([getLuckChance]). Feed the result to [Data.chance]; keep values in `0.0..1.0`.
+         *
+         * ```kotlin
+         * // 10% base, +5% per Fortune/Looting level
+         * effectiveItem.addToLoot(
+         *     dropChance = EffectiveDropable.chanceDependencyLuck(0.10, 0.05),
+         *     lootTables = null,
+         *     blocks = listOf(Material.DIAMOND_ORE),
+         *     entities = null,
+         * )
+         * ```
+         */
         fun chanceDependencyLuck(baseChance: Double, modifier: Double): (Player?) -> Double {
             return { player ->
                 val item = player?.inventory?.itemInMainHand
@@ -123,6 +155,15 @@ interface EffectiveDropable {
             }
         }
 
+        /**
+         * Amount function that extends [baseRange]'s upper bound by `luck * modifier`. Feed the
+         * result to [Data.amount].
+         *
+         * ```kotlin
+         * // 1..2 base, +1 max per luck level → 1..(2 + luck)
+         * amount = EffectiveDropable.amountDependencyLuck(1..2, 1)
+         * ```
+         */
         fun amountDependencyLuck(baseRange: IntRange, modifier: Int): (Player?) -> IntRange {
             return { player ->
                 val item = player?.inventory?.itemInMainHand

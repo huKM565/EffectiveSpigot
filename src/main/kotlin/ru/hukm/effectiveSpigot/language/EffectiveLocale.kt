@@ -10,7 +10,23 @@ import ru.hukm.effectiveSpigot.Config
 import java.io.File
 import java.util.jar.JarFile
 
+/**
+ * Base class for a plugin's localized messages.
+ *
+ * On construction it copies every bundled YAML file under `languages/` into the plugin's data folder
+ * (`plugins/<PluginName>/languages/`), then loads
+ * the file for the language configured in EffectiveSpigot's own config (falling back to `en.yml`).
+ * Look up messages with [getMessage] (legacy string) or [getComponent] (Adventure component).
+ *
+ * ```kotlin
+ * object ExampleLocale : EffectiveLocale() {
+ *     override fun getPlugin() = ExamplePlugin.instance
+ * }
+ * // ExampleLocale.getComponent("items.example.name")
+ * ```
+ */
 abstract class EffectiveLocale {
+    /** The plugin whose `languages/` resources and data folder are used. */
     abstract fun getPlugin(): JavaPlugin
 
     private var languageConfig: YamlConfiguration? = null
@@ -44,6 +60,10 @@ abstract class EffectiveLocale {
         }
     }
 
+    /**
+     * Resolves [key] to a legacy string, applying [String.format] [args] and translating `&` color
+     * codes. Returns the key itself if missing.
+     */
     fun getMessage(key: String, vararg args: Any): String {
         val message = languageConfig?.getString(key) ?: key
         val formatted = String.format(message, *args)
@@ -51,8 +71,9 @@ abstract class EffectiveLocale {
     }
 
     /**
-     * Резолвит ключ в Adventure Component. Строки с legacy-кодами (`&c`, `§a`)
-     * парсятся legacy-сериализатором, остальные — MiniMessage (`<red>`, `<gradient:...>`).
+     * Resolves [key] to an Adventure [Component], applying [String.format] [args]. Strings containing
+     * legacy codes (`&c`, `§a`) are parsed with the legacy serializer; otherwise MiniMessage is used
+     * (`<red>`, `<gradient:...>`). Returns the key itself (parsed) if missing.
      */
     fun getComponent(key: String, vararg args: Any): Component {
         val message = languageConfig?.getString(key) ?: key

@@ -18,7 +18,7 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 
-abstract class EffectiveBlock {
+internal abstract class EffectiveBlock {
     companion object {
         private const val RADIUS = 5.0
         private val BLOCK_KEY = NamespacedKey(EffectiveSpigot.instance, "block")

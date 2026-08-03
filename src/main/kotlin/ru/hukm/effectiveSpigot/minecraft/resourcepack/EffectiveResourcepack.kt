@@ -19,6 +19,14 @@ import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
+/**
+ * Assembles and serves a per-plugin resource pack.
+ *
+ * Register content ([addGlyph] for bitmap glyphs, [addSpaceProvider] for negative-space advances) and,
+ * when EffectiveSpigot's built-in HTTP server is enabled, a pack is generated from the plugin's jar
+ * resources, hashed and hosted automatically; otherwise register an external pack with
+ * [addServerResourcepack]. All calls are no-ops unless the HTTP server is enabled in config.
+ */
 object EffectiveResourcepack {
 
     private lateinit var resourcePackRequest: ResourcePackRequest
@@ -32,6 +40,7 @@ object EffectiveResourcepack {
         if (instance !in toBuild) toBuild.add(instance)
     }
 
+    /** Adds a bitmap [glyph] to [instance]'s generated pack. No-op if the HTTP server is disabled. */
     fun addGlyph(instance: JavaPlugin, glyph: EffectiveGlyph) {
         if (Config.isResourcepackHttpServerEnabled()) {
             addToBuild(instance)
@@ -39,6 +48,10 @@ object EffectiveResourcepack {
         }
     }
 
+    /**
+     * Registers negative/positive space [advances] (char → pixel width) for [instance]'s pack, used to
+     * position glyphs precisely. No-op if the HTTP server is disabled.
+     */
     fun addSpaceProvider(instance: JavaPlugin, advances: Map<Char, Int>) {
         if (Config.isResourcepackHttpServerEnabled()) {
             addToBuild(instance)
@@ -46,6 +59,10 @@ object EffectiveResourcepack {
         }
     }
 
+    /**
+     * Registers an externally hosted resource pack by [url] and its [sha1Hex] hash. When the built-in
+     * HTTP server is enabled the local generated pack is used instead.
+     */
     fun addServerResourcepack(instance: JavaPlugin, url: String, sha1Hex: String) {
         if (Config.isResourcepackHttpServerEnabled()) addToBuild(instance)
         else register(url, sha1Hex)
@@ -133,6 +150,27 @@ object EffectiveResourcepack {
         val itemName = effectiveItem.getNamespacedData().second
         val data = effectiveItem.getResourcePackData() ?: return
 
+        // Читаем ресурсы заранее; если чего-то нет — пропускаем этот предмет целиком (а не пишем битую модель).
+        val textureBytes = instance.getResource(data.texturePath)?.use { it.readBytes() }
+        if (textureBytes == null) {
+            instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", data.texturePath, instance.name))
+            return
+        }
+
+        val modelBytes: ByteArray = if (data.modelPath == null) {
+            """
+                {
+                    "parent": "minecraft:item/generated",
+                    "textures": { "layer0": "$namespace:item/$itemName" }
+                }
+            """.trimIndent().toByteArray()
+        } else {
+            instance.getResource(data.modelPath)?.use { it.readBytes() } ?: run {
+                instance.logger.warning(Locale.getMessage("errors.resourcepack.model_not_found", data.modelPath, instance.name))
+                return
+            }
+        }
+
         resourcepackFiles["assets/$namespace/items/$itemName.json"] = """
             {
               "model": {
@@ -142,21 +180,8 @@ object EffectiveResourcepack {
             }
         """.trimIndent().toByteArray()
 
-        resourcepackFiles["assets/$namespace/models/item/$itemName.json"] = if (data.modelPath == null) {
-            """
-                {
-                    "parent": "minecraft:item/generated",
-                    "textures": { "layer0": "$namespace:item/$itemName" }
-                }
-            """.trimIndent().toByteArray()
-        } else {
-            instance.getResource(data.modelPath)?.use { it.readBytes() }
-                ?: error(Locale.getMessage("errors.resourcepack.model_not_found", data.modelPath, instance.name))
-        }
-
-        resourcepackFiles["assets/$namespace/textures/item/$itemName.png"] =
-            instance.getResource(data.texturePath)?.use { it.readBytes() }
-                ?: error(Locale.getMessage("errors.resourcepack.texture_not_found", data.texturePath, instance.name))
+        resourcepackFiles["assets/$namespace/models/item/$itemName.json"] = modelBytes
+        resourcepackFiles["assets/$namespace/textures/item/$itemName.png"] = textureBytes
     }
 
     private fun addFont(
@@ -173,7 +198,10 @@ object EffectiveResourcepack {
 
         for (g in pluginGlyphs) {
             val bytes = instance.getResource(g.texturePath)?.use { it.readBytes() }
-                ?: error(Locale.getMessage("errors.resourcepack.texture_not_found", g.texturePath, instance.name))
+            if (bytes == null) {
+                instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", g.texturePath, instance.name))
+                continue
+            }
             resourcepackFiles["assets/$namespace/textures/${g.texturePath}"] = bytes
 
             val charEscape = "\\u${"%04X".format(g.char.code)}"
@@ -186,6 +214,9 @@ object EffectiveResourcepack {
             }
             providers.add("""{ "type": "space", "advances": { $advances } }""")
         }
+
+        // Все глифы пропущены (нет текстур) и пробелов нет — не пишем пустой шрифт.
+        if (providers.isEmpty()) return
 
         resourcepackFiles["assets/$namespace/font/default.json"] = """
             {
@@ -217,7 +248,13 @@ object EffectiveResourcepack {
                 event<ServerLoadEvent> {
                     if (!Config.isResourcepackHttpServerEnabled()) return@event
                     for (instance in toBuild) {
-                        tryBuild(instance)
+                        try {
+                            tryBuild(instance)
+                        } catch (e: Exception) {
+                            instance.logger.warning(
+                                Locale.getMessage("errors.resourcepack.build_failed", instance.name, e.message ?: e.toString())
+                            )
+                        }
                     }
                 }
             }

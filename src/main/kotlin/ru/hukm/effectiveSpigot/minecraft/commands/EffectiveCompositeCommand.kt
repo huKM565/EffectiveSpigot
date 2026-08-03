@@ -6,7 +6,8 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveCompositeEntity
 
-object EffectiveCompositeCommand : EffectiveCommand() {
+/** Built-in `/ecomposite` command: spawns registered [ru.hukm.effectiveSpigot.minecraft.entities.EffectiveCompositeEntity]s. */
+internal object EffectiveCompositeCommand : EffectiveCommand() {
 
     override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "ecomposite")
     override fun getPermission() = "effectivespigot.command.ecomposite"

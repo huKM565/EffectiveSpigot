@@ -8,7 +8,8 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveScreenEffects
 
-object EffectiveScreenCommand : EffectiveCommand() {
+/** Built-in `/escreen` command: plays screen effects (see [ru.hukm.effectiveSpigot.minecraft.utils.EffectiveScreenEffects]). */
+internal object EffectiveScreenCommand : EffectiveCommand() {
 
     override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "escreen")
     override fun getPermission() = "effectivespigot.command.escreen"

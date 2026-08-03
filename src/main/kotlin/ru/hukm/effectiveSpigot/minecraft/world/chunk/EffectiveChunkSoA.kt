@@ -5,7 +5,7 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorldParser
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlockData
 
-class EffectiveChunkSoA{
+internal class EffectiveChunkSoA{
     companion object {
         const val INIT_SIZE = 10000
         const val SIZE_MULTIPLIER = 2

@@ -7,9 +7,23 @@ import org.bukkit.command.CommandSender
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.Locale
 
+/**
+ * Base class for a Brigadier-backed command.
+ *
+ * A subclass declares identity ([getNamespacedData]), [getDescription], a required [getPermission]
+ * (empty string = no permission) and a [commandTree] built with [CommandNode]. The command registers
+ * itself with the owning plugin's lifecycle on construction; execution walks the tree by argument and
+ * runs the deepest matching executor, and tab-completion is driven by the same tree.
+ *
+ * Instantiate it from `onLoad` (not `onEnable`) — Brigadier commands register during the server's load
+ * phase, so a command touched only in `onEnable` won't be registered.
+ */
 abstract class EffectiveCommand : BasicCommand {
     companion object {
-        val registry = hashMapOf<String, EffectiveCommand>()
+        private val _registry = hashMapOf<String, EffectiveCommand>()
+
+        /** Read-only registry of all constructed commands, keyed by [getNamespacedName]. */
+        val registry: Map<String, EffectiveCommand> get() = _registry
     }
 
     init {
@@ -19,7 +33,7 @@ abstract class EffectiveCommand : BasicCommand {
                 Locale.getMessage("errors.commands.already_registered", namespacedName)
             )
         }
-        registry[namespacedName] = this
+        _registry[namespacedName] = this
 
         getNamespacedData().first.lifecycleManager.registerEventHandler(LifecycleEvents.COMMANDS) { event ->
             event.registrar().register(
@@ -31,12 +45,19 @@ abstract class EffectiveCommand : BasicCommand {
         }
     }
 
+    /** Owning plugin and the command's literal name (its second element). */
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
 
+    /** Short command description shown in help. */
     abstract fun getDescription(): String
+
+    /** Permission node required to run the command; empty string means no permission check. */
     abstract fun getPermission(): String
+
+    /** The argument tree (choices, dynamic completions, executors), or null for no arguments. */
     abstract fun commandTree(): CommandNode?
 
+    /** Unique identity as `"<plugin-name>/<command>"`, both lowercased. */
     fun getNamespacedName(): String =
         getNamespacedData().first.description.name.lowercase() + "/" + getNamespacedData().second.lowercase()
 

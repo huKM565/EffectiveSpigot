@@ -5,7 +5,15 @@ import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveGlyph
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveResourcepack
 
+/**
+ * An [EffectiveMenu] whose title renders a custom resource-pack texture instead of plain text.
+ *
+ * The subclass provides a [getTextureGlyph]; the menu registers it with the resource pack and builds
+ * a title that back-spaces and draws the glyph, so the GUI looks fully custom. Negative-space glyphs
+ * ([BackSpace]) are used to position the texture — [getBackspaces] computes the needed offset.
+ */
 abstract class EffectiveTextureMenu : EffectiveMenu() {
+    /** Negative-space glyphs of fixed pixel widths, used to shift the title cursor left. */
     enum class BackSpace(val symbol: Char, val size: Int) {
         R128('ↄ', 128),
         R32('ↂ', 32),
@@ -14,6 +22,7 @@ abstract class EffectiveTextureMenu : EffectiveMenu() {
 
         override fun toString(): String = symbol.toString()
 
+        /** Repeats this back-space glyph [count] times (empty for non-positive counts). */
         operator fun times(count: Int): String {
             return if (count <= 0) "" else symbol.toString().repeat(count)
         }
@@ -36,6 +45,7 @@ abstract class EffectiveTextureMenu : EffectiveMenu() {
         EffectiveResourcepack.addGlyph(getNamespacedData().first, getTextureGlyph())
     }
 
+    /** Builds a string of back-space glyphs totaling [pixels] of leftward offset. */
     fun getBackspaces(pixels: Int): String {
         var remaining = pixels
         val result = StringBuilder()
@@ -55,5 +65,6 @@ abstract class EffectiveTextureMenu : EffectiveMenu() {
         return getBackspaces(8) + getTextureGlyph().char
     }
 
+    /** The resource-pack glyph rendered as this menu's title texture. */
     abstract fun getTextureGlyph(): EffectiveGlyph
 }

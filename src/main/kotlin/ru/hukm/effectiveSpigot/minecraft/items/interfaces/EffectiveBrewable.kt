@@ -18,7 +18,19 @@ import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
+/**
+ * Behaviour that registers brewing-stand recipes for custom items. Usually reached via
+ * [ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem.addBrewRecipe].
+ */
 interface EffectiveBrewable {
+    /**
+     * A brewing recipe.
+     * @property result the produced item
+     * @property inputIngredient ingredient in the top slot
+     * @property inputBasePotionMeta required base potion in the bottom slots
+     * @property fuelUse blaze-powder fuel consumed
+     * @property cookingTime brew duration in ticks
+     */
     data class Data(
         val result: ItemStack,
         val inputIngredient: ItemStack,
@@ -194,6 +206,7 @@ interface EffectiveBrewable {
             return getRecipeBy(ingredient, meta)
         }
 
+        /** Registers a brewing recipe. */
         fun registerRecipe(data: Data) {
             brewRecipes.add(data)
         }

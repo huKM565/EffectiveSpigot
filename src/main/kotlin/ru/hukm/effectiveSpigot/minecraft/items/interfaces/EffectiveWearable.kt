@@ -11,10 +11,17 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
 
+/**
+ * Behaviour that lets an [EffectiveItem] be worn on the head.
+ *
+ * Registered items can be equipped by right-click or by dragging onto the helmet slot; the previous
+ * helmet is returned to the player. Register via [EffectiveItem.makeWearable].
+ */
 interface EffectiveWearable {
     companion object {
         private val wearableItems = arrayListOf<EffectiveItem>()
 
+        /** Marks [effectiveItem] as head-wearable. No-op if already registered. */
         fun makeWearable(effectiveItem: EffectiveItem) {
             if (wearableItems.none { it.equalByNamespacedKey(effectiveItem) }) {
                 wearableItems.add(effectiveItem)
@@ -27,6 +34,7 @@ interface EffectiveWearable {
             }
         }
 
+        /** Whether [item] is a registered wearable item. */
         fun isWearable(item: ItemStack?): Boolean {
             if (item == null || item.type == Material.AIR) return false
             return wearableItems.any { it.equalByNamespacedKey(item) }
