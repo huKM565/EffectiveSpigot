@@ -13,10 +13,13 @@ import ru.hukm.effectiveSpigot.minecraft.zone.ZoneSelectionInput
 enum class EffectiveItems(val item: EffectiveItem) {
     EMPTY(object : EffectiveItem() {
         override fun editMeta(meta: ItemMeta) {
-            meta.setCustomModelData(1)
+            meta.setDisplayName(" ")
         }
         override fun getMaterial() = Material.FIREWORK_STAR
         override fun getNamespacedData() = EffectiveSpigot.instance to "empty"
+        override fun getResourcePackData() = ResourcePackData(
+            "textures/empty.png"
+        )
     }),
     ZONE_SELECTOR(object : EffectiveItem() {
         init {

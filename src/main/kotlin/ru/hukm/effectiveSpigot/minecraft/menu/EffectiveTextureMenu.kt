@@ -1,5 +1,6 @@
 package ru.hukm.effectiveSpigot.minecraft.menu
 
+import net.md_5.bungee.api.ChatColor
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveFontChar
@@ -60,8 +61,11 @@ abstract class EffectiveTextureMenu : EffectiveMenu() {
         }
     }
 
+    /** [getTextureGlyph] resolved once, so registration and the title share the same glyph codepoint. */
+    private val titleGlyph by lazy { getTextureGlyph() }
+
     init {
-        EffectiveResourcepack.addGlyph(getNamespacedData().first, getTextureGlyph())
+        EffectiveResourcepack.addGlyph(getNamespacedData().first, titleGlyph)
     }
 
     /**
@@ -100,7 +104,7 @@ abstract class EffectiveTextureMenu : EffectiveMenu() {
     }
 
     override fun getMenuTitle(): String {
-        return getBackspaces(getTitleOffset()) + getTextureGlyph().charGlyph()
+        return getBackspaces(getTitleOffset()) + ChatColor.WHITE.toString() + titleGlyph.charGlyph()
     }
 
     /** The resource-pack glyph rendered as this menu's title texture. */

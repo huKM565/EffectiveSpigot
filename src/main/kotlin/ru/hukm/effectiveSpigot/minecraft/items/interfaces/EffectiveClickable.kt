@@ -5,7 +5,7 @@ import com.github.shynixn.mccoroutine.bukkit.ticks
 import kotlinx.coroutines.delay
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import ru.hukm.effectiveSpigot.EffectiveSpigot
 import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
@@ -100,7 +100,7 @@ interface EffectiveClickable {
             return object : IModule {
                 override fun init() {
 
-                    launch {
+                    EffectiveSpigot.instance.launch {
                         while (true) {
                             EffectiveClickable.resetPlayerUUIDInteractedWithEntity()
                             delay(1.ticks)
