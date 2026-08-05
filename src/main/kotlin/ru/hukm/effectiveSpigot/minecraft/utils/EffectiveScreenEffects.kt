@@ -12,6 +12,7 @@ import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveGlyph
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveResourcepack
 import java.time.Duration
 import ru.hukm.effectiveSpigot.EffectiveSpigot
+import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveFontChar
 import kotlin.math.pow
 import kotlin.random.Random
 
@@ -24,15 +25,21 @@ import kotlin.random.Random
  * A built-in `/escreen <target> <fade|shake> …` command triggers these effects in-game.
  */
 object EffectiveScreenEffects {
-    /** Private-use character bound to the full-screen fade texture in the resource pack. */
-    const val FADE_SCREEN_SYMBOL = '\ueff3'
+    /** [EffectiveFontChar] token bound to the full-screen fade texture in the resource pack. */
+    val FADE_SCREEN_GLYPH by lazy {
+        EffectiveGlyph(
+            "font/fade.png",
+            512,
+            256
+        )
+    }
 
     internal fun getModule(): IModule {
         return object : IModule {
             override fun init() {
                 EffectiveResourcepack.addGlyph(
                     EffectiveSpigot.instance,
-                    EffectiveGlyph(FADE_SCREEN_SYMBOL, "font/fade.png", height = 512, ascent = 256)
+                    FADE_SCREEN_GLYPH
                 )
             }
         }
@@ -79,7 +86,7 @@ object EffectiveScreenEffects {
     fun runCameraFade(player: Player, fadeIn: Int, stay: Int, fadeOut: Int, fullCameraFadeRunnable: Runnable?) {
         player.showTitle(
             Title.title(
-                Component.text(FADE_SCREEN_SYMBOL.toString()),
+                Component.text(FADE_SCREEN_GLYPH.charGlyph()),
                 Component.empty(),
                 Title.Times.times(
                     Duration.ofMillis(fadeIn * 50L),

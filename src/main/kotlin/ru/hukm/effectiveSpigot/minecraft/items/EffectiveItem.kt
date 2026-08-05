@@ -22,6 +22,7 @@ import ru.hukm.effectiveSpigot.minecraft.items.interfaces.*
 import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgs
 import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgsSupport
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
+import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 
 /**
  * Base class for every custom item in the framework.
@@ -179,6 +180,16 @@ abstract class EffectiveItem {
         item.amount = amount
         val meta = item.itemMeta ?: return item
         editMeta(meta)
+
+        // Если у предмета есть текстура из ресурспака и модель не задана вручную в editMeta —
+        // вешаем item_model, указывающий на сгенерированную фреймворком модель `<namespace>:<id>`.
+        if (getResourcePackData() != null && !meta.hasItemModel()) {
+            meta.itemModel = NamespacedKey(
+                EffectiveMinecraftUtils.getNamespace(getNamespacedData().first),
+                getNamespacedData().second
+            )
+        }
+
         item.itemMeta = meta
         EffectiveDataContainerUtils.setContainerValue(item, ITEM_KEY, PersistentDataType.STRING, getNamespacedName())
         EffectiveDurability.apply(this, item)
@@ -385,7 +396,11 @@ abstract class EffectiveItem {
     /** Whether the [getAdditionalArgs] values are appended to the item's lore automatically. */
     open fun showAdditionArgsInLore() : Boolean = false
 
-    /** Optional resource-pack texture/model info for this item. */
+    /**
+     * Optional resource-pack texture/model info for this item. When non-null, the framework generates
+     * the pack model/texture for it, and [createItemStack] automatically sets the stack's `item_model`
+     * to `<plugin-namespace>:<id>` so the custom texture shows — unless [editMeta] already set one.
+     */
     open fun getResourcePackData(): ResourcePackData? = null
 
     /** Namespaced keys backing this item's [getAdditionalArgs] (key → PDC type), or null if none. */

@@ -1,5 +1,11 @@
 package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
+import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.ticks
+import kotlinx.coroutines.delay
+import com.github.shynixn.mccoroutine.bukkit.ticks
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.BlockFace
@@ -19,8 +25,9 @@ import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
+import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable.Companion.addClickHandler
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveInventoryUtils
-import java.util.UUID
+import java.util.*
 
 /** Callback for a click handler; its returned [EffectiveAbstractInteract.Result] cancels or allows the event. */
 typealias InteractCallback = (EffectiveClickable.EventsCallOptions) -> EffectiveAbstractInteract.Result
@@ -92,6 +99,14 @@ interface EffectiveClickable {
         internal fun getModule(): IModule {
             return object : IModule {
                 override fun init() {
+
+                    launch {
+                        while (true) {
+                            EffectiveClickable.resetPlayerUUIDInteractedWithEntity()
+                            delay(1.ticks)
+                        }
+                    }
+
                     //TODO(Добавить эвент разрушения блока)
                     event<PlayerInteractEvent>(EventPriority.HIGHEST) {
                         if (playerUUIDInteractedWithEntity.contains(it.player.uniqueId)) return@event

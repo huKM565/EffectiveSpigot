@@ -57,13 +57,6 @@ class EffectiveSpigot : JavaPlugin() {
 	}
 
 	override fun onEnable() {
-		launch {
-			while (true) {
-				EffectiveClickable.resetPlayerUUIDInteractedWithEntity()
-				delay(1.ticks)
-			}
-		}
-
 		val modulesList =
 			listOf<IModule>(
 				//EffectiveWorld.Companion.EffectiveWorldModule,

@@ -109,6 +109,7 @@ errors:
     bind_failed: "Не удалось запустить HTTP-сервер для ресурспаков. Возможно, порт %d уже занят или недоступен. Если вы не понимаете, что делаете — зайдите в config.yml EffectiveSpigot'а и отключите эту функцию (resourcepack.http-server.enable: false)."
   resourcepack:
     build_failed: "Не удалось собрать ресурспак для плагина '%s': %s"
+    glyphs_exhausted: "Закончились свободные символы Private Use Area для глифов (лимит %d)"
     model_not_found: "Модель '%s' не найдена в ресурсах плагина '%s'"
     texture_not_found: "Текстура '%s' не найдена в ресурсах плагина '%s'"
     ip_not_set: "HTTP-сервер ресурспаков включён, но 'resourcepack.http-server.ip' не указан в config.yml EffectiveSpigot'а. Впишите публичный IP/домен вашего сервера или отключите resourcepack.http-server.enable."

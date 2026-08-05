@@ -11,6 +11,7 @@ import ru.hukm.effectiveSpigot.http.EffectiveHttpServer
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
+import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 import java.io.File
 import java.net.URI
 import java.nio.ByteBuffer
@@ -28,13 +29,12 @@ import java.util.zip.ZipOutputStream
  * [addServerResourcepack]. All calls are no-ops unless the HTTP server is enabled in config.
  */
 object EffectiveResourcepack {
-
     private lateinit var resourcePackRequest: ResourcePackRequest
     private val resourcepacksInfo = arrayListOf<ResourcePackInfo>()
     private var toBuild = arrayListOf<JavaPlugin>()
 
     private val glyphs = mutableMapOf<JavaPlugin, MutableList<EffectiveGlyph>>()
-    private val spaces = mutableMapOf<JavaPlugin, MutableMap<Char, Int>>()
+    private val spaces = mutableMapOf<JavaPlugin, MutableMap<EffectiveFontChar, Int>>()
 
     private fun addToBuild(instance: JavaPlugin) {
         if (instance !in toBuild) toBuild.add(instance)
@@ -49,10 +49,10 @@ object EffectiveResourcepack {
     }
 
     /**
-     * Registers negative/positive space [advances] (char → pixel width) for [instance]'s pack, used to
-     * position glyphs precisely. No-op if the HTTP server is disabled.
+     * Registers negative/positive space [advances] ([EffectiveFontChar] → pixel width) for [instance]'s
+     * pack, used to position glyphs precisely. No-op if the HTTP server is disabled.
      */
-    fun addSpaceProvider(instance: JavaPlugin, advances: Map<Char, Int>) {
+    fun addSpaceProvider(instance: JavaPlugin, advances: Map<EffectiveFontChar, Int>) {
         if (Config.isResourcepackHttpServerEnabled()) {
             addToBuild(instance)
             spaces.getOrPut(instance) { mutableMapOf() }.putAll(advances)
@@ -97,33 +97,31 @@ object EffectiveResourcepack {
             name.startsWith("resourcepack-") && name.endsWith(".zip") && name != packFile.name
         }?.forEach { it.delete() }
 
-        if (!packFile.exists()) {
-            val resourcepackFiles = mutableMapOf<String, ByteArray>()
+        val resourcepackFiles = mutableMapOf<String, ByteArray>()
 
-            resourcepackFiles["pack.mcmeta"] = """
-                {
-                  "pack": {
-                    "pack_format": 46,
-                    "description": "${instance.name} resource pack"
-                  }
-                }
-            """.trimIndent().toByteArray()
-
-            EffectiveItem.namespacedKeyToItem.values.filter {
-                it.getNamespacedData().first == instance && it.getResourcePackData() != null
-            }.forEach {
-                addItemModel(resourcepackFiles, instance, it)
+        resourcepackFiles["pack.mcmeta"] = """
+            {
+              "pack": {
+                "pack_format": 46,
+                "description": "${instance.name} resource pack"
+              }
             }
+        """.trimIndent().toByteArray()
 
-            addFont(resourcepackFiles, instance)
+        EffectiveItem.namespacedKeyToItem.values.filter {
+            it.getNamespacedData().first == instance && it.getResourcePackData() != null
+        }.forEach {
+            addItemModel(resourcepackFiles, instance, it)
+        }
 
-            packFile.parentFile?.mkdirs()
-            ZipOutputStream(packFile.outputStream().buffered()).use { zip ->
-                for ((path, bytes) in resourcepackFiles) {
-                    zip.putNextEntry(ZipEntry(path))
-                    zip.write(bytes)
-                    zip.closeEntry()
-                }
+        addFont(resourcepackFiles, instance)
+
+        packFile.parentFile?.mkdirs()
+        ZipOutputStream(packFile.outputStream().buffered()).use { zip ->
+            for ((path, bytes) in resourcepackFiles) {
+                zip.putNextEntry(ZipEntry(path))
+                zip.write(bytes)
+                zip.closeEntry()
             }
         }
 
@@ -131,8 +129,7 @@ object EffectiveResourcepack {
         val sha1Hex = MessageDigest.getInstance("SHA-1").digest(packBytes)
             .joinToString("") { "%02x".format(it) }
 
-        val safeName = instance.name.lowercase().replace(Regex("[^a-z0-9._-]"), "_")
-        val path = "/resourcepack/$safeName"
+        val path = "/resourcepack/${EffectiveMinecraftUtils.getNamespace(instance)}"
         EffectiveHttpServer.serve(path, packBytes)
 
         val ip = Config.getResourcepackHttpServerIp()
@@ -146,11 +143,10 @@ object EffectiveResourcepack {
         instance: JavaPlugin,
         effectiveItem: EffectiveItem
     ) {
-        val namespace = instance.name.lowercase()
+        val namespace = EffectiveMinecraftUtils.getNamespace(instance)
         val itemName = effectiveItem.getNamespacedData().second
         val data = effectiveItem.getResourcePackData() ?: return
 
-        // Читаем ресурсы заранее; если чего-то нет — пропускаем этот предмет целиком (а не пишем битую модель).
         val textureBytes = instance.getResource(data.texturePath)?.use { it.readBytes() }
         if (textureBytes == null) {
             instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", data.texturePath, instance.name))
@@ -184,6 +180,9 @@ object EffectiveResourcepack {
         resourcepackFiles["assets/$namespace/textures/item/$itemName.png"] = textureBytes
     }
 
+    /** JSON `\uXXXX` escape for a glyph's codepoint — two units (surrogate pair) for supplementary planes. */
+    private fun EffectiveFontChar.fontEscape() = string.map { "\\u%04X".format(it.code) }.joinToString("")
+
     private fun addFont(
         resourcepackFiles: MutableMap<String, ByteArray>,
         instance: JavaPlugin
@@ -191,8 +190,6 @@ object EffectiveResourcepack {
         val pluginGlyphs = glyphs[instance].orEmpty()
         val pluginSpaces = spaces[instance].orEmpty()
         if (pluginGlyphs.isEmpty() && pluginSpaces.isEmpty()) return
-
-        val namespace = instance.name.lowercase()
 
         val providers = mutableListOf<String>()
 
@@ -202,23 +199,23 @@ object EffectiveResourcepack {
                 instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", g.texturePath, instance.name))
                 continue
             }
-            resourcepackFiles["assets/$namespace/textures/${g.texturePath}"] = bytes
 
-            val charEscape = "\\u${"%04X".format(g.char.code)}"
-            providers.add("""{ "type": "bitmap", "file": "$namespace:${g.texturePath}", "chars": ["$charEscape"], "height": ${g.height}, "ascent": ${g.ascent} }""")
+            resourcepackFiles["assets/minecraft/textures/${g.texturePath}"] = bytes
+
+            val charEscape = g.charGlyph.fontEscape()
+            providers.add("""{ "type": "bitmap", "file": "minecraft:${g.texturePath}", "chars": ["$charEscape"], "height": ${g.height}, "ascent": ${g.ascent} }""")
         }
 
         if (pluginSpaces.isNotEmpty()) {
             val advances = pluginSpaces.entries.joinToString(", ") { (c, a) ->
-                "\"\\u${"%04X".format(c.code)}\": $a"
+                "\"${c.fontEscape()}\": $a"
             }
             providers.add("""{ "type": "space", "advances": { $advances } }""")
         }
 
-        // Все глифы пропущены (нет текстур) и пробелов нет — не пишем пустой шрифт.
         if (providers.isEmpty()) return
 
-        resourcepackFiles["assets/$namespace/font/default.json"] = """
+        resourcepackFiles["assets/minecraft/font/default.json"] = """
             {
               "providers": [
                 ${providers.joinToString(",\n    ")}
