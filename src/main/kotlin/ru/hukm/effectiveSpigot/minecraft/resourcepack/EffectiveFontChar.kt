@@ -34,8 +34,6 @@ data class EffectiveFontChar internal constructor(
     operator fun invoke() = string
 
     companion object {
-        // Supplementary Private Use Area, filled A (plane 15) then B (plane 16). The two ranges are NOT
-        // contiguous — U+FFFFE/U+FFFFF between them are noncharacters, so the counter skips over them.
         private const val SPUA_A_START = 0xF0000
         private const val SPUA_A_SIZE = 0xFFFFD - 0xF0000 + 1   // 65534
         private const val SPUA_B_START = 0x100000

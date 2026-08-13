@@ -110,7 +110,8 @@ interface EffectiveClickable {
                     //TODO(Добавить эвент разрушения блока)
                     event<PlayerInteractEvent>(EventPriority.HIGHEST) {
                         if (playerUUIDInteractedWithEntity.contains(it.player.uniqueId)) return@event
-                        val click = if (it.action != Action.RIGHT_CLICK_BLOCK && it.action != Action.RIGHT_CLICK_AIR) Click.LEFT else Click.RIGHT
+                        val isRight = it.action == Action.RIGHT_CLICK_BLOCK || it.action == Action.RIGHT_CLICK_AIR
+                        val click = EffectiveAbstractInteract.resolveClick(it.player, isRight)
                         if (tryCall(EventsCallOptions(
                                 it.player,
                                 EffectiveAbstractInteract.Target.Item(it.item ?: ItemStack(Material.AIR)),
@@ -131,7 +132,7 @@ interface EffectiveClickable {
                                 EffectiveAbstractInteract.Target.Item(
                                     EffectiveInventoryUtils.getItemFromEquipmentSlot(it.player, it.hand) ?: ItemStack(Material.AIR)
                                 ),
-                                Click.RIGHT,
+                                EffectiveAbstractInteract.resolveClick(it.player, isRight = true),
                                 it.hand,
                                 null,
                                 null,
@@ -151,7 +152,7 @@ interface EffectiveClickable {
                                     EffectiveAbstractInteract.Target.Item(
                                         EffectiveInventoryUtils.getUsedItemFromHands(it.damager as Player) ?: ItemStack(Material.AIR),
                                     ),
-                                    Click.LEFT,
+                                    EffectiveAbstractInteract.resolveClick(it.damager as Player, isRight = false),
                                     EquipmentSlot.HAND,
                                     null,
                                     null,
@@ -208,11 +209,12 @@ interface EffectiveClickable {
                 val isEqual = EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(clickableItem.item, item)
 
                 if (isEqual) {
-                    if (clickableItem.click == Click.RIGHT && eventsCallOptions.click == Click.RIGHT) {
+                    val actualIsRight = eventsCallOptions.click == Click.RIGHT || eventsCallOptions.click == Click.RIGHT_SHIFT
+                    if (actualIsRight) {
                         if (!(eventsCallOptions.clickedBlock is Container && !clickableItem.ifRightClickOpenContainer)) {
                             result = EffectiveAbstractInteract.runCallAndUpdateResult(result, clickableItem, eventsCallOptions)
                         }
-                    } else if (clickableItem.click == Click.LEFT && eventsCallOptions.click == Click.LEFT) {
+                    } else {
                         result = EffectiveAbstractInteract.runCallAndUpdateResult(result, clickableItem, eventsCallOptions)
                     }
                 }

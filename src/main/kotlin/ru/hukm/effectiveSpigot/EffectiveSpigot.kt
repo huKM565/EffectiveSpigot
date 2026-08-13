@@ -3,6 +3,7 @@ package ru.hukm.effectiveSpigot
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import kotlinx.coroutines.delay
+import org.bstats.bukkit.Metrics
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.advancements.EffectiveAdvancement
@@ -40,6 +41,9 @@ class EffectiveSpigot : JavaPlugin() {
 		/** The running framework plugin instance. */
 		lateinit var instance: EffectiveSpigot
 			private set
+
+		// TODO: зарегистрировать плагин на https://bstats.org и подставить реальный id
+		private const val BSTATS_ID = 0
 	}
 
 	override fun onLoad() {
@@ -57,6 +61,8 @@ class EffectiveSpigot : JavaPlugin() {
 	}
 
 	override fun onEnable() {
+		Metrics(this, BSTATS_ID)
+
 		val modulesList =
 			listOf<IModule>(
 				//EffectiveWorld.Companion.EffectiveWorldModule,

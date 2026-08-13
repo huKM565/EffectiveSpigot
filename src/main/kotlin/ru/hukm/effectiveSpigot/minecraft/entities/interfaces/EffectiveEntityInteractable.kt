@@ -62,7 +62,7 @@ interface EffectiveEntityInteractable {
                                     EffectiveAbstractInteract.Target.Entity(
                                         it.rightClicked
                                     ),
-                                    Click.RIGHT,
+                                    EffectiveAbstractInteract.resolveClick(it.player, isRight = true),
                                     it.hand
                                 )
                             )
@@ -82,7 +82,7 @@ interface EffectiveEntityInteractable {
                                         EffectiveAbstractInteract.Target.Entity(
                                             it.entity
                                         ),
-                                        Click.LEFT,
+                                        EffectiveAbstractInteract.resolveClick(it.damager as Player, isRight = false),
                                         EquipmentSlot.HAND
                                     )
                             )) {

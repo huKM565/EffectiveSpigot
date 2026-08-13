@@ -12,8 +12,9 @@ import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
-import java.io.File
+import java.io.ByteArrayOutputStream
 import java.net.URI
+import javax.imageio.ImageIO
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.util.*
@@ -87,15 +88,15 @@ object EffectiveResourcepack {
         )
     }
 
-    private fun tryBuild(instance: JavaPlugin) {
-        val jarFile = File(instance.javaClass.protectionDomain.codeSource.location.toURI())
-        val jarHash = MessageDigest.getInstance("SHA-1").digest(jarFile.readBytes())
-            .take(8).joinToString("") { "%02x".format(it) }
-        val packFile = File(instance.dataFolder, "resourcepack-$jarHash.zip")
+    /** Pixel width of the image at [texturePath] inside [instance]'s jar resources, or 0 if it can't be read. */
+    fun getImageWidth(instance: JavaPlugin, texturePath: String): Int {
+        val image = instance.getResource(texturePath)?.use { ImageIO.read(it) } ?: return 0
+        return image.width
+    }
 
-        instance.dataFolder.listFiles { _, name ->
-            name.startsWith("resourcepack-") && name.endsWith(".zip") && name != packFile.name
-        }?.forEach { it.delete() }
+    private fun tryBuild(instance: JavaPlugin) {
+        instance.dataFolder.listFiles { _, name -> name.startsWith("resourcepack-") && name.endsWith(".zip") }
+            ?.forEach { it.delete() }
 
         val resourcepackFiles = mutableMapOf<String, ByteArray>()
 
@@ -116,16 +117,17 @@ object EffectiveResourcepack {
 
         addFont(resourcepackFiles, instance)
 
-        packFile.parentFile?.mkdirs()
-        ZipOutputStream(packFile.outputStream().buffered()).use { zip ->
-            for ((path, bytes) in resourcepackFiles) {
-                zip.putNextEntry(ZipEntry(path))
-                zip.write(bytes)
-                zip.closeEntry()
+        val packBytes = ByteArrayOutputStream().use { baos ->
+            ZipOutputStream(baos).use { zip ->
+                for ((path, bytes) in resourcepackFiles) {
+                    zip.putNextEntry(ZipEntry(path))
+                    zip.write(bytes)
+                    zip.closeEntry()
+                }
             }
+            baos.toByteArray()
         }
 
-        val packBytes = packFile.readBytes()
         val sha1Hex = MessageDigest.getInstance("SHA-1").digest(packBytes)
             .joinToString("") { "%02x".format(it) }
 

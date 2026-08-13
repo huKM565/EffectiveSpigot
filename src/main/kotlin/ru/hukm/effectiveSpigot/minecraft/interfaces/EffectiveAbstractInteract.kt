@@ -31,8 +31,15 @@ interface EffectiveAbstractInteract {
     /** Whether a handler cancels the underlying Bukkit event or lets it proceed. */
     enum class Result { CANCEL_EVENT, ALLOW_EVENT }
 
-    /** The interaction button: left-click/attack or right-click. */
-    enum class Click { LEFT, RIGHT }
+    /**
+     * The interaction button plus an optional sneak modifier.
+     *
+     * Base [LEFT]/[RIGHT] fire on that button **regardless** of sneaking (backwards compatible).
+     * [LEFT_SHIFT]/[RIGHT_SHIFT] fire only while sneaking; [LEFT_PLAIN]/[RIGHT_PLAIN] only while not
+     * sneaking. So a sneaking left-click triggers both [LEFT] and [LEFT_SHIFT] handlers, and a
+     * non-sneaking one triggers both [LEFT] and [LEFT_PLAIN].
+     */
+    enum class Click { LEFT, RIGHT, LEFT_SHIFT, RIGHT_SHIFT, LEFT_PLAIN, RIGHT_PLAIN }
 
     /** Scope a cooldown applies to: the acting player, this exact instance, or all instances of the item/entity. */
     enum class CooldownType { ON_CURRENT_PLAYER, ON_THIS_INSTANCE, ON_ALL_INSTANCES }
@@ -75,8 +82,38 @@ interface EffectiveAbstractInteract {
     companion object {
         private val COOLDOWN_KEY = NamespacedKey(EffectiveSpigot.instance, "cooldown")
 
+        /**
+         * Whether a handler [registered] for a click should fire for the [actual] resolved click.
+         * Base [Click.LEFT]/[Click.RIGHT] match both plain and sneaking variants; the `_SHIFT` / `_PLAIN`
+         * forms match only the sneaking / non-sneaking case. [actual] is only ever a base or `_SHIFT`
+         * value — resolution never produces a `_PLAIN` click.
+         */
+        private fun clickMatches(registered: Click, actual: Click): Boolean = when (registered) {
+            Click.LEFT        -> actual == Click.LEFT || actual == Click.LEFT_SHIFT
+            Click.RIGHT       -> actual == Click.RIGHT || actual == Click.RIGHT_SHIFT
+            Click.LEFT_SHIFT  -> actual == Click.LEFT_SHIFT
+            Click.RIGHT_SHIFT -> actual == Click.RIGHT_SHIFT
+            Click.LEFT_PLAIN  -> actual == Click.LEFT
+            Click.RIGHT_PLAIN -> actual == Click.RIGHT
+        }
+
+        /**
+         * Resolves a raw interaction into a [Click]: [isRight] picks the button, [sneaking] the shift
+         * modifier. Never returns a `_PLAIN` value — those exist only for registration.
+         */
+        internal fun resolveClick(isRight: Boolean, sneaking: Boolean): Click = when {
+            isRight && sneaking -> Click.RIGHT_SHIFT
+            isRight             -> Click.RIGHT
+            sneaking            -> Click.LEFT_SHIFT
+            else                -> Click.LEFT
+        }
+
+        /** [resolveClick] taking the sneak-state from [player]. */
+        internal fun resolveClick(player: Player, isRight: Boolean): Click =
+            resolveClick(isRight, player.isSneaking)
+
         private fun <T : EventsCallOptions<out Target>> checkCooldownAndRunCall(data: Data<T>, eventsCallOptions: T): Result {
-            if (data.click != eventsCallOptions.click) return Result.ALLOW_EVENT
+            if (!clickMatches(data.click, eventsCallOptions.click)) return Result.ALLOW_EVENT
 
             if (data.cooldownData == null || data.cooldownData!!.cooldownToUseInTicks <= 0) return data.callback(eventsCallOptions)
             if (data.cooldownData!!.conditionForSkipCooldown?.invoke(eventsCallOptions) == true) return Result.ALLOW_EVENT

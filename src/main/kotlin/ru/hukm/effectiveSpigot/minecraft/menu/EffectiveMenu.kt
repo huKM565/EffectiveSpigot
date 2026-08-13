@@ -6,6 +6,7 @@ import kotlinx.coroutines.delay
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryDragEvent
@@ -17,7 +18,6 @@ import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.Locale
-import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import kotlin.collections.set
 
 /**
@@ -38,7 +38,7 @@ import kotlin.collections.set
  *     )
  *     override fun getSymbolsToItems() = mapOf(
  *         'x' to SlotData(ItemStack(Material.DIAMOND), listOf(
- *             ClickData(EffectiveAbstractInteract.Click.LEFT) { player -> player.sendMessage("hi") }
+ *             ClickData(ClickType.LEFT) { player -> player.sendMessage("hi") }
  *         ))
  *     )
  *     override fun getNamespacedData() = ExamplePlugin.instance to "example"
@@ -52,11 +52,19 @@ import kotlin.collections.set
  * A built-in `/emenu <menu>` command opens any registered menu in-game.
  */
 abstract class EffectiveMenu {
-    /** A click handler for a slot: which [click] and the action to run for the clicking player. */
+    /**
+     * A click handler for a slot: which [clicks] (Bukkit [ClickType]s, e.g. `LEFT`, `RIGHT`, `MIDDLE`,
+     * `SHIFT_LEFT`) trigger it — matched exactly, any one of the set — and the action to run for the
+     * clicking player. Register one type via `ClickData(ClickType.LEFT) { … }`, or several via
+     * `ClickData(ClickType.LEFT, ClickType.SHIFT_LEFT) { … }`.
+     */
     data class ClickData(
-        val click: EffectiveAbstractInteract.Click,
+        val clicks: Set<ClickType>,
         val callback: (Player) -> Unit
-    )
+    ) {
+        constructor(click: ClickType, callback: (Player) -> Unit) : this(setOf(click), callback)
+        constructor(vararg clicks: ClickType, callback: (Player) -> Unit) : this(clicks.toSet(), callback)
+    }
 
     /** The item shown in a slot together with its click handlers. */
     data class SlotData(
@@ -139,20 +147,10 @@ abstract class EffectiveMenu {
                             return@event
                         }
 
-                        if (it.isShiftClick) {
-                            it.isCancelled = true
-                            return@event
-                        }
-
                         it.isCancelled = true
 
-                        var click: EffectiveAbstractInteract.Click? = null
-                        if (it.isLeftClick) click = EffectiveAbstractInteract.Click.LEFT
-                        else if (it.isRightClick) click = EffectiveAbstractInteract.Click.RIGHT
-                        if (click == null) return@event
-
                         effectiveMenu.getItemsWithPattern()[slot]?.clickHandlers?.forEach { data ->
-                            if (data.click == click) data.callback.invoke(player)
+                            if (it.click in data.clicks) data.callback.invoke(player)
                         }
                     }
 

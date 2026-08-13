@@ -64,6 +64,9 @@ abstract class EffectiveTextureMenu : EffectiveMenu() {
     /** [getTextureGlyph] resolved once, so registration and the title share the same glyph codepoint. */
     private val titleGlyph by lazy { getTextureGlyph() }
 
+    /** Texture pixel width — used to pull the title back to the texture's left edge after the glyph. */
+    private val titleGlyphAdvance = EffectiveResourcepack.getImageWidth(getNamespacedData().first, titleGlyph.texturePath)
+
     init {
         EffectiveResourcepack.addGlyph(getNamespacedData().first, titleGlyph)
     }
@@ -104,8 +107,13 @@ abstract class EffectiveTextureMenu : EffectiveMenu() {
     }
 
     override fun getMenuTitle(): String {
-        return getBackspaces(getTitleOffset()) + ChatColor.WHITE.toString() + titleGlyph.charGlyph()
+        return getBackspaces(getTitleOffset()) +
+                ChatColor.WHITE.toString() + titleGlyph.charGlyph() +
+                getBackspaces(-titleGlyphAdvance + 7) +
+                ChatColor.WHITE.toString() + getTitle().orEmpty()
     }
+
+    open fun getTitle(): String? = null
 
     /** The resource-pack glyph rendered as this menu's title texture. */
     abstract fun getTextureGlyph(): EffectiveGlyph

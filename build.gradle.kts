@@ -31,6 +31,7 @@ dependencies {
   implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-core:2.22.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
   implementation("xyz.jpenilla:reflection-remapper:0.1.1")
+  implementation("org.bstats:bstats-bukkit:3.1.0")
 }
 
 kotlin { jvmToolchain(21) }
@@ -63,6 +64,7 @@ tasks {
     )
     relocate("xyz.jpenilla.reflectionremapper", "ru.hukm.effectiveSpigot.libs.xyz.jpenilla.reflectionremapper")
     relocate("net.fabricmc.mappingio", "ru.hukm.effectiveSpigot.libs.net.fabricmc.mappingio")
+    relocate("org.bstats", "ru.hukm.effectiveSpigot.libs.org.bstats")
 
     mergeServiceFiles()
 
