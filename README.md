@@ -62,9 +62,8 @@ depend: [EffectiveSpigot]
 
 Система кулдаунов поддерживает три режима работы:
 
-- 🧑 `ON_CURRENT_PLAYER` — кулдаун хранится в `PersistentDataContainer` игрока и действует только на него.
-- 🗡 `ON_THIS_INSTANCE` — кулдаун привязан к конкретному экземпляру предмета.
-- 🌐 `ON_ALL_INSTANCES` — кулдаун применяется ко всем предметам этого типа одновременно.
+- 🧑 `ON_CURRENT_PLAYER` — хранится в PDC игрока, ключ = тип предмета. Блокирует любой стак того же типа в руках этого игрока (в т.ч. подобранные позже копии); других игроков не касается.
+- 🗡 `ON_THIS_INSTANCE` — пишется в PDC самого стака/сущности, ходит вместе с ним. Другие стаки того же типа не аффектит.
 
 При активном кулдауне игрок видит оставшееся время в секундах на панели действий (action bar).
 
@@ -117,6 +116,29 @@ depend: [EffectiveSpigot]
 
 ---
 
+### ✨ Кастомные ачивки: `EffectiveAdvancement`
+
+Базовый класс для кастомных достижений.
+
+1. 🖼 **Только клиентский слой**: запись во вкладке достижений, тост при получении, положение в дереве. Критериев нет — момент выдачи решает сам плагин.
+2. 🌲 **Дерево**: `getParent()` располагает ачивку под родителем; загрузка идёт в порядке родитель-перед-детьми.
+3. 🎁 **Выдача**: `grant(player)` — выдать, `isGrantedTo(player)` — проверить.
+4. 🎨 **Настройка отображения**: `DisplayData` задаёт заголовок, описание, иконку, тип рамки (`TASK`/`GOAL`/`CHALLENGE`), фон (для корневых), toast/broadcast/hidden.
+
+---
+
+### ✨ Ресурспак: `EffectiveResourcepack`
+
+Собирает и раздаёт ресурспак сразу для всех плагинов, использующих фреймворк.
+
+1. 🔤 **Глифы** (`EffectiveGlyph`, `EffectiveFontChar`): битмап-символы регистрируются через `addGlyph()` и попадают в общий шрифт.
+2. ⬛ **Negative-space провайдеры**: `addSpaceProvider()` — символы отрицательной ширины для пиксельного сдвига (нужны для `EffectiveTextureMenu`).
+3. 🌐 **Автохостинг**: если в конфиге EffectiveSpigot включён встроенный HTTP-сервер, пак упаковывается в zip, хешируется и раздаётся сам.
+4. 🔗 **Внешний пак**: если HTTP-сервер выключен, ссылку и хеш можно задать вручную через `addServerResourcepack()`.
+5. 📥 **Автовыдача при входе**: `PlayerJoinEvent` шлёт игроку `ResourcePackRequest` со всеми зарегистрированными паками.
+
+---
+
 ### ✨ Экранные эффекты: `EffectiveScreenEffects`
 
 1. ⬛ **Затемнение экрана** (`runCameraFade`): плавное затухание с настраиваемыми параметрами `fadeIn`, `stay`, `fadeOut` и опциональным колбэком в середине анимации.
@@ -132,14 +154,24 @@ depend: [EffectiveSpigot]
 1. 🌲 **Дерево аргументов**: статические (`choice`) и динамические (`dynamic`) узлы с автодополнением.
 2. 🔐 **Проверка прав**: доступ к команде ограничивается через `getPermission()`.
 3. ⚡ **Автодополнение**: регистрация через сервис `LifecycleEvents`.
+4. ⚠️ **Регистрация в `onLoad`**: Brigadier регистрирует команды в load-фазе — конструктор должен быть вызван из `onLoad`, а не `onEnable`.
 
 ---
 
-### ✨ Локализация: `LanguageModule`
+### ✨ Параметры инстансов: `AdditionalArgs`
 
-1. 🌍 **Мультиязычность**: языковые файлы загружаются из `plugins/EffectiveSpigot/languages/` с фолбэком на английский.
-2. 🎨 **Цвета**: поддержка `&`-кодов (`ChatColor`).
-3. 🔄 **Горячая перезагрузка**: метод `reload()` обновляет файлы без перезапуска сервера.
+Схема позиционных параметров для конкретного экземпляра предмета/сущности.
+
+1. 📝 **Декларация схемы**: упорядоченный список `"имя" to PersistentDataType.*` — из чего фреймворк парсит аргументы и во что их сохраняет.
+2. 📜 **Команды**: `/egive <id> <arg…>` и `/emob <id> <arg…>` берут значения позиционно по этой схеме.
+3. 💾 **PDC**: значения кладутся в `PersistentDataContainer` предмета/сущности под `NamespacedKey(plugin, name)`.
+
+---
+
+### ✨ Локализация: `EffectiveLocale`
+
+1. 🌍 **Мультиязычность**: языковые файлы плагина должны лежать в `src/main/resources/languages/` (`en.yml`, `ru.yml`, …). На старте они копируются в `plugins/<PluginName>/languages/`, откуда и грузится файл по языку из конфига EffectiveSpigot (фолбэк — `en.yml`).
+2. 🎨 **Формат**: `getMessage()` возвращает legacy-строку (с `&`-кодами), `getComponent()` — Adventure-компонент (MiniMessage).
 
 ---
 
@@ -168,19 +200,29 @@ depend: [EffectiveSpigot]
 
 ### 📖 Документация
 
-Подробное описание методов и примеры использования доступны непосредственно в коде (KDoc) соответствующих классов (на английском языке):
+HTML-доки собираются локально:
+```
+./gradlew dokkaGenerate
+```
+и открываются из `build/dokka/html/index.html`.
+
+Также описание методов и примеры доступны прямо в коде (KDoc, на английском):
 
 *   [`EffectiveItem`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/EffectiveItem.kt) — основной класс для создания предметов.
 *   [`EffectiveClickable`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveClickable.kt) — интерфейс для обработки кликов.
 *   [`EffectiveCraftable`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveCraftable.kt) — интерфейс для создания крафтов.
-*   [`EffectiveFoundableAndDropable`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveFoundableAndDropable.kt) — интерфейс для настройки лута.
+*   [`EffectiveDropable`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveDropable.kt) — интерфейс для настройки лута.
 *   [`EffectiveWearable`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/items/interfaces/EffectiveWearable.kt) — интерфейс для создания одеваемых предметов.
 *   [`EffectiveEntity`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/entities/EffectiveEntity.kt) — основной класс для создания кастомных сущностей.
 *   [`EffectiveBlock`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/blocks/EffectiveBlock.kt) — основной класс для создания кастомных блоков.
 *   [`EffectiveWorld`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/world/EffectiveWorld.kt) — высокопроизводительное кеширование блоков мира.
 *   [`EffectiveZone`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/zone/EffectiveZone.kt) — система триггерных зон.
 *   [`EffectiveMenu`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/menu/EffectiveMenu.kt) — базовый класс для инвентарных GUI.
+*   [`EffectiveAdvancement`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/advancements/EffectiveAdvancement.kt) — кастомные ачивки.
+*   [`EffectiveResourcepack`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/resourcepack/EffectiveResourcepack.kt) — сборка и раздача ресурспака.
 *   [`EffectiveCommand`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/commands/EffectiveCommand.kt) — базовый класс для команд на Brigadier.
+*   [`AdditionalArgs`](src/main/kotlin/ru/hukm/effectiveSpigot/minecraft/additional/AdditionalArgs.kt) — схема позиционных параметров для инстансов.
+*   [`EffectiveLocale`](src/main/kotlin/ru/hukm/effectiveSpigot/language/EffectiveLocale.kt) — базовый класс для локализованных сообщений.
 *   [`EffectiveConfig`](src/main/kotlin/ru/hukm/effectiveSpigot/config/EffectiveConfig.kt) — базовый класс для YAML-конфигов.
 
 ---

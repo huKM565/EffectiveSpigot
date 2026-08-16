@@ -13,9 +13,10 @@ import java.util.jar.JarFile
 /**
  * Base class for a plugin's localized messages.
  *
- * On construction it copies every bundled YAML file under `languages/` into the plugin's data folder
- * (`plugins/<PluginName>/languages/`), then loads
- * the file for the language configured in EffectiveSpigot's own config (falling back to `en.yml`).
+ * The plugin must ship its language files under `src/main/resources/languages/` (e.g. `en.yml`,
+ * `ru.yml`). On construction the class copies every bundled YAML from that folder into the plugin's
+ * data folder (`plugins/<PluginName>/languages/`), then loads the file for the language configured
+ * in EffectiveSpigot's own config (falling back to `en.yml`).
  * Look up messages with [getMessage] (legacy string) or [getComponent] (Adventure component).
  *
  * ```kotlin

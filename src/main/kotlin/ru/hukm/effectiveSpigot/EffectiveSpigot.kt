@@ -25,6 +25,7 @@ import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveThrowable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveUndropable
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveWearable
 import ru.hukm.effectiveSpigot.http.EffectiveHttpServer
+import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveTextureMenu
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveResourcepack
@@ -82,7 +83,8 @@ class EffectiveSpigot : JavaPlugin() {
 				EffectiveHttpServer.getModule(),
 				EffectiveResourcepack.getModule(),
 				EffectiveScreenEffects.getModule(),
-				EffectiveTextureMenu.getModule()
+				EffectiveTextureMenu.getModule(),
+				EffectiveBlock.getModule()
 			)
 
 		EffectiveItems.ZONE_SELECTOR

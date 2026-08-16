@@ -18,6 +18,10 @@ import ru.hukm.effectiveSpigot.minecraft.events.event
  * A subclass defines its [getDisplay] (title, icon, frame, …), optional [getParent] to place it in a
  * tree, and identity via [getNamespacedData]. Advancements register on construction and are (re)loaded
  * in parent-before-child order; grant them with [grant] and check with [isGrantedTo].
+ *
+ * This is purely the client-side visual layer — the entry in the advancements screen, the toast on
+ * grant, its tree placement. It has no criteria and never fires itself; deciding *when* a player
+ * earns it is the child plugin's job (listen for the relevant event and call [grant]).
  */
 abstract class EffectiveAdvancement {
     /**

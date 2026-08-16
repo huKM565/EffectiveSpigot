@@ -41,8 +41,15 @@ interface EffectiveAbstractInteract {
      */
     enum class Click { LEFT, RIGHT, LEFT_SHIFT, RIGHT_SHIFT, LEFT_PLAIN, RIGHT_PLAIN }
 
-    /** Scope a cooldown applies to: the acting player, this exact instance, or all instances of the item/entity. */
-    enum class CooldownType { ON_CURRENT_PLAYER, ON_THIS_INSTANCE, ON_ALL_INSTANCES }
+    /**
+     * Scope a cooldown applies to.
+     * - [ON_CURRENT_PLAYER] — keyed by item/entity type in the acting player's PDC. Blocks any stack
+     *   of the same type in that player's hands (including copies picked up later), independent of
+     *   other players.
+     * - [ON_THIS_INSTANCE] — written to the exact clicked item/entity's own PDC. Follows the stack
+     *   around; other stacks of the same type are unaffected.
+     */
+    enum class CooldownType { ON_CURRENT_PLAYER, ON_THIS_INSTANCE }
 
     /** What was interacted with: an item, an entity, or a block (optionally backed by an item display). */
     sealed class Target {
@@ -62,13 +69,15 @@ interface EffectiveAbstractInteract {
     /**
      * Cooldown configuration for a handler.
      * @property cooldownToUseInTicks cooldown length in ticks (≤0 disables it)
-     * @property conditionForSkipCooldown optional predicate to bypass the cooldown for a given call
+     * @property conditionForSkipCall optional predicate: if it returns true for a call, the callback
+     *   is skipped entirely and the event is allowed to proceed (so neither the interaction nor the
+     *   cooldown fires)
      * @property cooldownType scope the cooldown is tracked against
      */
     data class CooldownData<T : EventsCallOptions<out Target>>(
         val cooldownToUseInTicks: Int = 0,
-        val conditionForSkipCooldown: ((T) -> Boolean)? = null,
-        val cooldownType: CooldownType? = null
+        val conditionForSkipCall: ((T) -> Boolean)? = null,
+        val cooldownType: CooldownType = CooldownType.ON_CURRENT_PLAYER
     )
 
     /** A registered interaction: its [target], [click], [callback] returning a [Result], and optional cooldown. */
@@ -115,8 +124,9 @@ interface EffectiveAbstractInteract {
         private fun <T : EventsCallOptions<out Target>> checkCooldownAndRunCall(data: Data<T>, eventsCallOptions: T): Result {
             if (!clickMatches(data.click, eventsCallOptions.click)) return Result.ALLOW_EVENT
 
-            if (data.cooldownData == null || data.cooldownData!!.cooldownToUseInTicks <= 0) return data.callback(eventsCallOptions)
-            if (data.cooldownData!!.conditionForSkipCooldown?.invoke(eventsCallOptions) == true) return Result.ALLOW_EVENT
+            val cd = data.cooldownData
+            if (cd == null || cd.cooldownToUseInTicks <= 0) return data.callback(eventsCallOptions)
+            if (cd.conditionForSkipCall?.invoke(eventsCallOptions) == true) return Result.ALLOW_EVENT
 
             val target = eventsCallOptions.target
             val instanceNamespacedKeyOrName = when (target) {
@@ -124,49 +134,27 @@ interface EffectiveAbstractInteract {
                 is Target.Entity -> EffectiveEntity.getNamespacedKeyByEntity(target.entity)
                 is Target.Block -> EffectiveEntity.getNamespacedKeyByEntity(target.itemDisplay)
             } ?: return data.callback(eventsCallOptions)
-            val timeLatestUsed = if (data.cooldownData!!.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
-                val namespacedKey = NamespacedKey(
-                    EffectiveSpigot.instance,
-                    instanceNamespacedKeyOrName
-                )
+
+            val timeLatestUsed = if (cd.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
+                val namespacedKey = NamespacedKey(EffectiveSpigot.instance, instanceNamespacedKeyOrName)
 
                 EffectiveDataContainerUtils.getContainer(eventsCallOptions.player, COOLDOWN_KEY) { container ->
                     EffectiveDataContainerUtils.getContainerValue(container, namespacedKey, PersistentDataType.LONG)
                 }
-            } else  {
+            } else {
                 if (target is Target.Block && target.itemDisplay == null) {
                     0L
                 } else {
                     when (target) {
-                        is Target.Item -> {
-                            EffectiveDataContainerUtils.getContainerValue(
-                                target.itemStack,
-                                COOLDOWN_KEY,
-                                PersistentDataType.LONG
-                            )
-                        }
-
-                        is Target.Entity -> {
-                            EffectiveDataContainerUtils.getContainerValue(
-                                target.entity,
-                                COOLDOWN_KEY,
-                                PersistentDataType.LONG
-                            )
-                        }
-
-                        is Target.Block -> {
-                            EffectiveDataContainerUtils.getContainerValue(
-                                target.itemDisplay!!,
-                                COOLDOWN_KEY,
-                                PersistentDataType.LONG
-                            )
-                        }
+                        is Target.Item -> EffectiveDataContainerUtils.getContainerValue(target.itemStack, COOLDOWN_KEY, PersistentDataType.LONG)
+                        is Target.Entity -> EffectiveDataContainerUtils.getContainerValue(target.entity, COOLDOWN_KEY, PersistentDataType.LONG)
+                        is Target.Block -> EffectiveDataContainerUtils.getContainerValue(target.itemDisplay!!, COOLDOWN_KEY, PersistentDataType.LONG)
                     }
                 }
             }
 
             if (timeLatestUsed != null) {
-                val cooldownToUseInMillis = data.cooldownData!!.cooldownToUseInTicks * 50
+                val cooldownToUseInMillis = cd.cooldownToUseInTicks * 50
 
                 val millisPassed = System.currentTimeMillis() - timeLatestUsed
                 if (millisPassed < cooldownToUseInMillis) {
@@ -183,75 +171,31 @@ interface EffectiveAbstractInteract {
 
             return data.callback(eventsCallOptions).also { result ->
                 if (result != Result.CANCEL_EVENT) return result
-                if (eventsCallOptions.target is Target.Block) {
-                    val target = eventsCallOptions.target as Target.Block
-                    if (target.itemDisplay == null) return result
-                }
+                if (target is Target.Block && target.itemDisplay == null) return result
 
-                when (data.cooldownData!!.cooldownType) {
+                when (cd.cooldownType) {
                     CooldownType.ON_CURRENT_PLAYER -> {
-                        EffectiveDataContainerUtils.setContainer(
-                            eventsCallOptions.player,
-                            COOLDOWN_KEY
-                        ) {
+                        EffectiveDataContainerUtils.setContainer(eventsCallOptions.player, COOLDOWN_KEY) {
                             EffectiveDataContainerUtils.setContainerValue(
                                 it,
-                                NamespacedKey(
-                                    EffectiveSpigot.instance, instanceNamespacedKeyOrName
-                                ),
+                                NamespacedKey(EffectiveSpigot.instance, instanceNamespacedKeyOrName),
                                 PersistentDataType.LONG,
                                 System.currentTimeMillis()
                             )
                         }
                     }
                     CooldownType.ON_THIS_INSTANCE -> {
-                        setLatestTimeUsed(data.target)
+                        setLatestTimeUsed(target)
                     }
-                    CooldownType.ON_ALL_INSTANCES -> {
-                        when (target) {
-                            is Target.Item -> {
-                                eventsCallOptions.player.inventory.forEach {
-                                    if (it != null && EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial(it, target.itemStack)) {
-                                        setLatestTimeUsed(it)
-                                    }
-                                }
-                            }
-
-                            is Target.Entity -> {
-                                val effectiveEntities = EffectiveEntity.namespacedKeyToEffectiveEntity.values
-                                for (effectiveEntity in effectiveEntities) {
-                                    effectiveEntity.getEntities().forEach {
-                                        if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.entity)) {
-                                            setLatestTimeUsed(it)
-                                        }
-                                    }
-                                }
-                            }
-
-                            is Target.Block -> {
-                                val effectiveEntities = EffectiveEntity.namespacedKeyToEffectiveEntity.values
-                                for (effectiveEntity in effectiveEntities) {
-                                    effectiveEntity.getEntities().forEach {
-                                        if (EffectiveEntity.equalByNamespacedKeyIfExistElseByEntityType(it, target.itemDisplay)) {
-                                            setLatestTimeUsed(it)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    else -> {}
                 }
             }
         }
 
-        private fun setLatestTimeUsed(target: Any) {
+        private fun setLatestTimeUsed(target: Target) {
             val obj = when (target) {
                 is Target.Item -> target.itemStack
                 is Target.Entity -> target.entity
                 is Target.Block -> target.itemDisplay
-                else -> target
             }
 
             when (obj) {

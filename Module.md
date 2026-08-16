@@ -74,3 +74,35 @@ Named spatial regions built from box selections, with enter/exit/inside events a
 # Package ru.hukm.effectiveSpigot.minecraft.menu
 
 Chest-style GUIs laid out with a character pattern, plus texture-backed menus.
+
+# Package ru.hukm.effectiveSpigot.minecraft.commands
+
+Brigadier-backed commands: `EffectiveCommand`, composite roots, and the built-in `/egive`, `/emenu`, `/emob`, `/escreen`, `/ezone`.
+
+# Package ru.hukm.effectiveSpigot.minecraft.advancements
+
+Custom advancements with parent/child trees and grant helpers.
+
+# Package ru.hukm.effectiveSpigot.minecraft.resourcepack
+
+Per-plugin resource pack: bitmap glyphs, negative-space providers, and (optional) built-in hosting.
+
+# Package ru.hukm.effectiveSpigot.minecraft.additional
+
+`AdditionalArgs` — per-instance parameter schemas for items/entities parsed positionally from commands.
+
+# Package ru.hukm.effectiveSpigot.minecraft.interfaces
+
+Shared click/interact vocabulary (`Click`, `Result`, `Target`, cooldown scopes) reused by item, entity and block interaction interfaces.
+
+# Package ru.hukm.effectiveSpigot.utils
+
+Framework-agnostic helpers: alphabets, combinatorics, long↔UUID namespacing, bit-packing.
+
+# Package ru.hukm.effectiveSpigot.config
+
+`EffectiveConfig` — YAML config base with default-copy on first run and typed getters.
+
+# Package ru.hukm.effectiveSpigot.language
+
+`EffectiveLocale` — bundled `languages/*.yml`, resolved against the configured language with an `en.yml` fallback.

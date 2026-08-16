@@ -9,7 +9,15 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.zone.ZoneSelectionInput
 
-/** Built-in items shipped by the framework (e.g. the zone-selection tool). Invoke an entry to build its stack. */
+/**
+ * Built-in items shipped by the framework. Invoke an entry (`EffectiveItems.ZONE_SELECTOR()`) to get a
+ * fresh `ItemStack`.
+ *
+ * - [EMPTY] — a `FIREWORK_STAR` with a single-space name and a transparent texture; useful as a
+ *   placeholder slot in [EffectiveMenu] layouts.
+ * - [ZONE_SELECTOR] — a `BLAZE_ROD` given out by `/ezone`. Left-click sets corner 1, right-click sets
+ *   corner 2 of the pending [EffectiveZone] box.
+ */
 enum class EffectiveItems(val item: EffectiveItem) {
     EMPTY(object : EffectiveItem() {
         override fun editMeta(meta: ItemMeta) {
