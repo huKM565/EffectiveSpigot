@@ -43,7 +43,7 @@ dokka {
   dokkaSourceSets.configureEach {
     includes.from("Module.md")
     perPackageOption {
-      matchingRegex.set(""".*\.(nms|http|world|blocks)(\..*)?""")
+      matchingRegex.set(""".*\.(nms|http|world)(\..*)?""")
       suppress.set(true)
     }
   }

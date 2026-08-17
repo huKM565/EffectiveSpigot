@@ -88,6 +88,10 @@ errors:
     cannot_parse_additional_arg: "Cannot parse argument #%s = '%s' for key '%s'"
     no_additional_args_defined: "No additional args defined"
     unknown_additional_arg_key: "Unknown additional arg key: '%s'"
+  blocks:
+    already_registered: "Block with namespaced name '%s' is already registered"
+    invalid_variation: "customVariation %s of block '%s' is out of 0..799"
+    variation_collision: "Variation collision: block '%s' and block '%s' both claim customVariation %s"
   crafts:
     tag_invalid_material: "Tag contains %s, but Material is required"
     list_invalid_material: "List must contain Materials. Provided: %s"

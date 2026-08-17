@@ -3,7 +3,6 @@ package ru.hukm.effectiveSpigot.minecraft.interfaces
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
-import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
@@ -11,6 +10,7 @@ import org.bukkit.persistence.PersistentDataHolder
 import org.bukkit.persistence.PersistentDataType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
+import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
@@ -51,11 +51,11 @@ interface EffectiveAbstractInteract {
      */
     enum class CooldownType { ON_CURRENT_PLAYER, ON_THIS_INSTANCE }
 
-    /** What was interacted with: an item, an entity, or a block (optionally backed by an item display). */
+    /** What was interacted with: an item, an entity, or a block. */
     sealed class Target {
         data class Item(val itemStack: ItemStack) : Target()
         data class Entity(val entity: org.bukkit.entity.Entity) : Target()
-        data class Block(val material: Material, val block: org.bukkit.block.Block?, val itemDisplay: ItemDisplay?) : Target()
+        data class Block(val material: Material, val block: org.bukkit.block.Block?) : Target()
     }
 
     /** Context shared by all interaction callbacks: who, which click, on what target, with which hand. */
@@ -132,7 +132,7 @@ interface EffectiveAbstractInteract {
             val instanceNamespacedKeyOrName = when (target) {
                 is Target.Item -> EffectiveItem.getNamespacedKeyByItemElseMaterial(target.itemStack)
                 is Target.Entity -> EffectiveEntity.getNamespacedKeyByEntity(target.entity)
-                is Target.Block -> EffectiveEntity.getNamespacedKeyByEntity(target.itemDisplay)
+                is Target.Block -> target.block?.let { EffectiveBlock.getNamespacedKeyByBlock(it) } ?: target.material.name
             } ?: return data.callback(eventsCallOptions)
 
             val timeLatestUsed = if (cd.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
@@ -142,14 +142,13 @@ interface EffectiveAbstractInteract {
                     EffectiveDataContainerUtils.getContainerValue(container, namespacedKey, PersistentDataType.LONG)
                 }
             } else {
-                if (target is Target.Block && target.itemDisplay == null) {
-                    0L
-                } else {
-                    when (target) {
-                        is Target.Item -> EffectiveDataContainerUtils.getContainerValue(target.itemStack, COOLDOWN_KEY, PersistentDataType.LONG)
-                        is Target.Entity -> EffectiveDataContainerUtils.getContainerValue(target.entity, COOLDOWN_KEY, PersistentDataType.LONG)
-                        is Target.Block -> EffectiveDataContainerUtils.getContainerValue(target.itemDisplay!!, COOLDOWN_KEY, PersistentDataType.LONG)
-                    }
+                // ON_THIS_INSTANCE writes to the target's own PDC. Vanilla noteblocks have no
+                // TileState, so per-block cooldowns on custom blocks aren't supported — treated as
+                // "never on cooldown" and setLatestTimeUsed is a no-op for Block targets.
+                when (target) {
+                    is Target.Item -> EffectiveDataContainerUtils.getContainerValue(target.itemStack, COOLDOWN_KEY, PersistentDataType.LONG)
+                    is Target.Entity -> EffectiveDataContainerUtils.getContainerValue(target.entity, COOLDOWN_KEY, PersistentDataType.LONG)
+                    is Target.Block -> 0L
                 }
             }
 
@@ -171,7 +170,6 @@ interface EffectiveAbstractInteract {
 
             return data.callback(eventsCallOptions).also { result ->
                 if (result != Result.CANCEL_EVENT) return result
-                if (target is Target.Block && target.itemDisplay == null) return result
 
                 when (cd.cooldownType) {
                     CooldownType.ON_CURRENT_PLAYER -> {
@@ -192,10 +190,10 @@ interface EffectiveAbstractInteract {
         }
 
         private fun setLatestTimeUsed(target: Target) {
-            val obj = when (target) {
+            val obj: Any? = when (target) {
                 is Target.Item -> target.itemStack
                 is Target.Entity -> target.entity
-                is Target.Block -> target.itemDisplay
+                is Target.Block -> null // vanilla noteblock has no per-block PDC; ON_THIS_INSTANCE unsupported
             }
 
             when (obj) {
