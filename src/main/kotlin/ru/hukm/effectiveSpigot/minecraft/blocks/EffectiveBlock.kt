@@ -110,10 +110,6 @@ abstract class EffectiveBlock {
         internal fun getModule(): IModule = object : IModule {
             override fun init() {
                 event<PlayerInteractEvent> {
-                    if (it.action == Action.LEFT_CLICK_BLOCK && it.clickedBlock?.type == Material.NOTE_BLOCK) {
-                        if (it.player.gameMode != GameMode.CREATIVE) it.setUseInteractedBlock(Event.Result.DENY)
-                        return@event
-                    }
                     if (it.action != Action.RIGHT_CLICK_BLOCK || it.hand != EquipmentSlot.HAND) return@event
                     val clicked = it.clickedBlock ?: return@event
                     if (clicked.type != Material.NOTE_BLOCK) return@event
@@ -306,6 +302,7 @@ abstract class EffectiveBlock {
             val tools = block.getCorrectTools()
             if (tools.isEmpty()) return 1.0
             val name = tool.type.name
+            println(tools.none { name.endsWith(it.suffix) })
             if (tools.none { name.endsWith(it.suffix) }) return 1.0
             return when {
                 name.startsWith("NETHERITE_") -> 9.0

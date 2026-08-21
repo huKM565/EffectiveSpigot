@@ -15,6 +15,7 @@ import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
+import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 import java.io.ByteArrayOutputStream
 import java.net.URI
 import javax.imageio.ImageIO
@@ -130,9 +131,33 @@ object EffectiveResourcepack {
                   },
                   "required.wood.break": {
                     "sounds": ["dig/wood1", "dig/wood2", "dig/wood3", "dig/wood4"]
-                  }
+                  },
+                  "block.note_block.banjo": { "replace": true, "sounds": [] },
+                  "block.note_block.basedrum": { "replace": true, "sounds": [] },
+                  "block.note_block.bass": { "replace": true, "sounds": [] },
+                  "block.note_block.bell": { "replace": true, "sounds": [] },
+                  "block.note_block.bit": { "replace": true, "sounds": [] },
+                  "block.note_block.chime": { "replace": true, "sounds": [] },
+                  "block.note_block.cow_bell": { "replace": true, "sounds": [] },
+                  "block.note_block.didgeridoo": { "replace": true, "sounds": [] },
+                  "block.note_block.flute": { "replace": true, "sounds": [] },
+                  "block.note_block.guitar": { "replace": true, "sounds": [] },
+                  "block.note_block.harp": { "replace": true, "sounds": [] },
+                  "block.note_block.hat": { "replace": true, "sounds": [] },
+                  "block.note_block.iron_xylophone": { "replace": true, "sounds": [] },
+                  "block.note_block.pling": { "replace": true, "sounds": [] },
+                  "block.note_block.snare": { "replace": true, "sounds": [] },
+                  "block.note_block.xylophone": { "replace": true, "sounds": [] },
+                  "block.note_block.imitate_creeper": { "replace": true, "sounds": [] },
+                  "block.note_block.imitate_ender_dragon": { "replace": true, "sounds": [] },
+                  "block.note_block.imitate_piglin": { "replace": true, "sounds": [] },
+                  "block.note_block.imitate_skeleton": { "replace": true, "sounds": [] },
+                  "block.note_block.imitate_wither_skeleton": { "replace": true, "sounds": [] },
+                  "block.note_block.imitate_zombie": { "replace": true, "sounds": [] }
                 }
             """.trimIndent().toByteArray()
+
+            resourcepackFiles["assets/minecraft/textures/particle/note.png"] = EffectiveUtils.transparentPng(8)
         }
 
         val packBytes = ByteArrayOutputStream().use { baos ->
@@ -167,7 +192,7 @@ object EffectiveResourcepack {
         val itemName = effectiveItem.getNamespacedData().second
         val data = effectiveItem.getResourcePackData() ?: return
 
-        val textureBytes = data.texturePath?.let { path ->
+        val textureBytes = data.textureBytes ?: data.texturePath?.let { path ->
             instance.getResource(path)?.use { it.readBytes() } ?: run {
                 instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", path, instance.name))
                 return

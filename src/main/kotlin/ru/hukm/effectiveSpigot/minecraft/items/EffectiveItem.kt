@@ -77,15 +77,18 @@ abstract class EffectiveItem {
     /**
      * Resource-pack data for the item. Provide a model via [modelPath] (path to a model JSON inside the
      * jar) or [modelJson] (the model JSON content itself); if both are null a default `item/generated`
-     * model is built from [texturePath]. [texturePath] is optional — omit it when the supplied model
-     * brings its own textures (e.g. parents another model). [modelJson] takes precedence over [modelPath].
+     * model is built from the texture. The texture comes from [texturePath] (a file inside the jar) or
+     * [textureBytes] (raw PNG bytes, e.g. generated at runtime); both are optional — omit them when the
+     * supplied model brings its own textures. [modelJson] takes precedence over [modelPath], and
+     * [textureBytes] over [texturePath].
      */
     data class ResourcePackData(
         val texturePath: String? = null,
+        val textureBytes: ByteArray? = null,
         val modelPath: String? = null,
         val modelJson: String? = null
     ) {
-        val isEmpty get() = texturePath == null && modelPath == null && modelJson == null
+        val isEmpty get() = texturePath == null && modelPath == null && modelJson == null && textureBytes == null
     }
 
     companion object {

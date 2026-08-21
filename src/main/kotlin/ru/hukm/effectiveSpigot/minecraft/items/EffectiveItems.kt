@@ -8,6 +8,7 @@ import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.EffectiveClickable
 import ru.hukm.effectiveSpigot.minecraft.zone.ZoneSelectionInput
+import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 
 /**
  * Built-in items shipped by the framework. Invoke an entry (`EffectiveItems.ZONE_SELECTOR()`) to get a
@@ -26,7 +27,7 @@ enum class EffectiveItems(val item: EffectiveItem) {
         override fun getMaterial() = Material.FIREWORK_STAR
         override fun getNamespacedData() = EffectiveSpigot.instance to "empty"
         override fun getResourcePackData() = ResourcePackData(
-            "textures/empty.png"
+            textureBytes = EffectiveUtils.transparentPng(16)
         )
     }),
     ZONE_SELECTOR(object : EffectiveItem() {
