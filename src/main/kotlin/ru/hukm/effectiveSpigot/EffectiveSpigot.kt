@@ -90,6 +90,8 @@ class EffectiveSpigot : JavaPlugin() {
 		EffectiveItems.ZONE_SELECTOR
 
 		modulesList.forEach { it.init() }
+
+		EffectiveResourcepack.addServerResourcepack(this, "", "")
 	}
 
 	override fun onDisable() {

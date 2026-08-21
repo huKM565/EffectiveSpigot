@@ -74,10 +74,19 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
  * A built-in `/egive <item> <player>` command can hand out any registered item in-game.
  */
 abstract class EffectiveItem {
+    /**
+     * Resource-pack data for the item. Provide a model via [modelPath] (path to a model JSON inside the
+     * jar) or [modelJson] (the model JSON content itself); if both are null a default `item/generated`
+     * model is built from [texturePath]. [texturePath] is optional — omit it when the supplied model
+     * brings its own textures (e.g. parents another model). [modelJson] takes precedence over [modelPath].
+     */
     data class ResourcePackData(
-        val texturePath: String,
-        val modelPath: String? = null
-    )
+        val texturePath: String? = null,
+        val modelPath: String? = null,
+        val modelJson: String? = null
+    ) {
+        val isEmpty get() = texturePath == null && modelPath == null && modelJson == null
+    }
 
     companion object {
         /** Persistent-data key under which every generated stack stores its namespaced name. */
@@ -181,9 +190,8 @@ abstract class EffectiveItem {
         val meta = item.itemMeta ?: return item
         editMeta(meta)
 
-        // Если у предмета есть текстура из ресурспака и модель не задана вручную в editMeta —
-        // вешаем item_model, указывающий на сгенерированную фреймворком модель `<namespace>:<id>`.
-        if (getResourcePackData() != null && !meta.hasItemModel()) {
+        val resourcePackData = getResourcePackData()
+        if (resourcePackData != null && !resourcePackData.isEmpty && !meta.hasItemModel()) {
             meta.itemModel = NamespacedKey(
                 EffectiveMinecraftUtils.getNamespace(getNamespacedData().first),
                 getNamespacedData().second

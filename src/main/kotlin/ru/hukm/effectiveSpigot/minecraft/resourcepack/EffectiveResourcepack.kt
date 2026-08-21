@@ -7,6 +7,7 @@ import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.server.ServerLoadEvent
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.Config
+import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.http.EffectiveHttpServer
 import ru.hukm.effectiveSpigot.interfaces.IModule
@@ -46,7 +47,6 @@ object EffectiveResourcepack {
     /** Adds a bitmap [glyph] to [instance]'s generated pack. No-op if the HTTP server is disabled. */
     fun addGlyph(instance: JavaPlugin, glyph: EffectiveGlyph) {
         if (Config.isResourcepackHttpServerEnabled()) {
-            addToBuild(instance)
             glyphs.getOrPut(instance) { mutableListOf() }.add(glyph)
         }
     }
@@ -57,7 +57,6 @@ object EffectiveResourcepack {
      */
     fun addSpaceProvider(instance: JavaPlugin, advances: Map<EffectiveFontChar, Int>) {
         if (Config.isResourcepackHttpServerEnabled()) {
-            addToBuild(instance)
             spaces.getOrPut(instance) { mutableMapOf() }.putAll(advances)
         }
     }
@@ -112,26 +111,29 @@ object EffectiveResourcepack {
         """.trimIndent().toByteArray()
 
         EffectiveItem.namespacedKeyToItem.values.filter {
-            it.getNamespacedData().first == instance && it.getResourcePackData() != null
+            it.getNamespacedData().first == instance && it.getResourcePackData()?.isEmpty == false
         }.forEach {
             addItemModel(resourcepackFiles, instance, it)
         }
 
-        EffectiveBlock.namespacedKeyToBlock.values.filter {
-            it.getNamespacedData().first == instance && it.getResourcePackData() != null
-        }.forEach {
-            addBlockModel(resourcepackFiles, instance, it)
-        }
-
-        // Shared noteblock blockstate file — merged across ALL registered EffectiveBlocks in
-        // every plugin, not just [instance]. Each per-plugin pack ships an identical copy;
-        // whichever loads last wins on the client, but the content is the same.
-        if (EffectiveBlock.namespacedKeyToBlock.values.any { it.getResourcePackData() != null }) {
-            resourcepackFiles["assets/minecraft/blockstates/note_block.json"] =
-                buildMergedNoteBlockStatesJson()
-        }
+        addBlocks(resourcepackFiles, instance)
 
         addFont(resourcepackFiles, instance)
+
+        if (instance === EffectiveSpigot.instance) {
+            resourcepackFiles["assets/minecraft/sounds.json"] = """
+                {
+                  "block.wood.place": { "replace": true, "sounds": [] },
+                  "block.wood.break": { "replace": true, "sounds": [] },
+                  "required.wood.place": {
+                    "sounds": ["dig/wood1", "dig/wood2", "dig/wood3", "dig/wood4"]
+                  },
+                  "required.wood.break": {
+                    "sounds": ["dig/wood1", "dig/wood2", "dig/wood3", "dig/wood4"]
+                  }
+                }
+            """.trimIndent().toByteArray()
+        }
 
         val packBytes = ByteArrayOutputStream().use { baos ->
             ZipOutputStream(baos).use { zip ->
@@ -165,24 +167,25 @@ object EffectiveResourcepack {
         val itemName = effectiveItem.getNamespacedData().second
         val data = effectiveItem.getResourcePackData() ?: return
 
-        val textureBytes = instance.getResource(data.texturePath)?.use { it.readBytes() }
-        if (textureBytes == null) {
-            instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", data.texturePath, instance.name))
-            return
+        val textureBytes = data.texturePath?.let { path ->
+            instance.getResource(path)?.use { it.readBytes() } ?: run {
+                instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", path, instance.name))
+                return
+            }
         }
 
-        val modelBytes: ByteArray = if (data.modelPath == null) {
-            """
+        val modelBytes: ByteArray = when {
+            data.modelJson != null -> data.modelJson.toByteArray()
+            data.modelPath != null -> instance.getResource(data.modelPath)?.use { it.readBytes() } ?: run {
+                instance.logger.warning(Locale.getMessage("errors.resourcepack.model_not_found", data.modelPath, instance.name))
+                return
+            }
+            else -> """
                 {
                     "parent": "minecraft:item/generated",
                     "textures": { "layer0": "$namespace:item/$itemName" }
                 }
             """.trimIndent().toByteArray()
-        } else {
-            instance.getResource(data.modelPath)?.use { it.readBytes() } ?: run {
-                instance.logger.warning(Locale.getMessage("errors.resourcepack.model_not_found", data.modelPath, instance.name))
-                return
-            }
         }
 
         resourcepackFiles["assets/$namespace/items/$itemName.json"] = """
@@ -195,136 +198,82 @@ object EffectiveResourcepack {
         """.trimIndent().toByteArray()
 
         resourcepackFiles["assets/$namespace/models/item/$itemName.json"] = modelBytes
-        resourcepackFiles["assets/$namespace/textures/item/$itemName.png"] = textureBytes
-    }
-
-    private fun addBlockModel(
-        resourcepackFiles: MutableMap<String, ByteArray>,
-        instance: JavaPlugin,
-        effectiveBlock: EffectiveBlock
-    ) {
-        val namespace = EffectiveMinecraftUtils.getNamespace(instance)
-        val blockName = effectiveBlock.getNamespacedData().second
-        val data = effectiveBlock.getResourcePackData() ?: return
-
-        // Collect only the distinct texture paths actually referenced — a single-texture block ships
-        // one PNG, a six-face block ships up to six.
-        val perFace = mapOf(
-            "up" to data.effectiveTop,
-            "down" to data.effectiveBottom,
-            "north" to data.effectiveNorth,
-            "south" to data.effectiveSouth,
-            "east" to data.effectiveEast,
-            "west" to data.effectiveWest,
-        )
-
-        for (path in perFace.values.toSet()) {
-            val bytes = instance.getResource(path)?.use { it.readBytes() }
-            if (bytes == null) {
-                instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", path, instance.name))
-                return
-            }
-            val safeName = path.substringAfterLast('/').substringBeforeLast('.')
-            resourcepackFiles["assets/$namespace/textures/block/${blockName}_$safeName.png"] = bytes
-        }
-
-        // Map each face to the texture ref generated above.
-        fun texRef(path: String): String {
-            val safeName = path.substringAfterLast('/').substringBeforeLast('.')
-            return "$namespace:block/${blockName}_$safeName"
-        }
-
-        val modelBytes: ByteArray = """
-            {
-              "parent": "minecraft:block/cube",
-              "textures": {
-                "particle": "${texRef(data.effectiveTop)}",
-                "up": "${texRef(data.effectiveTop)}",
-                "down": "${texRef(data.effectiveBottom)}",
-                "north": "${texRef(data.effectiveNorth)}",
-                "south": "${texRef(data.effectiveSouth)}",
-                "east": "${texRef(data.effectiveEast)}",
-                "west": "${texRef(data.effectiveWest)}"
-              }
-            }
-        """.trimIndent().toByteArray()
-
-        resourcepackFiles["assets/$namespace/items/$blockName.json"] = """
-            {
-              "model": {
-                "type": "minecraft:model",
-                "model": "$namespace:block/$blockName"
-              }
-            }
-        """.trimIndent().toByteArray()
-
-        resourcepackFiles["assets/$namespace/models/block/$blockName.json"] = modelBytes
-    }
-
-    /**
-     * Bukkit's [Instrument] enum → the string used in the vanilla `note_block.json` blockstate keys.
-     * Only the 16 playable ones ([EffectiveBlock.PLAYABLE_INSTRUMENTS]) are mapped; mob-head
-     * instruments can't be set on a noteblock's blockdata so they never appear here.
-     */
-    private val VANILLA_INSTRUMENT_NAMES: Map<Instrument, String> = mapOf(
-        Instrument.PIANO to "harp",
-        Instrument.BASS_DRUM to "basedrum",
-        Instrument.SNARE_DRUM to "snare",
-        Instrument.STICKS to "hat",
-        Instrument.BASS_GUITAR to "bass",
-        Instrument.FLUTE to "flute",
-        Instrument.BELL to "bell",
-        Instrument.GUITAR to "guitar",
-        Instrument.CHIME to "chime",
-        Instrument.XYLOPHONE to "xylophone",
-        Instrument.IRON_XYLOPHONE to "iron_xylophone",
-        Instrument.COW_BELL to "cow_bell",
-        Instrument.DIDGERIDOO to "didgeridoo",
-        Instrument.BIT to "bit",
-        Instrument.BANJO to "banjo",
-        Instrument.PLING to "pling",
-    )
-
-    /**
-     * Full `note_block.json` blockstate JSON with all 800 variants: registered custom blocks point
-     * at their generated cube model, everything else falls back to `minecraft:block/note_block`
-     * (so vanilla noteblocks placed by players/generation still render correctly).
-     */
-    private fun buildMergedNoteBlockStatesJson(): ByteArray {
-        val customs = mutableMapOf<Triple<Instrument, Int, Boolean>, String>()
-        for (block in EffectiveBlock.namespacedKeyToBlock.values) {
-            if (block.getResourcePackData() == null) continue
-            val triple = EffectiveBlock.encodeVariation(block.getCustomVariation())
-            val ns = EffectiveMinecraftUtils.getNamespace(block.getNamespacedData().first)
-            val name = block.getNamespacedData().second
-            customs[triple] = "$ns:block/$name"
-        }
-
-        val entries = mutableListOf<String>()
-        for (instrument in EffectiveBlock.PLAYABLE_INSTRUMENTS) {
-            val instrumentName = VANILLA_INSTRUMENT_NAMES[instrument] ?: continue
-            for (noteId in 0..24) {
-                for (powered in listOf(false, true)) {
-                    val model = customs[Triple(instrument, noteId, powered)]
-                        ?: "minecraft:block/note_block"
-                    entries.add(
-                        """    "instrument=$instrumentName,note=$noteId,powered=$powered": { "model": "$model" }"""
-                    )
-                }
-            }
-        }
-
-        return """
-{
-  "variants": {
-${entries.joinToString(",\n")}
-  }
-}
-""".trimIndent().toByteArray()
+        if (textureBytes != null) resourcepackFiles["assets/$namespace/textures/item/$itemName.png"] = textureBytes
     }
 
     /** JSON `\uXXXX` escape for a glyph's codepoint — two units (surrogate pair) for supplementary planes. */
     private fun EffectiveFontChar.fontEscape() = string.map { "\\u%04X".format(it.code) }.joinToString("")
+
+    /**
+     * Generates everything for custom blocks:
+     * - for each of [instance]'s blocks: its six face textures (+ particle) under
+     *   `assets/<namespace>/textures/block/<name>_<face>.png` and a `minecraft:block/cube` model;
+     * - the shared `assets/minecraft/blockstates/note_block.json` binding **every registered** block's
+     *   note-block state (`instrument`/`note`/`powered`, from [EffectiveBlock.getNoteBlockData]) to its
+     *   model, with `""` falling back to the vanilla note block.
+     *
+     * The blockstate file is built from the global registry and written into every pack — blockstates
+     * don't merge across stacked packs, so each pack carries the complete, identical mapping and whichever
+     * wins still has every block. Missing source textures are logged and skipped.
+     */
+    private fun addBlocks(resourcepackFiles: MutableMap<String, ByteArray>, instance: JavaPlugin) {
+        val namespace = EffectiveMinecraftUtils.getNamespace(instance)
+
+        for (block in EffectiveBlock.namespacedKeyToBlock.values.filter { it.getNamespacedData().first == instance }) {
+            val blockName = block.getNamespacedData().second
+            val data = block.getResourcePackData()
+
+            val faces = mapOf(
+                "up" to data.upTexture,
+                "down" to data.downTexture,
+                "north" to data.northTexture,
+                "south" to data.southTexture,
+                "east" to data.eastTexture,
+                "west" to data.westTexture,
+                "particle" to data.particleTexture
+            )
+
+            for ((face, texturePath) in faces) {
+                val bytes = instance.getResource(texturePath)?.use { it.readBytes() }
+                if (bytes == null) {
+                    instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", texturePath, instance.name))
+                    continue
+                }
+                resourcepackFiles["assets/$namespace/textures/block/${blockName}_$face.png"] = bytes
+            }
+
+            resourcepackFiles["assets/$namespace/models/block/$blockName.json"] = """
+                {
+                  "parent": "minecraft:block/cube",
+                  "textures": {
+                    "up": "$namespace:block/${blockName}_up",
+                    "down": "$namespace:block/${blockName}_down",
+                    "north": "$namespace:block/${blockName}_north",
+                    "south": "$namespace:block/${blockName}_south",
+                    "east": "$namespace:block/${blockName}_east",
+                    "west": "$namespace:block/${blockName}_west",
+                    "particle": "$namespace:block/${blockName}_particle"
+                  }
+                }
+            """.trimIndent().toByteArray()
+        }
+
+        val allBlocks = EffectiveBlock.namespacedKeyToBlock.values
+        if (allBlocks.isEmpty()) return
+
+        val variants = buildString {
+            append("""    "": { "model": "minecraft:block/note_block" }""")
+            for (block in allBlocks) {
+                val ns = EffectiveMinecraftUtils.getNamespace(block.getNamespacedData().first)
+                val blockName = block.getNamespacedData().second
+                val stateKey = block.getNoteBlockData().asString.substringAfter('[').substringBefore(']')
+                append(",\n    \"$stateKey\": { \"model\": \"$ns:block/$blockName\" }")
+            }
+        }
+
+        resourcepackFiles["assets/minecraft/blockstates/note_block.json"] =
+            "{\n  \"variants\": {\n$variants\n  }\n}".toByteArray()
+    }
 
     private fun addFont(
         resourcepackFiles: MutableMap<String, ByteArray>,
