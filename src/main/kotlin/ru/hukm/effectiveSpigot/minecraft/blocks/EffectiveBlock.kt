@@ -1,12 +1,18 @@
 package ru.hukm.effectiveSpigot.minecraft.blocks
 
+import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.ticks
+import kotlinx.coroutines.delay
 import org.bukkit.Bukkit
+import org.bukkit.GameEvent
 import org.bukkit.GameMode
 import org.bukkit.Instrument
+import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.Note
 import org.bukkit.Sound
+import org.bukkit.SoundCategory
 import org.bukkit.attribute.Attribute
 import org.bukkit.attribute.AttributeModifier
 import org.bukkit.block.Block
@@ -22,11 +28,13 @@ import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockDamageAbortEvent
 import org.bukkit.event.block.BlockDamageEvent
 import org.bukkit.event.block.BlockExplodeEvent
+import org.bukkit.event.block.BlockIgniteEvent
 import org.bukkit.event.block.BlockPhysicsEvent
 import org.bukkit.event.block.BlockPistonExtendEvent
 import org.bukkit.event.block.BlockPistonRetractEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityExplodeEvent
+import org.bukkit.event.world.GenericGameEvent
 import org.bukkit.event.player.PlayerDropItemEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
@@ -92,10 +100,19 @@ abstract class EffectiveBlock {
         val particleTexture get() = particle ?: texture
     }
 
+    private data class BreakingData(
+        val block: EffectiveBlock,
+        val location: Location,
+        val speed: Double,
+        var progress: Double = 0.0
+    )
+
     companion object {
         private val _namespacedKeyToBlock = hashMapOf<String, EffectiveBlock>()
 
         val namespacedKeyToBlock get() = _namespacedKeyToBlock
+
+        private val breakingData = hashMapOf<Player, BreakingData>()
 
         /**
          * Denies vanilla note-block interaction (right-click cycling the note + playing the sound) and,
@@ -110,7 +127,7 @@ abstract class EffectiveBlock {
         internal fun getModule(): IModule = object : IModule {
             override fun init() {
                 event<PlayerInteractEvent> {
-                    if (it.action != Action.RIGHT_CLICK_BLOCK || it.hand != EquipmentSlot.HAND) return@event
+                    if (it.action != Action.RIGHT_CLICK_BLOCK) return@event
                     val clicked = it.clickedBlock ?: return@event
                     if (clicked.type != Material.NOTE_BLOCK) return@event
                     if (it.player.isSneaking) return@event
@@ -148,40 +165,44 @@ abstract class EffectiveBlock {
                 event<BlockDamageEvent>(EventPriority.HIGHEST, ignoreCancelled = true) {
                     val player = it.player
                     if (player.gameMode == GameMode.CREATIVE) return@event
-                    val effectiveBlock = getByState(it.block) ?: run { removeBreakSpeed(player); return@event }
+                    val effectiveBlock = getByState(it.block) ?: run { removeBreaking(player); return@event }
                     val hardness = effectiveBlock.getHardness()
                     if (hardness <= 0.0) {
-                        removeBreakSpeed(player)
+                        removeBreaking(player)
                         it.instaBreak = true
                         return@event
                     }
-                    val speedFactor = (0.24 / hardness * toolSpeed(player.inventory.itemInMainHand, effectiveBlock)).coerceAtLeast(0.01)
-                    applyBreakSpeed(player, speedFactor - 1.0)
+
+                    startBreaking(player, it.block, hardness, effectiveBlock)
                 }
-                event<BlockDamageAbortEvent>(EventPriority.LOWEST) { removeBreakSpeed(it.player) }
-                event<PlayerQuitEvent> { removeBreakSpeed(it.player) }
-                event<PlayerSwapHandItemsEvent> { removeBreakSpeed(it.player) }
-                event<PlayerDropItemEvent> { removeBreakSpeed(it.player) }
+                event<BlockDamageAbortEvent>(EventPriority.LOWEST) { removeBreaking(it.player) }
+                event<PlayerQuitEvent> { removeBreaking(it.player) }
+                event<PlayerSwapHandItemsEvent> { removeBreaking(it.player) }
+                event<PlayerDropItemEvent> { removeBreaking(it.player) }
 
                 event<BlockBreakEvent> {
                     val block = it.block
+                    val effectiveBlock = getByState(block) ?: return@event
+
+                    if (breakingData.containsKey(it.player)) {
+                        it.isCancelled = true
+                        it.player.sendBlockChange(block.location, block.blockData)
+                        return@event
+                    }
 
                     val breakSound = block.blockData.soundGroup.breakSound
                     if (breakSound == Sound.BLOCK_WOOD_BREAK) {
-                        it.block.world.playSound(
-                            it.block.location,
-                            getByState(block)?.getBreakSound() ?: "minecraft:required.wood.break",
+                        block.world.playSound(
+                            block.location,
+                            effectiveBlock.getBreakSound(),
                             1.0f,
                             1.0f
                         )
                     }
 
-                    val effectiveBlock = getByState(it.block) ?: return@event
-
-                    removeBreakSpeed(it.player)
                     it.isDropItems = false
                     if (it.player.gameMode != GameMode.CREATIVE && canHarvest(it.player.inventory.itemInMainHand, effectiveBlock)) {
-                        it.block.world.dropItemNaturally(it.block.location.toCenterLocation(), effectiveBlock.item.createItemStack())
+                        block.world.dropItemNaturally(block.location.toCenterLocation(), effectiveBlock.item.createItemStack())
                     }
                 }
 
@@ -199,8 +220,52 @@ abstract class EffectiveBlock {
                     }
                 }
 
+                event<GenericGameEvent>(EventPriority.LOWEST) {
+                    if (it.event != GameEvent.STEP) return@event
+                    val entity = it.entity as? LivingEntity ?: return@event
+                    val block = entity.location.block.getRelative(BlockFace.DOWN)
+                    if (block.blockData.soundGroup.stepSound != Sound.BLOCK_WOOD_STEP) return@event
+                    block.world.playSound(
+                        entity.location,
+                        getByState(block)?.getStepSound() ?: "minecraft:required.wood.step",
+                        SoundCategory.PLAYERS,
+                        0.3f,
+                        1.0f
+                    )
+                }
+
                 event<BlockExplodeEvent> { dropFromExplosion(it.blockList()) }
                 event<EntityExplodeEvent> { dropFromExplosion(it.blockList()) }
+
+                event<BlockIgniteEvent> {
+                    val block = it.block
+
+                    if (block.type != Material.NOTE_BLOCK) return@event
+                    val effectiveBlock = getByState(block) ?: return@event
+
+                    it.isCancelled = !effectiveBlock.isIgnitable()
+                }
+
+                EffectiveSpigot.instance.launch {
+                    while (true) {
+                        val finished = mutableListOf<Player>()
+                        for ((player, data) in breakingData.toList()) {
+                            if (!player.isOnline || getByState(data.location.block) !== data.block) {
+                                removeBreaking(player)
+                                continue
+                            }
+                            data.progress += data.speed
+                            val stage = data.progress.coerceIn(0.0, 1.0).toFloat()
+                            for (viewer in data.location.world.getNearbyPlayers(data.location, 32.0)) {
+                                viewer.sendBlockDamage(data.location, stage, breakerId(data.location))
+                            }
+                            player.sendBlockDamage(data.location, 0.0f, player.entityId)
+                            if (data.progress >= 1.0) finished += player
+                        }
+                        for (player in finished) finishBreaking(player)
+                        delay(1.ticks)
+                    }
+                }
             }
         }
 
@@ -276,15 +341,37 @@ abstract class EffectiveBlock {
             if (next.type == Material.NOTE_BLOCK) updateColumn(above)
         }
 
-        /** Transient `BLOCK_BREAK_SPEED` modifiers applied per player while mining a custom block. */
+        /** Transient `BLOCK_BREAK_SPEED` modifiers applied per player to freeze vanilla client digging. */
         private val breakSpeedModifiers = hashMapOf<UUID, AttributeModifier>()
 
-        private fun applyBreakSpeed(player: Player, amount: Double) {
-            removeBreakSpeed(player)
+        /**
+         * A stable, negative break-animation source id for a block position, kept distinct from real entity
+         * ids so our sent [Player.sendBlockDamage] animation occupies its own slot instead of fighting the
+         * digger's client-side prediction (which would flicker).
+         */
+        private fun breakerId(location: Location): Int {
+            val hash = (location.blockX * 31 + location.blockY) * 31 + location.blockZ
+            return hash or Int.MIN_VALUE
+        }
+
+        /**
+         * Begins plugin-driven mining of [block] by [player]: records the per-tick progress (vanilla
+         * mining formula `toolSpeed / hardness / (canHarvest ? 30 : 100)`) so the timer loop can advance
+         * the break animation and break the block itself, and near-freezes the client's own digging with a
+         * `BLOCK_BREAK_SPEED` modifier so it can't destroy the note block on its own before the timer does.
+         */
+        private fun startBreaking(player: Player, block: Block, hardness: Double, effectiveBlock: EffectiveBlock) {
+            removeBreaking(player)
+
+            val tool = player.inventory.itemInMainHand
+            val multiplier = if (canHarvest(tool, effectiveBlock)) 30.0 else 100.0
+            val speed = toolSpeed(tool, effectiveBlock) / hardness / multiplier
+            breakingData[player] = BreakingData(effectiveBlock, block.location, speed)
+
             val attribute = player.getAttribute(Attribute.BLOCK_BREAK_SPEED) ?: return
             val modifier = AttributeModifier(
                 NamespacedKey(EffectiveSpigot.instance, "break_speed"),
-                amount,
+                -1.0,
                 AttributeModifier.Operation.MULTIPLY_SCALAR_1,
                 EquipmentSlotGroup.HAND
             )
@@ -292,9 +379,30 @@ abstract class EffectiveBlock {
             attribute.addTransientModifier(modifier)
         }
 
-        private fun removeBreakSpeed(player: Player) {
+        private fun removeBreaking(player: Player) {
+            breakingData.remove(player)?.let { data ->
+                for (viewer in data.location.world.getNearbyPlayers(data.location, 32.0)) {
+                    viewer.sendBlockDamage(data.location, 0.0f, breakerId(data.location))
+                }
+            }
             val modifier = breakSpeedModifiers.remove(player.uniqueId) ?: return
             player.getAttribute(Attribute.BLOCK_BREAK_SPEED)?.removeModifier(modifier)
+        }
+
+        /**
+         * Timer-driven break: removes the mining record first (so the guard in the [BlockBreakEvent] listener
+         * doesn't cancel our own event), fires a [BlockBreakEvent] for protection plugins, and on success
+         * clears the block — the listener handles the drop and sound.
+         */
+        private fun finishBreaking(player: Player) {
+            val data = breakingData[player] ?: return
+            removeBreaking(player)
+            val block = data.location.block
+            if (getByState(block) !== data.block) return
+            val breakEvent = BlockBreakEvent(block, player)
+            Bukkit.getPluginManager().callEvent(breakEvent)
+            if (breakEvent.isCancelled) return
+            block.type = Material.AIR
         }
 
         /** Mining-speed multiplier of [tool] against [block]: the tool's tier speed if its type is correct, else 1. */
@@ -302,7 +410,6 @@ abstract class EffectiveBlock {
             val tools = block.getCorrectTools()
             if (tools.isEmpty()) return 1.0
             val name = tool.type.name
-            println(tools.none { name.endsWith(it.suffix) })
             if (tools.none { name.endsWith(it.suffix) }) return 1.0
             return when {
                 name.startsWith("NETHERITE_") -> 9.0
@@ -390,6 +497,9 @@ abstract class EffectiveBlock {
     /** Sound played when this block is broken. Defaults to the vanilla wood break sound (via `required.wood.break`). */
     open fun getBreakSound() = "minecraft:required.wood.break"
 
+    /** Sound played when an entity walks on this block. Defaults to the vanilla wood step sound (via `required.wood.step`). */
+    open fun getStepSound() = "minecraft:required.wood.step"
+
     /** Block hardness — controls how long it takes to mine (vanilla note block is `0.8`). `<= 0` breaks instantly. */
     open fun getHardness() = 0.8
 
@@ -401,6 +511,8 @@ abstract class EffectiveBlock {
 
     /** Whether this block only drops its item when mined with a correct tool ([getCorrectTools] + [getMinTier]). */
     open fun requiresCorrectTool() = false
+
+    open fun isIgnitable() = false
 
     abstract fun editItemMeta(meta: ItemMeta)
     abstract fun getVariation(): Int

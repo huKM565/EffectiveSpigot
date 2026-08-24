@@ -138,7 +138,7 @@ internal class EffectiveWorld private constructor(val name: String) {
     }
 
     fun setAir(block: Block) {
-        findChunkOrLoad(block)?.setAir(block.x % 16, block.y, block.z and 15, effectiveChunkSoA)
+        findChunkOrLoad(block)?.setAir(block.x and 15, block.y, block.z and 15, effectiveChunkSoA)
     }
 
     fun updateBlock(x: Int, y: Int, z: Int, material: Material) {

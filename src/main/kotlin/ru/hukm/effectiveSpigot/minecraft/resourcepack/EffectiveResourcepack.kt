@@ -126,11 +126,15 @@ object EffectiveResourcepack {
                 {
                   "block.wood.place": { "replace": true, "sounds": [] },
                   "block.wood.break": { "replace": true, "sounds": [] },
+                  "block.wood.step": { "replace": true, "sounds": [] },
                   "required.wood.place": {
                     "sounds": ["dig/wood1", "dig/wood2", "dig/wood3", "dig/wood4"]
                   },
                   "required.wood.break": {
                     "sounds": ["dig/wood1", "dig/wood2", "dig/wood3", "dig/wood4"]
+                  },
+                  "required.wood.step": {
+                    "sounds": ["step/wood1", "step/wood2", "step/wood3", "step/wood4", "step/wood5", "step/wood6"]
                   },
                   "block.note_block.banjo": { "replace": true, "sounds": [] },
                   "block.note_block.basedrum": { "replace": true, "sounds": [] },

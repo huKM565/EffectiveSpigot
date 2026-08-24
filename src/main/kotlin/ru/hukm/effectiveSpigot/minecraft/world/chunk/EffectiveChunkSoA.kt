@@ -11,8 +11,6 @@ internal class EffectiveChunkSoA{
         const val SIZE_MULTIPLIER = 2
     }
 
-    private var freeIndex = 0
-
     internal var chunkX = IntArray(INIT_SIZE)
     internal var chunkZ = IntArray(INIT_SIZE)
     internal var types = Array<ShortArray?>(INIT_SIZE) { null }
@@ -118,18 +116,15 @@ internal class EffectiveChunkSoA{
 
     fun find(chunkX: Int, chunkZ: Int): EffectiveChunkCursor? {
         for(i in this.chunkX.indices) {
-            if(chunkX == this.chunkX[i] && chunkZ == this.chunkZ[i]) return EffectiveChunkCursor(i)
+            if(this.types[i] != null && chunkX == this.chunkX[i] && chunkZ == this.chunkZ[i]) return EffectiveChunkCursor(i)
         }
 
         return null
     }
 
     fun add(chunkX: Int, chunkZ: Int, types: ShortArray) {
-        val slot = this.types.indexOfFirst { it == null }.takeIf { it != -1 } ?: run {
-            if(freeIndex >= this.chunkX.size) expandSize()
-            freeIndex++
-            freeIndex - 1
-        }
+        val slot = this.types.indexOfFirst { it == null }.takeIf { it != -1 }
+            ?: run { val s = this.types.size; expandSize(); s }
 
         this.chunkX[slot] = chunkX
         this.chunkZ[slot] = chunkZ
@@ -150,7 +145,7 @@ internal class EffectiveChunkSoA{
 
     fun forEachCursors(callback: (EffectiveChunkCursor) -> Unit) {
         for(i in types.indices) {
-            if(types[i] == null) return
+            if(types[i] == null) continue
             callback(EffectiveChunkCursor(i))
         }
     }
