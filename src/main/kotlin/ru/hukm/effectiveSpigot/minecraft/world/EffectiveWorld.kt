@@ -1,5 +1,6 @@
 package ru.hukm.effectiveSpigot.minecraft.world
 
+import org.bukkit.Bukkit
 import org.bukkit.Chunk
 import org.bukkit.Material
 import org.bukkit.World
@@ -130,7 +131,20 @@ internal class EffectiveWorld private constructor(val name: String) {
     }
 
     private fun updateBlock(chunkX: Int, chunkZ: Int, x: Int, y: Int, z: Int, material: Material) {
-        findChunkOrLoad(chunkX, chunkZ)?.updateBlock(x, y, z, material, effectiveChunkSoA)
+        val cursor = findChunkOrLoad(chunkX, chunkZ) ?: return
+        cursor.updateBlock(x, y, z, material, effectiveChunkSoA)
+        verifySync(chunkX * 16 + x, y, chunkZ * 16 + z)
+    }
+
+    private fun verifySync(worldX: Int, worldY: Int, worldZ: Int) {
+        val world = EffectiveWorldParser.stringToWorld(name)
+        Bukkit.getScheduler().runTask(instance, Runnable {
+            val soa = effectiveChunkSoA.getBlock(EffectiveBlockPos(worldX, worldY, worldZ))?.material
+            val bukkit = world.getBlockAt(worldX, worldY, worldZ).type
+            if (soa != bukkit) {
+                instance.logger.warning("[EffectiveWorld/$name] SoA desync at $worldX,$worldY,$worldZ — SoA=$soa, Bukkit=$bukkit")
+            }
+        })
     }
 
     fun setAirs(blocks: List<Block>) {
@@ -138,7 +152,9 @@ internal class EffectiveWorld private constructor(val name: String) {
     }
 
     fun setAir(block: Block) {
-        findChunkOrLoad(block)?.setAir(block.x and 15, block.y, block.z and 15, effectiveChunkSoA)
+        val cursor = findChunkOrLoad(block) ?: return
+        cursor.setAir(block.x and 15, block.y, block.z and 15, effectiveChunkSoA)
+        verifySync(block.x, block.y, block.z)
     }
 
     fun updateBlock(x: Int, y: Int, z: Int, material: Material) {
@@ -167,6 +183,7 @@ internal class EffectiveWorld private constructor(val name: String) {
                         blockData.material,
                         effectiveChunkSoA
                     )
+                    verifySync(blockData.x, blockData.y, blockData.z)
                 }
             }
         }

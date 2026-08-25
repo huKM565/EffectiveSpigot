@@ -9,6 +9,7 @@ import org.bukkit.persistence.PersistentDataHolder
 import org.bukkit.persistence.PersistentDataType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
+import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
@@ -49,10 +50,16 @@ interface EffectiveAbstractInteract {
      */
     enum class CooldownType { ON_CURRENT_PLAYER, ON_THIS_INSTANCE }
 
-    /** What was interacted with: an item or an entity. */
+    /** What was interacted with: an item, an entity or a custom block. */
     sealed class Target {
         data class Item(val itemStack: ItemStack) : Target()
         data class Entity(val entity: org.bukkit.entity.Entity) : Target()
+
+        /**
+         * A custom block. [effectiveBlock] is the block type (always present, used for cooldown keying);
+         * [block] is the actually clicked block, present on real interactions and null at registration.
+         */
+        data class Block(val effectiveBlock: EffectiveBlock, val block: org.bukkit.block.Block? = null) : Target()
     }
 
     /** Context shared by all interaction callbacks: who, which click, on what target, with which hand. */
@@ -129,6 +136,7 @@ interface EffectiveAbstractInteract {
             val instanceNamespacedKeyOrName = when (target) {
                 is Target.Item -> EffectiveItem.getNamespacedKeyByItemElseMaterial(target.itemStack)
                 is Target.Entity -> EffectiveEntity.getNamespacedKeyByEntity(target.entity)
+                is Target.Block -> null
             } ?: return data.callback(eventsCallOptions)
 
             val timeLatestUsed = if (cd.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
@@ -141,6 +149,7 @@ interface EffectiveAbstractInteract {
                 when (target) {
                     is Target.Item -> EffectiveDataContainerUtils.getContainerValue(target.itemStack, COOLDOWN_KEY, PersistentDataType.LONG)
                     is Target.Entity -> EffectiveDataContainerUtils.getContainerValue(target.entity, COOLDOWN_KEY, PersistentDataType.LONG)
+                    is Target.Block -> null
                 }
             }
 
@@ -185,6 +194,7 @@ interface EffectiveAbstractInteract {
             val obj: Any? = when (target) {
                 is Target.Item -> target.itemStack
                 is Target.Entity -> target.entity
+                is Target.Block -> null
             }
 
             when (obj) {

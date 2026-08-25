@@ -70,8 +70,7 @@ internal class EffectiveChunkSoA{
 
             val typeIndex = getTypeIndexFromBlock(relativeX, y, relativeZ)
 
-            val materialIndex = types[typeIndex].toInt()
-            val material = Material.values().getOrNull(materialIndex) ?: Material.AIR
+            val material = types.getOrNull(typeIndex)?.toInt()?.let { Material.values().getOrNull(it) } ?: Material.AIR
 
             return EffectiveBlockData(
                 relativeX + chunkX(effectiveChunkSoA) * 16,
@@ -99,9 +98,11 @@ internal class EffectiveChunkSoA{
         }
 
         private fun setType(relativeX: Int, y: Int, relativeZ: Int, type: Short, effectiveChunkSoA: EffectiveChunkSoA) {
-            //Bukkit.broadcastMessage("Set type ${Material.values()[type.toInt()]} at ${chunkX(effectiveChunkSoA) * 16 + chunkX}, $y, ${chunkZ(effectiveChunkSoA) * 16 + chunkZ} in chunk ${chunkX(effectiveChunkSoA)}, ${chunkZ(effectiveChunkSoA)}")
+            val array = types(effectiveChunkSoA) ?: return
+            val typeIndex = getTypeIndexFromBlock(relativeX, y, relativeZ)
+            if (typeIndex !in array.indices) return
             effectiveChunkSoA.cachedTypes[index] = hashMapOf()
-            types(effectiveChunkSoA)!![getTypeIndexFromBlock(relativeX, y, relativeZ)] = type
+            array[typeIndex] = type
         }
     }
 

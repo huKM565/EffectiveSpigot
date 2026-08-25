@@ -49,9 +49,13 @@ import org.bukkit.util.BoundingBox
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.blocks.interfaces.EffectiveBlockInteractable
 import ru.hukm.effectiveSpigot.minecraft.events.event
+import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
+import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
+import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
 import java.util.UUID
 
 /** Tool type that mines a block faster and, if the block requires it, is one of those that can drop its item. */
@@ -129,13 +133,26 @@ abstract class EffectiveBlock {
                 event<PlayerInteractEvent> {
                     if (it.action != Action.RIGHT_CLICK_BLOCK) return@event
                     val clicked = it.clickedBlock ?: return@event
-                    if (clicked.type != Material.NOTE_BLOCK) return@event
+                    if (getByState(clicked) == null) return@event
                     if (it.player.isSneaking) return@event
+
                     it.setUseInteractedBlock(Event.Result.DENY)
-                    val item = it.item ?: return@event
-                    if (!item.type.isBlock || item.type.isAir) return@event
+
+                    if (it.hand != EquipmentSlot.HAND) return@event
+
+                    val player = it.player
+                    val main = player.inventory.itemInMainHand
+                    val off = player.inventory.itemInOffHand
+                    val (hand, item) = when {
+                        main.type.isBlock && !main.type.isAir -> EquipmentSlot.HAND to main
+                        off.type.isBlock && !off.type.isAir -> EquipmentSlot.OFF_HAND to off
+                        else -> {
+                            it.setUseItemInHand(Event.Result.ALLOW)
+                            return@event
+                        }
+                    }
                     it.setUseItemInHand(Event.Result.DENY)
-                    placeAgainst(it, clicked)
+                    placeAgainst(player, clicked, it.blockFace, hand, item)
                 }
 
                 event<BlockPhysicsEvent>(EventPriority.HIGHEST) {
@@ -190,6 +207,8 @@ abstract class EffectiveBlock {
                         return@event
                     }
 
+                    effectiveBlock.onBreak(it)
+
                     val breakSound = block.blockData.soundGroup.breakSound
                     if (breakSound == Sound.BLOCK_WOOD_BREAK) {
                         block.world.playSound(
@@ -208,12 +227,15 @@ abstract class EffectiveBlock {
 
                 event<BlockPlaceEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
                     val block = it.blockPlaced
+                    val effectiveBlock = getByState(block)
+
+                    effectiveBlock?.onPlace(it)
 
                     val placeSound = block.blockData.soundGroup.placeSound
                     if (placeSound == Sound.BLOCK_WOOD_PLACE) {
                         it.block.world.playSound(
                             it.block.location,
-                            getByState(block)?.getPlaceSound() ?: "minecraft:required.wood.place",
+                            effectiveBlock?.getPlaceSound() ?: "minecraft:required.wood.place",
                             1.0f,
                             1.0f
                         )
@@ -276,13 +298,11 @@ abstract class EffectiveBlock {
          * custom block keeps its note-block state), fire a [BlockPlaceEvent] for protection plugins, then
          * consume the item and play the place sound.
          */
-        private fun placeAgainst(event: PlayerInteractEvent, clicked: Block) {
-            val hand = event.hand ?: return
-            val item = event.item ?: return
+        private fun placeAgainst(player: Player, clicked: Block, face: BlockFace, hand: EquipmentSlot, item: ItemStack) {
             val type = item.type
             if (!type.isBlock || type.isAir) return
 
-            val target = if (clicked.isReplaceable) clicked else clicked.getRelative(event.blockFace)
+            val target = if (clicked.isReplaceable) clicked else clicked.getRelative(face)
             if (!target.isReplaceable) return
 
             val blockData = (item.itemMeta as? BlockDataMeta)
@@ -299,7 +319,6 @@ abstract class EffectiveBlock {
             val replaced = target.state
             target.setBlockData(blockData, false)
 
-            val player = event.player
             val placeEvent = BlockPlaceEvent(target, replaced, clicked, item, player, true, hand)
             Bukkit.getPluginManager().callEvent(placeEvent)
             if (placeEvent.isCancelled || !placeEvent.canBuild()) {
@@ -333,6 +352,9 @@ abstract class EffectiveBlock {
             val state = blockData.asString
             return _namespacedKeyToBlock.values.firstOrNull { it.getNoteBlockData().asString == state }
         }
+
+        /** The registered custom block whose note-block state matches [block], or null if it isn't one. */
+        fun getEffectiveBlock(block: Block): EffectiveBlock? = getByState(block)
 
         private fun updateColumn(block: Block) {
             val above = block.getRelative(BlockFace.UP)
@@ -490,6 +512,38 @@ abstract class EffectiveBlock {
         data.isPowered = variation % 800 >= 400
         return data
     }
+
+    fun getCustomBlocks(): List<Block> {
+        val customBlocks = arrayListOf<Block>()
+
+        for (world in Bukkit.getWorlds()) {
+            for (data in EffectiveWorld.findBlocksByMaterial(Material.NOTE_BLOCK, world)) {
+                val block = world.getBlockAt(data.x, data.y, data.z)
+                if (getByState(block) === this) customBlocks += block
+            }
+        }
+
+        return customBlocks
+    }
+
+    /**
+     * Registers an interact handler for blocks of *this* custom type (matched by note-block state).
+     * `RIGHT` = right-click on the block, `LEFT` = left-click (attack) it.
+     *
+     * @param click left/right interaction that triggers [callback]
+     */
+    fun addInteractHandler(
+        click: Click,
+        callback: (EffectiveBlockInteractable.EventsCallOptions) -> EffectiveAbstractInteract.Result
+    ) {
+        EffectiveBlockInteractable.addInteractHandler(this, click, callback)
+    }
+
+    /** Called right after this block is placed (at `BlockPlaceEvent` MONITOR — the placement is already committed). */
+    open fun onPlace(event: BlockPlaceEvent) {}
+
+    /** Called when this block is broken, just before its sound and drops are handled. */
+    open fun onBreak(event: BlockBreakEvent) {}
 
     /** Sound played when this block is placed. Defaults to the vanilla wood place sound (via `required.wood.place`). */
     open fun getPlaceSound() = "minecraft:required.wood.place"
