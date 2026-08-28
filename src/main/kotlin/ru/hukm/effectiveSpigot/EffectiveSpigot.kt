@@ -7,6 +7,7 @@ import ru.hukm.effectiveSpigot.http.EffectiveHttpServer
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.advancements.EffectiveAdvancement
 import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
+import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlockWithEntity
 import ru.hukm.effectiveSpigot.minecraft.blocks.interfaces.EffectiveBlockInteractable
 import ru.hukm.effectiveSpigot.minecraft.commands.*
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveCompositeEntity
@@ -75,7 +76,8 @@ class EffectiveSpigot : JavaPlugin() {
 				EffectiveScreenEffects.getModule(),
 				EffectiveTextureMenu.getModule(),
 				EffectiveBlock.getModule(),
-				EffectiveBlockInteractable.getModule()
+				EffectiveBlockInteractable.getModule(),
+				EffectiveBlockWithEntity.getModule()
 			)
 
 		EffectiveItems.ZONE_SELECTOR

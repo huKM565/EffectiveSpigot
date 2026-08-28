@@ -54,6 +54,7 @@ import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
+import ru.hukm.effectiveSpigot.minecraft.loottables.CustomLootable
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
 import java.util.UUID
@@ -133,7 +134,7 @@ abstract class EffectiveBlock {
                 event<PlayerInteractEvent> {
                     if (it.action != Action.RIGHT_CLICK_BLOCK) return@event
                     val clicked = it.clickedBlock ?: return@event
-                    if (getByState(clicked) == null) return@event
+                    if (getEffectiveBlock(clicked) == null) return@event
                     if (it.player.isSneaking) return@event
 
                     it.setUseInteractedBlock(Event.Result.DENY)
@@ -182,7 +183,7 @@ abstract class EffectiveBlock {
                 event<BlockDamageEvent>(EventPriority.HIGHEST, ignoreCancelled = true) {
                     val player = it.player
                     if (player.gameMode == GameMode.CREATIVE) return@event
-                    val effectiveBlock = getByState(it.block) ?: run { removeBreaking(player); return@event }
+                    val effectiveBlock = getEffectiveBlock(it.block) ?: run { removeBreaking(player); return@event }
                     val hardness = effectiveBlock.getHardness()
                     if (hardness <= 0.0) {
                         removeBreaking(player)
@@ -199,7 +200,7 @@ abstract class EffectiveBlock {
 
                 event<BlockBreakEvent> {
                     val block = it.block
-                    val effectiveBlock = getByState(block) ?: return@event
+                    val effectiveBlock = getEffectiveBlock(block) ?: return@event
 
                     if (breakingData.containsKey(it.player)) {
                         it.isCancelled = true
@@ -208,6 +209,9 @@ abstract class EffectiveBlock {
                     }
 
                     effectiveBlock.onBreak(it)
+                    if (!it.isCancelled) {
+                        for (handler in effectiveBlock.breakHandlers) handler(it)
+                    }
 
                     val breakSound = block.blockData.soundGroup.breakSound
                     if (breakSound == Sound.BLOCK_WOOD_BREAK) {
@@ -221,15 +225,20 @@ abstract class EffectiveBlock {
 
                     it.isDropItems = false
                     if (it.player.gameMode != GameMode.CREATIVE && canHarvest(it.player.inventory.itemInMainHand, effectiveBlock)) {
-                        block.world.dropItemNaturally(block.location.toCenterLocation(), effectiveBlock.item.createItemStack())
+                        effectiveBlock.getDrop()?.let {
+                            CustomLootable.spawnLootAtLocation(block.location.toCenterLocation(), it)
+                        }
                     }
                 }
 
                 event<BlockPlaceEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
                     val block = it.blockPlaced
-                    val effectiveBlock = getByState(block)
+                    val effectiveBlock = getEffectiveBlock(block)
 
                     effectiveBlock?.onPlace(it)
+                    if (effectiveBlock != null && !it.isCancelled) {
+                        for (handler in effectiveBlock.placeHandlers) handler(it)
+                    }
 
                     val placeSound = block.blockData.soundGroup.placeSound
                     if (placeSound == Sound.BLOCK_WOOD_PLACE) {
@@ -249,7 +258,7 @@ abstract class EffectiveBlock {
                     if (block.blockData.soundGroup.stepSound != Sound.BLOCK_WOOD_STEP) return@event
                     block.world.playSound(
                         entity.location,
-                        getByState(block)?.getStepSound() ?: "minecraft:required.wood.step",
+                        getEffectiveBlock(block)?.getStepSound() ?: "minecraft:required.wood.step",
                         SoundCategory.PLAYERS,
                         0.3f,
                         1.0f
@@ -263,7 +272,7 @@ abstract class EffectiveBlock {
                     val block = it.block
 
                     if (block.type != Material.NOTE_BLOCK) return@event
-                    val effectiveBlock = getByState(block) ?: return@event
+                    val effectiveBlock = getEffectiveBlock(block) ?: return@event
 
                     it.isCancelled = !effectiveBlock.isIgnitable()
                 }
@@ -272,7 +281,7 @@ abstract class EffectiveBlock {
                     while (true) {
                         val finished = mutableListOf<Player>()
                         for ((player, data) in breakingData.toList()) {
-                            if (!player.isOnline || getByState(data.location.block) !== data.block) {
+                            if (!player.isOnline || getEffectiveBlock(data.location.block) !== data.block) {
                                 removeBreaking(player)
                                 continue
                             }
@@ -328,33 +337,32 @@ abstract class EffectiveBlock {
 
             if (player.gameMode != GameMode.CREATIVE) item.amount -= 1
 
-            if (getByState(target) == null) {
+            if (getEffectiveBlock(target) == null) {
                 target.world.playSound(target.location, target.blockData.soundGroup.placeSound, 1.0f, 1.0f)
             }
             if (hand == EquipmentSlot.HAND) player.swingMainHand() else player.swingOffHand()
         }
 
         private fun dropFromExplosion(blocks: MutableList<Block>) {
-            val customs = blocks.filter { getByState(it) != null }
+            val customs = blocks.filter { getEffectiveBlock(it) != null }
             if (customs.isEmpty()) return
             blocks.removeAll(customs.toSet())
-            for (block in customs) {
-                val effectiveBlock = getByState(block) ?: continue
-                block.world.dropItemNaturally(block.location.toCenterLocation(), effectiveBlock.item.createItemStack())
+             for (block in customs) {
+                val effectiveBlock = getEffectiveBlock(block) ?: continue
+                effectiveBlock.getDrop()?.let {
+                    CustomLootable.spawnLootAtLocation(block.location.toCenterLocation(), it)
+                }
                 block.type = Material.AIR
             }
         }
 
         /** The registered block whose note-block state matches [block], or null if it isn't a custom block. */
-        private fun getByState(block: Block) = getByState(block.blockData)
-        private fun getByState(blockData: BlockData): EffectiveBlock? {
+        fun getEffectiveBlock(block: Block) = getEffectiveBlock(block.blockData)
+        fun getEffectiveBlock(blockData: BlockData): EffectiveBlock? {
             if (blockData.material != Material.NOTE_BLOCK) return null
             val state = blockData.asString
             return _namespacedKeyToBlock.values.firstOrNull { it.getNoteBlockData().asString == state }
         }
-
-        /** The registered custom block whose note-block state matches [block], or null if it isn't one. */
-        fun getEffectiveBlock(block: Block): EffectiveBlock? = getByState(block)
 
         private fun updateColumn(block: Block) {
             val above = block.getRelative(BlockFace.UP)
@@ -420,7 +428,7 @@ abstract class EffectiveBlock {
             val data = breakingData[player] ?: return
             removeBreaking(player)
             val block = data.location.block
-            if (getByState(block) !== data.block) return
+            if (getEffectiveBlock(block) !== data.block) return
             val breakEvent = BlockBreakEvent(block, player)
             Bukkit.getPluginManager().callEvent(breakEvent)
             if (breakEvent.isCancelled) return
@@ -519,7 +527,7 @@ abstract class EffectiveBlock {
         for (world in Bukkit.getWorlds()) {
             for (data in EffectiveWorld.findBlocksByMaterial(Material.NOTE_BLOCK, world)) {
                 val block = world.getBlockAt(data.x, data.y, data.z)
-                if (getByState(block) === this) customBlocks += block
+                if (getEffectiveBlock(block) === this) customBlocks += block
             }
         }
 
@@ -537,6 +545,19 @@ abstract class EffectiveBlock {
         callback: (EffectiveBlockInteractable.EventsCallOptions) -> EffectiveAbstractInteract.Result
     ) {
         EffectiveBlockInteractable.addInteractHandler(this, click, callback)
+    }
+
+    private val placeHandlers = arrayListOf<(BlockPlaceEvent) -> Unit>()
+    private val breakHandlers = arrayListOf<(BlockBreakEvent) -> Unit>()
+
+    /** Registers a callback run after [onPlace]; skipped if [onPlace] left the event cancelled. */
+    internal fun addPlaceHandler(handler: (BlockPlaceEvent) -> Unit) {
+        placeHandlers.add(handler)
+    }
+
+    /** Registers a callback run after [onBreak]; skipped if [onBreak] left the event cancelled. */
+    internal fun addBreakHandler(handler: (BlockBreakEvent) -> Unit) {
+        breakHandlers.add(handler)
     }
 
     /** Called right after this block is placed (at `BlockPlaceEvent` MONITOR — the placement is already committed). */
@@ -567,6 +588,8 @@ abstract class EffectiveBlock {
     open fun requiresCorrectTool() = false
 
     open fun isIgnitable() = false
+
+    open fun getDrop(): ArrayList<CustomLootable.ItemCellData>? = null
 
     abstract fun editItemMeta(meta: ItemMeta)
     abstract fun getVariation(): Int
