@@ -18,6 +18,8 @@ import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
+import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityImmovable
+import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInvulnerable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.InteractCallback
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
@@ -39,7 +41,9 @@ import kotlin.collections.arrayListOf
  * same custom type.
  *
  * Live instances are cached automatically as chunks/worlds load and unload; query them with
- * [getEntities]. Behaviours are added via [addInteractHandler] and [doEntityNearLookable].
+ * [getEntities]. Behaviours are added via [addInteractHandler] and [doEntityNearLookable]; to make
+ * the entity take no damage or stay pinned in place, also implement [EffectiveEntityInvulnerable] /
+ * [EffectiveEntityImmovable].
  *
  * A built-in `/emob <entity>` command spawns any registered custom entity in-game.
  */
@@ -219,6 +223,8 @@ abstract class EffectiveEntity {
             PersistentDataType.STRING,
             getNamespacedKey()
         )
+        if (this is EffectiveEntityInvulnerable) EffectiveEntityInvulnerable.apply(entity)
+        if (this is EffectiveEntityImmovable) EffectiveEntityImmovable.apply(entity)
         return entity
     }
 

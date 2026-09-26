@@ -55,6 +55,7 @@ import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.loottables.CustomLootable
+import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveTextureAnimation
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
 import java.util.UUID
@@ -78,6 +79,23 @@ enum class EffectiveToolTier(val level: Int) {
     NETHERITE(5)
 }
 
+/**
+ * Base class for a custom block backed by a note-block state.
+ * ⚠️ **Work in progress.** Mining, drops and sounds are less battle-tested than items; [getCustomBlocks]
+ * goes through the internal world block cache, which has known bugs. The API may change.
+ *
+ *
+ * A subclass declares identity ([getNamespacedData]), textures ([getResourcePackData]) and the block
+ * item's meta ([editItemMeta]); the note-block state is assigned by the framework (see [getNoteBlockData]); mining, sounds, drops and
+ * hooks are tuned through the `open` methods. Like the other bases, the `object` must be instantiated
+ * (`init()` from `onEnable`) to register.
+ *
+ * ### Textures
+ * The model and note-block blockstates are generated only into a built pack: call
+ * `EffectiveResourcepack.addServerResourcepack(this, "", "")` in `onEnable` **after** the blocks'
+ * `init()`, otherwise the block places but looks like a plain note block. The server also needs
+ * `block-updates.disable-noteblock-updates: true` in `paper-global.yml`.
+ */
 abstract class EffectiveBlock {
 
     /**
@@ -85,6 +103,10 @@ abstract class EffectiveBlock {
      * used for every face and the particle; override any single face with [up]/[down]/[north]/[south]/
      * [east]/[west] (or [particle]) — a `null` override falls back to [texture]. When building the model
      * use the resolved `*Texture` accessors.
+     *
+     * Set [animation] to animate the block (see [EffectiveTextureAnimation]). It is written for every face,
+     * so each face texture is its own vertical strip of frames; a face with a plain square image is a single
+     * frame and stays static, which lets a block animate only some faces. All animated faces run in sync.
      */
     data class ResourcePackData(
         val texture: String,
@@ -94,7 +116,8 @@ abstract class EffectiveBlock {
         val south: String? = null,
         val east: String? = null,
         val west: String? = null,
-        val particle: String? = null
+        val particle: String? = null,
+        val animation: EffectiveTextureAnimation? = null
     ) {
         val upTexture get() = up ?: texture
         val downTexture get() = down ?: texture
@@ -114,6 +137,7 @@ abstract class EffectiveBlock {
 
     companion object {
         private val _namespacedKeyToBlock = hashMapOf<String, EffectiveBlock>()
+        private val stateToBlock = hashMapOf<String, EffectiveBlock>()
 
         val namespacedKeyToBlock get() = _namespacedKeyToBlock
 
@@ -231,6 +255,12 @@ abstract class EffectiveBlock {
                     }
                 }
 
+                event<BlockPlaceEvent>(EventPriority.LOWEST) {
+                    val effectiveBlock = getEffectiveBlockByItem(it.itemInHand) ?: return@event
+                    val state = effectiveBlock.getNoteBlockData()
+                    if (it.blockPlaced.blockData != state) it.blockPlaced.setBlockData(state, false)
+                }
+
                 event<BlockPlaceEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
                     val block = it.blockPlaced
                     val effectiveBlock = getEffectiveBlock(block)
@@ -303,9 +333,9 @@ abstract class EffectiveBlock {
         /**
          * Manually places the held block against a custom note block. Vanilla treats the note block as
          * interactive, so a non-sneaking right-click never sends a place packet — we reproduce it: resolve
-         * the target cell (replacing a click straight into grass/snow), keep the item's own block data (a
-         * custom block keeps its note-block state), fire a [BlockPlaceEvent] for protection plugins, then
-         * consume the item and play the place sound.
+         * the target cell (replacing a click straight into grass/snow), take the block data (a custom block
+         * item places its block's current note-block state, other blocks keep the item's own data), fire a
+         * [BlockPlaceEvent] for protection plugins, then consume the item and play the place sound.
          */
         private fun placeAgainst(player: Player, clicked: Block, face: BlockFace, hand: EquipmentSlot, item: ItemStack) {
             val type = item.type
@@ -314,9 +344,10 @@ abstract class EffectiveBlock {
             val target = if (clicked.isReplaceable) clicked else clicked.getRelative(face)
             if (!target.isReplaceable) return
 
-            val blockData = (item.itemMeta as? BlockDataMeta)
-                ?.takeIf { it.hasBlockData() }
-                ?.getBlockData(type)
+            val blockData = getEffectiveBlockByItem(item)?.getNoteBlockData()
+                ?: (item.itemMeta as? BlockDataMeta)
+                    ?.takeIf { it.hasBlockData() }
+                    ?.getBlockData(type)
                 ?: type.createBlockData()
 
             val box = BoundingBox(
@@ -360,8 +391,16 @@ abstract class EffectiveBlock {
         fun getEffectiveBlock(block: Block) = getEffectiveBlock(block.blockData)
         fun getEffectiveBlock(blockData: BlockData): EffectiveBlock? {
             if (blockData.material != Material.NOTE_BLOCK) return null
-            val state = blockData.asString
-            return _namespacedKeyToBlock.values.firstOrNull { it.getNoteBlockData().asString == state }
+            return stateToBlock[blockData.asString]
+        }
+
+        /**
+         * The registered block whose placeable [EffectiveBlock.item] [item] is, or null. Resolved by the item's
+         * identity, not by the note-block state baked into it, so an old stack still maps to its block.
+         */
+        fun getEffectiveBlockByItem(item: ItemStack?): EffectiveBlock? {
+            val key = EffectiveItem.getNamespacedKeyByItem(item) ?: return null
+            return _namespacedKeyToBlock.values.firstOrNull { it.item.getNamespacedName() == key }
         }
 
         private fun updateColumn(block: Block) {
@@ -476,12 +515,16 @@ abstract class EffectiveBlock {
         }
     }
 
+    private val assignedVariation: Int
+
     init {
         val namespacedName = getNamespacedName()
         if (_namespacedKeyToBlock.containsKey(namespacedName)) {
-            throw IllegalArgumentException(Locale.getMessage("errors.block.already_registered", namespacedName))
+            throw IllegalArgumentException(Locale.getMessage("errors.blocks.already_registered", namespacedName))
         }
+        assignedVariation = EffectiveBlockVariations.resolve(namespacedName)
         _namespacedKeyToBlock[namespacedName] = this
+        stateToBlock[getNoteBlockData().asString] = this
     }
 
     /**
@@ -509,12 +552,17 @@ abstract class EffectiveBlock {
     }
 
     /**
-     * Maps [getVariation] (0..799) to a note-block state: instrument (0..15), note (0..24) and powered.
-     * Layout: `powered = variation >= 400`, then instrument = `(variation % 400) / 25`, note = `% 25`.
+     * The note-block state this block is stored as in the world. The framework assigns every block a variation
+     * (`1..799`) itself: the first time a block is registered it gets the smallest free number, saved in the
+     * save-root registry (`<level>/data/effectivespigot/block_variations.json`) and reused on every start,
+     * whatever plugins are added, removed or reordered; numbers are never handed to another block.
+     *
+     * The variation maps to instrument (0..15), note (0..24) and powered: `powered = variation >= 400`, then
+     * instrument = `(variation % 400) / 25`, note = `% 25`.
      */
     fun getNoteBlockData(): NoteBlock {
         val data = Material.NOTE_BLOCK.createBlockData() as NoteBlock
-        val variation = getVariation()
+        val variation = assignedVariation
         data.instrument = Instrument.entries[variation % 400 / 25]
         data.note = Note(variation % 400 % 25)
         data.isPowered = variation % 800 >= 400
@@ -592,7 +640,6 @@ abstract class EffectiveBlock {
     open fun getDrop(): ArrayList<CustomLootable.ItemCellData>? = null
 
     abstract fun editItemMeta(meta: ItemMeta)
-    abstract fun getVariation(): Int
     abstract fun getResourcePackData(): ResourcePackData
     abstract fun getNamespacedData(): Pair<JavaPlugin, String>
 

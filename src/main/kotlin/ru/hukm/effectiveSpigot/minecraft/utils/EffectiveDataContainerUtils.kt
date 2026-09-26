@@ -477,13 +477,13 @@ object EffectiveDataContainerUtils {
             return
         }
 
-        base64SetContainerValue(holder, key, items)
+        base64SetContainerValue(holder, key, ArrayList(items))
     }
 
     /** Reads a list of items stored under [key] (entries may be null), or null if absent. */
     fun getItems(holder: PersistentDataHolder, key: NamespacedKey): List<ItemStack?>? {
         val list = base64GetContainerValue(
-            holder, key, ArrayList::class.java as Class<ArrayList<*>?>
+            holder, key, List::class.java as Class<List<*>?>
         ) ?: return null
         return list.map { it as ItemStack? }
     }
@@ -503,7 +503,7 @@ object EffectiveDataContainerUtils {
     /** Reads a list of items stored under [key] on an item (entries may be null), or null if absent. */
     fun getItems(item: ItemStack, key: NamespacedKey): List<ItemStack?>? {
         val list = base64GetContainerValue(
-            item, key, ArrayList::class.java as Class<ArrayList<*>?>
+            item, key, List::class.java as Class<List<*>?>
         ) ?: return null
         return list.map { it as ItemStack? }
     }

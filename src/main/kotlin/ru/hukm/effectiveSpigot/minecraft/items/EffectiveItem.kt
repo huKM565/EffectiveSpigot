@@ -23,6 +23,7 @@ import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgs
 import ru.hukm.effectiveSpigot.minecraft.additional.AdditionalArgsSupport
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
+import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveTextureAnimation
 
 /**
  * Base class for every custom item in the framework.
@@ -71,6 +72,11 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
  * ```
  * (Loading also registers it under its [getNamespacedName]; two items with the same name throw.)
  *
+ * ### Textures
+ * A [getResourcePackData] texture reaches the player only if the plugin enables its resource pack:
+ * call `EffectiveResourcepack.addServerResourcepack(this, "", "")` in `onEnable` **after** every
+ * item's `init()`. Without it the item exists (it's in `/egive`) but renders with the base material's look.
+ *
  * A built-in `/egive <item> <player>` command can hand out any registered item in-game.
  */
 abstract class EffectiveItem {
@@ -81,12 +87,16 @@ abstract class EffectiveItem {
      * [textureBytes] (raw PNG bytes, e.g. generated at runtime); both are optional — omit them when the
      * supplied model brings its own textures. [modelJson] takes precedence over [modelPath], and
      * [textureBytes] over [texturePath].
+     *
+     * Set [animation] to make the texture animated (see [EffectiveTextureAnimation]). It applies only to the
+     * texture given via [texturePath]/[textureBytes]; textures referenced by a custom model aren't animated by it.
      */
     data class ResourcePackData(
         val texturePath: String? = null,
         val textureBytes: ByteArray? = null,
         val modelPath: String? = null,
-        val modelJson: String? = null
+        val modelJson: String? = null,
+        val animation: EffectiveTextureAnimation? = null
     ) {
         val isEmpty get() = texturePath == null && modelPath == null && modelJson == null && textureBytes == null
     }

@@ -44,16 +44,31 @@ interface ServerPlayerProxy {
 
 @Proxies(className = "net.minecraft.server.network.ServerCommonPacketListenerImpl")
 interface ConnectionProxy {
+    @FieldGetter("connection")
+    fun networkConnection(instance: Any): Any
+
     fun send(
         instance: Any,
         @Type(className = "net.minecraft.network.protocol.Packet") packet: Any
     )
 }
 
+@Proxies(className = "net.minecraft.network.Connection")
+interface NetworkConnectionProxy {
+    @FieldGetter("channel")
+    fun channel(instance: Any): Any
+}
+
 @Proxies(className = "net.minecraft.network.protocol.game.ClientboundPlayerRotationPacket")
 interface RotationPacketProxy {
     @ConstructorInvoker
     fun create(yaw: Float, relativeYaw: Boolean, pitch: Float, relativePitch: Boolean): Any
+}
+
+@Proxies(className = "net.minecraft.network.protocol.game.ClientboundPlayerRotationPacket")
+interface AbsoluteRotationPacketProxy {
+    @ConstructorInvoker
+    fun create(yaw: Float, pitch: Float): Any
 }
 
 object NmsProxies {
@@ -70,5 +85,7 @@ object NmsProxies {
     val blockState: BlockStateProxy by lazy { factory.reflectionProxy(BlockStateProxy::class.java) }
     val serverPlayer: ServerPlayerProxy by lazy { factory.reflectionProxy(ServerPlayerProxy::class.java) }
     val connection: ConnectionProxy by lazy { factory.reflectionProxy(ConnectionProxy::class.java) }
-    val rotationPacket: RotationPacketProxy by lazy { factory.reflectionProxy(RotationPacketProxy::class.java) }
+    val networkConnection: NetworkConnectionProxy by lazy { factory.reflectionProxy(NetworkConnectionProxy::class.java) }
+    val rotationPacket: RotationPacketProxy? by lazy { runCatching { factory.reflectionProxy(RotationPacketProxy::class.java) }.getOrNull() }
+    val absoluteRotationPacket: AbsoluteRotationPacketProxy by lazy { factory.reflectionProxy(AbsoluteRotationPacketProxy::class.java) }
 }

@@ -17,6 +17,24 @@ import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.events.event
 
+/**
+ * An [EffectiveBlock] that carries a [Marker] entity at its centre — a place to keep per-block data.
+ *
+ * On placement a marker (invisible, no hitbox) is spawned in the block; on break it is removed, and
+ * removing the marker by other means removes the block. Reach it with [getMarkerEntity] and store
+ * per-block state in its persistent data (owner, charge, contents, …) via
+ * [ru.hukm.effectiveSpigot.minecraft.utils.EffectiveDataContainerUtils].
+ *
+ * ```kotlin
+ * object Altar : EffectiveBlockWithEntity() {
+ *     // …EffectiveBlock overrides…
+ *     override fun onPlace(event: BlockPlaceEvent) {
+ *         val marker = getMarkerEntity(event.blockPlaced) ?: return
+ *         EffectiveDataContainerUtils.setContainerValue(marker, OWNER, event.player.uniqueId.toString())
+ *     }
+ * }
+ * ```
+ */
 abstract class EffectiveBlockWithEntity : EffectiveBlock() {
 
     companion object {

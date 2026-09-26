@@ -1,4 +1,4 @@
-package ru.hukm.effectiveSpigot.minecraft.utils
+package ru.hukm.effectiveSpigot.minecraft.screen
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
@@ -6,13 +6,12 @@ import kotlinx.coroutines.delay
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.title.Title
 import org.bukkit.entity.Player
+import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.nms.NmsPlayerLook
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveGlyph
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveResourcepack
 import java.time.Duration
-import ru.hukm.effectiveSpigot.EffectiveSpigot
-import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveFontChar
 import kotlin.math.pow
 import kotlin.random.Random
 
@@ -25,7 +24,7 @@ import kotlin.random.Random
  * A built-in `/escreen <target> <fade|shake> …` command triggers these effects in-game.
  */
 object EffectiveScreenEffects {
-    /** [EffectiveFontChar] token bound to the full-screen fade texture in the resource pack. */
+    /** [ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveFontChar] token bound to the full-screen fade texture in the resource pack. */
     val FADE_SCREEN_GLYPH by lazy {
         EffectiveGlyph(
             "font/fade.png",

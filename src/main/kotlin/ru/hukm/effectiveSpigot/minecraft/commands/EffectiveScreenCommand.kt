@@ -6,9 +6,9 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
-import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveScreenEffects
+import ru.hukm.effectiveSpigot.minecraft.screen.EffectiveScreenEffects
 
-/** Built-in `/escreen` command: plays screen effects (see [ru.hukm.effectiveSpigot.minecraft.utils.EffectiveScreenEffects]). */
+/** Built-in `/escreen` command: plays screen effects (see [EffectiveScreenEffects]). */
 internal object EffectiveScreenCommand : EffectiveCommand() {
 
     override fun getNamespacedData(): Pair<JavaPlugin, String> = Pair(EffectiveSpigot.instance, "escreen")

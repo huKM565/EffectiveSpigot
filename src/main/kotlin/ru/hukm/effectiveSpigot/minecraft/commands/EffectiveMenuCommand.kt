@@ -28,7 +28,7 @@ internal object EffectiveMenuCommand : EffectiveCommand() {
                 sendMessage(Locale.getComponent("commands.emenu.menu_not_found", args[0]))
                 return@executes
             }
-            openInventory(menu.getMenu())
+            openInventory(menu.getMenu(this))
         }
         dynamic { EffectiveMenu.namespacedNameToMenu.keys.toList() }
     }

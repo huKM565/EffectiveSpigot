@@ -1,5 +1,6 @@
 package ru.hukm.effectiveSpigot.minecraft.resourcepack
 
+import org.bukkit.Bukkit
 import net.kyori.adventure.resource.ResourcePackInfo
 import net.kyori.adventure.resource.ResourcePackRequest
 import org.bukkit.Instrument
@@ -96,16 +97,38 @@ object EffectiveResourcepack {
         return image.width
     }
 
+    /**
+     * Resource pack format of the running server as (major, minor), read from the server jar's `version.json`
+     * (`pack_version.resource_major/resource_minor`, or the legacy single `resource` number). Falls back to 46.
+     */
+    private fun serverPackFormat(): Pair<Int, Int> {
+        return try {
+            val json = Bukkit::class.java.classLoader.getResourceAsStream("version.json")
+                ?.use { it.readBytes().toString(Charsets.UTF_8) } ?: return 46 to 0
+            val pack = com.google.gson.JsonParser.parseString(json).asJsonObject.getAsJsonObject("pack_version")
+            when {
+                pack.has("resource_major") -> pack["resource_major"].asInt to (pack["resource_minor"]?.asInt ?: 0)
+                pack.has("resource") -> pack["resource"].asInt to 0
+                else -> 46 to 0
+            }
+        } catch (_: Exception) {
+            46 to 0
+        }
+    }
+
     private fun tryBuild(instance: JavaPlugin) {
         instance.dataFolder.listFiles { _, name -> name.startsWith("resourcepack-") && name.endsWith(".zip") }
             ?.forEach { it.delete() }
 
         val resourcepackFiles = mutableMapOf<String, ByteArray>()
 
+        val (major, minor) = serverPackFormat()
         resourcepackFiles["pack.mcmeta"] = """
             {
               "pack": {
-                "pack_format": 46,
+                "pack_format": $major,
+                "min_format": [$major, 0],
+                "max_format": [$major, $minor],
                 "description": "${instance.name} resource pack"
               }
             }
@@ -162,6 +185,9 @@ object EffectiveResourcepack {
             """.trimIndent().toByteArray()
 
             resourcepackFiles["assets/minecraft/textures/particle/note.png"] = EffectiveUtils.transparentPng(8)
+
+            resourcepackFiles["assets/minecraft/shaders/core/text.vsh"] =
+                instance.getResource("shaders/core/text.vsh")!!.use { it.readBytes() }
         }
 
         val packBytes = ByteArrayOutputStream().use { baos ->
@@ -227,11 +253,20 @@ object EffectiveResourcepack {
         """.trimIndent().toByteArray()
 
         resourcepackFiles["assets/$namespace/models/item/$itemName.json"] = modelBytes
-        if (textureBytes != null) resourcepackFiles["assets/$namespace/textures/item/$itemName.png"] = textureBytes
+        if (textureBytes != null) {
+            resourcepackFiles["assets/$namespace/textures/item/$itemName.png"] = textureBytes
+            data.animation?.let { resourcepackFiles["assets/$namespace/textures/item/$itemName.png.mcmeta"] = it.toMcmeta().toByteArray() }
+        }
     }
 
     /** JSON `\uXXXX` escape for a glyph's codepoint — two units (surrogate pair) for supplementary planes. */
     private fun EffectiveFontChar.fontEscape() = string.map { "\\u%04X".format(it.code) }.joinToString("")
+
+    /** `.png.mcmeta` content for a texture with this animation. */
+    private fun EffectiveTextureAnimation.toMcmeta(): String {
+        val framesJson = frames?.let { """, "frames": [${it.joinToString(", ")}]""" } ?: ""
+        return """{ "animation": { "frametime": $frameTime, "interpolate": $interpolate$framesJson } }"""
+    }
 
     /**
      * Generates everything for custom blocks:
@@ -269,6 +304,7 @@ object EffectiveResourcepack {
                     continue
                 }
                 resourcepackFiles["assets/$namespace/textures/block/${blockName}_$face.png"] = bytes
+                data.animation?.let { resourcepackFiles["assets/$namespace/textures/block/${blockName}_$face.png.mcmeta"] = it.toMcmeta().toByteArray() }
             }
 
             resourcepackFiles["assets/$namespace/models/block/$blockName.json"] = """
@@ -315,7 +351,7 @@ object EffectiveResourcepack {
         val providers = mutableListOf<String>()
 
         for (g in pluginGlyphs) {
-            val bytes = instance.getResource(g.texturePath)?.use { it.readBytes() }
+            val bytes = g.textureBytes ?: instance.getResource(g.texturePath)?.use { it.readBytes() }
             if (bytes == null) {
                 instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", g.texturePath, instance.name))
                 continue

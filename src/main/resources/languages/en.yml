@@ -76,6 +76,7 @@ errors:
     already_registered: "Advancement with namespaced key '%s' is already registered"
   menu:
     already_registered: "Menu with namespaced name '%s' is already registered"
+    too_many_slots: "Menu '%s' requires slot index %s, but the maximum chest size is 54 slots (indices 0-53)"
   npcs:
     already_registered: "NPC with namespaced key '%s' is already registered"
   entities:
@@ -88,10 +89,11 @@ errors:
     cannot_parse_additional_arg: "Cannot parse argument #%s = '%s' for key '%s'"
     no_additional_args_defined: "No additional args defined"
     unknown_additional_arg_key: "Unknown additional arg key: '%s'"
+  screen_images:
+    already_registered: "Screen image with namespaced name '%s' is already registered"
   blocks:
     already_registered: "Block with namespaced name '%s' is already registered"
-    invalid_variation: "customVariation %s of block '%s' is out of 0..799"
-    variation_collision: "Variation collision: block '%s' and block '%s' both claim customVariation %s"
+    variations_exhausted: "No free variation left for block '%s' (1..799 are taken)"
   crafts:
     tag_invalid_material: "Tag contains %s, but Material is required"
     list_invalid_material: "List must contain Materials. Provided: %s"

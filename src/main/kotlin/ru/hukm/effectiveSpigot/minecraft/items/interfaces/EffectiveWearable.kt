@@ -43,7 +43,7 @@ interface EffectiveWearable {
         private fun equipToHead(player: Player, item: ItemStack) {
             val currentHelmet = player.inventory.helmet
 
-            player.inventory.helmet = item.clone().apply { amount = 1 }
+            player.inventory.setHelmet(item.clone().apply { amount = 1 })
 
             item.amount -= 1
 

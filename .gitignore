@@ -4,4 +4,5 @@ build/
 .kotlin/
 .idea/
 *.class
-*.jar
+*.jarweb/node_modules/
+web/dist/

@@ -1,0 +1,394 @@
+export interface Feature {
+  id: string
+  name: string
+  summary: { ru: string; en: string }
+  points: { ru: string[]; en: string[] }
+  interfaces?: { name: string; ru: string; en: string }[]
+  status?: 'experimental' | 'wip'
+}
+
+export const features: Feature[] = [
+  {
+    id: 'item',
+    name: 'EffectiveItem',
+    summary: {
+      ru: 'Кастомные предметы: модель, идентичность в PDC, поведение через интерфейсы.',
+      en: 'Custom items: model, PDC identity, behaviour through interfaces.',
+    },
+    points: {
+      ru: [
+        'Наследуетесь, переопределяете editMeta / getMaterial / getNamespacedData — предмет регистрируется сам',
+        'Каждый стак несёт ключ в PDC: equalByNamespacedKey, getNamespacedKeyByItem, поиск по имени',
+        'addClickHandler: ЛКМ/ПКМ/с шифтом, по блоку, сущности или воздуху; кулдаун на игрока или на конкретный стак',
+        'addShapelessCraft — ингредиент может быть Material, ItemStack, Tag или списком альтернатив, все комбинации регистрируются',
+        'addToLoot — дроп из LootTable, блоков и мобов с шансом и количеством, зависящими от Fortune/Looting',
+        'makeThrowable / makeDurable / makeWearable / makeUndropable / addBrewRecipe — одним вызовом в init()',
+        'AdditionalArgs — параметры конкретного стака (радиус, сила) в PDC, задаются при создании или через /egive',
+        'getResourcePackData — текстура или своя модель, item_model проставляется автоматически',
+        'Команда /egive <item> <player> [args…]',
+      ],
+      en: [
+        'Extend, override editMeta / getMaterial / getNamespacedData — the item registers itself',
+        'Every stack carries its key in PDC: equalByNamespacedKey, getNamespacedKeyByItem, lookup by name',
+        'addClickHandler: left/right/shift, on block, entity or air; cooldown per player or per stack',
+        'addShapelessCraft — an ingredient can be a Material, ItemStack, Tag or a list of alternatives, all combinations registered',
+        'addToLoot — drops from LootTables, blocks and mobs with Fortune/Looting-aware chance and amount',
+        'makeThrowable / makeDurable / makeWearable / makeUndropable / addBrewRecipe — one call in init()',
+        'AdditionalArgs — per-stack parameters (radius, power) in PDC, set on creation or via /egive',
+        'getResourcePackData — texture or own model, item_model set automatically',
+        '/egive <item> <player> [args…] command',
+      ],
+    },
+    interfaces: [
+      { name: 'EffectiveClickable', ru: 'обработка кликов с кулдаунами', en: 'click handling with cooldowns' },
+      { name: 'EffectiveCraftable', ru: 'кастомные крафты', en: 'custom recipes' },
+      { name: 'EffectiveWearable', ru: 'надеваемые предметы', en: 'wearable items' },
+      { name: 'EffectiveDurability', ru: 'предметы с прочностью', en: 'items with durability' },
+      { name: 'EffectiveThrowable', ru: 'метаемые предметы', en: 'throwable items' },
+      { name: 'EffectiveBrewable', ru: 'варка в зельеварке', en: 'brewing-stand recipes' },
+      { name: 'EffectiveDropable', ru: 'дроп из блоков и мобов', en: 'drops from blocks and mobs' },
+      { name: 'EffectiveUndropable', ru: 'запрет выбрасывания', en: 'cannot be dropped' },
+    ],
+  },
+  {
+    id: 'entity',
+    name: 'EffectiveEntity',
+    summary: {
+      ru: 'Кастомные сущности с реестром, кешем и обработкой взаимодействий.',
+      en: 'Custom entities with a registry, cache and interaction handling.',
+    },
+    points: {
+      ru: [
+        'editEntity / getEntityType / getNamespacedData — сущность помечается ключом в PDC при спавне',
+        'Кеш живых экземпляров обновляется на загрузке/выгрузке чанков: getEntities(), getEntitiesInBlock()',
+        'addInteractHandler — ПКМ и удар с кулдаунами; можно повесить и на ванильный EntityType',
+        'doEntityNearLookable — поворот к ближайшему игроку или своему предикату, с дистанцией',
+        'AdditionalArgs — параметры экземпляра в PDC, задаются при spawnEntity или через /emob',
+        'EffectiveEntityWithSpawnEgg — яйцо создаётся само: материал, мета, размещение TOP/BOTTOM/VANILLA/CENTER/EXACT',
+        'EffectiveCompositeEntity — родитель + дети связаны через PDC, удаляются вместе, getChildren / getParent',
+        'Команды /emob <entity> [args…] и /ecomposite <key>',
+      ],
+      en: [
+        'editEntity / getEntityType / getNamespacedData — the entity is tagged with its key in PDC on spawn',
+        'Cache of live instances updated on chunk load/unload: getEntities(), getEntitiesInBlock()',
+        'addInteractHandler — right-click and attack with cooldowns; can hook a vanilla EntityType too',
+        'doEntityNearLookable — turn towards the nearest player or your own predicate, with a distance',
+        'AdditionalArgs — per-instance parameters in PDC, set on spawnEntity or via /emob',
+        'EffectiveEntityWithSpawnEgg — the egg is created for you: material, meta, placement TOP/BOTTOM/VANILLA/CENTER/EXACT',
+        'EffectiveCompositeEntity — parent + children linked through PDC, removed together, getChildren / getParent',
+        '/emob <entity> [args…] and /ecomposite <key> commands',
+      ],
+    },
+    interfaces: [
+      { name: 'EffectiveEntityInteractable', ru: 'клики по сущности', en: 'entity clicks' },
+      { name: 'EffectiveEntityLookable', ru: 'слежение за целью', en: 'looking at a target' },
+    ],
+  },
+  {
+    id: 'block',
+    name: 'EffectiveBlock',
+    status: 'wip',
+    summary: {
+      ru: 'Кастомные блоки на нотных блоках: 800 состояний, своя модель, время копания, звуки.',
+      en: 'Custom blocks on note blocks: 800 states, own model, mining time, sounds.',
+    },
+    points: {
+      ru: [
+        'editItemMeta / getVariation / getResourcePackData / getNamespacedData — блок, его предмет и модель',
+        'Текстуры на каждую грань отдельно (up/down/north/…), модель cube и blockstates нотного блока генерируются в пак',
+        'Своё ломание: getHardness, getCorrectTools (кирка/топор/…), getMinTier (дерево→незерит), requiresCorrectTool',
+        'Анимация трещин шлётся игроку вручную, скорость учитывает инструмент и его тир',
+        'getDrop — свой лут с шансами, isIgnitable — горючий блок: поджигается огнивом и горит',
+        'getPlaceSound / getBreakSound / getStepSound — ванильные звуки нотного блока заглушены паком',
+        'onPlace / onBreak, addInteractHandler — клик по блоку без кулдауна',
+        'Ручная установка блока из руки (ванилька не умеет на интерактивный блок), защита от поршней и мисспредикта клиента',
+        'EffectiveBlockWithEntity — блок с маркер-сущностью внутри, удаляются вместе',
+      ],
+      en: [
+        'editItemMeta / getVariation / getResourcePackData / getNamespacedData — the block, its item and model',
+        'Per-face textures (up/down/north/…), cube model and note-block blockstates generated into the pack',
+        'Own mining: getHardness, getCorrectTools (pickaxe/axe/…), getMinTier (wood→netherite), requiresCorrectTool',
+        'Crack animation sent to the player manually, speed accounts for tool and tier',
+        'getDrop — own loot with chances, isIgnitable — flammable block: lit by flint and steel and burns',
+        'getPlaceSound / getBreakSound / getStepSound — vanilla note-block sounds muted by the pack',
+        'onPlace / onBreak, addInteractHandler — block clicks without cooldown',
+        'Manual placement from hand (vanilla cannot place onto an interactive block), protected from pistons and client misprediction',
+        'EffectiveBlockWithEntity — a block with a marker entity inside, removed together',
+      ],
+    },
+    interfaces: [
+      { name: 'EffectiveBlockInteractable', ru: 'клики по блоку', en: 'block clicks' },
+    ],
+  },
+  {
+    id: 'menu',
+    name: 'EffectiveMenu',
+    summary: {
+      ru: 'Инвентарные GUI по строковой разметке с обработчиками на слот.',
+      en: 'Inventory GUIs from a string layout with per-slot handlers.',
+    },
+    points: {
+      ru: [
+        'getPattern — строки по 9 символов, символ = слот; getSymbolsToItems — предмет и обработчики на символ',
+        'ClickData на любой ClickType: ЛКМ, ПКМ, шифт, несколько сразу',
+        'Раскладка на игрока: getPattern(whoOpen) — слоты по рангу или покупке без общего состояния',
+        'Свободные слоты через getFreeSlotSymbol; onSlotChanged вызывается ДО изменения и может отменить (фильтр предметов)',
+        'onClose → RETURN_TO_PLAYER (лоток ввода) или NO_RETURN (персистентный контейнер, сохраняешь сам)',
+        'openWithFreeSlots — открыть с заранее заполненными свободными слотами',
+        'Шифт-клик и перетаскивание в неразрешённые слоты блокируются',
+        'EffectiveTextureMenu — заголовок из глифа ресурспака, сдвиг negative-space пробелами',
+        'Команда /emenu <menu>',
+      ],
+      en: [
+        'getPattern — 9-char rows, one char per slot; getSymbolsToItems — item and handlers per char',
+        'ClickData on any ClickType: left, right, shift, several at once',
+        'Per-viewer layout: getPattern(whoOpen) — slots by rank or purchase without shared state',
+        'Free slots via getFreeSlotSymbol; onSlotChanged is called BEFORE the change and can veto it (item filter)',
+        'onClose → RETURN_TO_PLAYER (input tray) or NO_RETURN (persistent container, you save it yourself)',
+        'openWithFreeSlots — open with the free slots pre-filled',
+        'Shift-click and dragging into non-allowed slots are blocked',
+        'EffectiveTextureMenu — title from a resource-pack glyph, shifted with negative-space glyphs',
+        '/emenu <menu> command',
+      ],
+    },
+  },
+  {
+    id: 'zone',
+    name: 'EffectiveZone',
+    summary: {
+      ru: 'Триггерные регионы с событиями входа, выхода и нахождения внутри.',
+      en: 'Trigger regions with enter, exit and inside events.',
+    },
+    points: {
+      ru: [
+        'Зона — это тип области (например «база», «арена»), а её экземпляры — прямоугольные участки мира, выделенные двумя углами; таких участков у одной зоны может быть сколько угодно',
+        'Участки выделяются прямо в игре и сохраняются в данных мира — переживают перезапуск',
+        'EffectiveZoneEnterEvent / ExitEvent / InsideEvent — обычные Bukkit-события на движение сущностей',
+        'У каждого участка: проверка точки внутри, центр, список блоков и сущностей внутри',
+        'Участки можно найти по id или по игроку, который их создал, и удалить',
+        'Границы рисуются частицами цветом зоны (getZoneColor), углы выбираются предметом ZONE_SELECTOR',
+        'Команда /ezone',
+      ],
+      en: [
+        'A zone is a kind of area (say “base” or “arena”), and its instances are rectangular regions of the world picked by two corners; one zone may have any number of them',
+        'Regions are selected in-game and stored in the world data — they survive restarts',
+        'EffectiveZoneEnterEvent / ExitEvent / InsideEvent — regular Bukkit events on entity movement',
+        'У каждого участка: проверка точки внутри, центр, список блоков и сущностей внутри',
+        'Regions can be found by id or by the player who created them, and deleted',
+        'Borders drawn with particles in the zone colour (getZoneColor), corners picked with the ZONE_SELECTOR item',
+        '/ezone command',
+      ],
+    },
+  },
+  {
+    id: 'resourcepack',
+    name: 'EffectiveResourcepack',
+    summary: {
+      ru: 'Ресурспак собирается и раздаётся сам для всех плагинов на фреймворке.',
+      en: 'Resource pack built and served automatically for every framework plugin.',
+    },
+    points: {
+      ru: [
+        'Свой пак на каждый плагин из ресурсов его jar; собирается при старте, хешируется SHA-1',
+        'Модели и текстуры EffectiveItem, модели граней и blockstates EffectiveBlock',
+        'addGlyph — bitmap-глиф в шрифт (для меню, экранных эффектов), addSpaceProvider — negative-space пробелы',
+        'sounds.json: звуки кастомных блоков, ванильные звуки нотного блока заглушены',
+        'Один вызов addServerResourcepack в onEnable плагина — и пак собирается из всего, что зарегистрировано',
+        'Встроенный HTTP-сервер (ip/port в конфиге), пак выдаётся игроку при входе',
+        'addServerResourcepack — внешний пак по URL и sha1, если свой хост не нужен',
+        'getImageWidth — ширина текстуры для расчёта сдвигов в заголовках',
+      ],
+      en: [
+        'One pack per plugin from its jar resources; built on startup, hashed with SHA-1',
+        'EffectiveItem models and textures, EffectiveBlock face models and blockstates',
+        'addGlyph — bitmap glyph in the font (for menus, screen effects), addSpaceProvider — negative-space glyphs',
+        'sounds.json: custom block sounds, vanilla note-block sounds muted',
+        'One addServerResourcepack call in the plugin\'s onEnable — and the pack is built from everything registered',
+        'Built-in HTTP server (ip/port in config), pack sent to the player on join',
+        'addServerResourcepack — external pack by URL and sha1 if you host it yourself',
+        'getImageWidth — texture width for title offset maths',
+      ],
+    },
+  },
+  {
+    id: 'screen',
+    name: 'EffectiveScreenEffects',
+    status: 'experimental',
+    summary: {
+      ru: 'Экран игрока: затемнение, тряска камеры, картинки и текст в любой точке.',
+      en: 'Player screen: fade, camera shake, images and text at any point.',
+    },
+    points: {
+      ru: [
+        'runCameraFade(player, fadeIn, stay, fadeOut) — затемнение через полноэкранный глиф из пака',
+        'Колбэк дочернего плагина вызывается в самой тёмной точке — что именно делать (телепорт, смена мира, перестройка арены), решает плагин; игрок в этот момент ничего не видит',
+        'runCameraShake — тряска камеры пакетом поворота (не телепортом): на заданное число тиков или пока предикат true',
+        'ShakeType: CONSTANT, LINEAR, EASE_IN, EASE_OUT, EASE_IN_OUT',
+        'EffectiveScreenImage (экспериментально) — PNG из jar в любой точке экрана (x, y, размер в долях экрана), через core-шейдер пака',
+        'EffectiveScreenText (экспериментально) — белый текст в любой точке экрана с масштабом',
+        'Команда /escreen <target> <fade|shake> …',
+      ],
+      en: [
+        'runCameraFade(player, fadeIn, stay, fadeOut) — fade through a full-screen glyph from the pack',
+        'The child plugin\'s callback runs at the darkest point — what to do there (teleport, world change, arena rebuild) is up to the plugin; the player sees nothing meanwhile',
+        'runCameraShake — camera shake via a rotation packet (not a teleport): for N ticks or while a predicate holds',
+        'ShakeType: CONSTANT, LINEAR, EASE_IN, EASE_OUT, EASE_IN_OUT',
+        'EffectiveScreenImage (experimental) — a PNG from the jar at any point of the screen (x, y, size as screen fractions), via a core shader in the pack',
+        'EffectiveScreenText (experimental) — white text at any point of the screen with a scale',
+        '/escreen <target> <fade|shake> … command',
+      ],
+    },
+  },
+  {
+    id: 'advancement',
+    name: 'EffectiveAdvancement',
+    summary: {
+      ru: 'Кастомные достижения: вкладка, тост, дерево — выдача решается плагином.',
+      en: 'Custom advancements: tab, toast, tree — granting is up to the plugin.',
+    },
+    points: {
+      ru: [
+        'getDisplay: title, description, icon (Material + item_model), frame TASK/GOAL/CHALLENGE, фон, toast, анонс в чат, скрытость',
+        'getParent — дерево; регистрация в порядке родитель → ребёнок',
+        'IconData.fromItem — иконка из EffectiveItem с его кастомной моделью',
+        'grant(player) / isGrantedTo(player) — условия выдачи решает плагин',
+        'Только визуальный слой: вкладка, тост, дерево; критериев нет — когда выдать достижение, решает плагин через grant',
+      ],
+      en: [
+        'getDisplay: title, description, icon (Material + item_model), frame TASK/GOAL/CHALLENGE, background, toast, chat announce, hidden',
+        'getParent — tree; registered parent → child',
+        'IconData.fromItem — icon from an EffectiveItem with its custom model',
+        'grant(player) / isGrantedTo(player) — the plugin decides when',
+        'Visual layer only: tab, toast, tree; no criteria — the plugin decides when to grant it via grant',
+      ],
+    },
+  },
+  {
+    id: 'command',
+    name: 'EffectiveCommand',
+    summary: {
+      ru: 'Команды на Brigadier с деревом аргументов и автодополнением.',
+      en: 'Brigadier commands with an argument tree and completion.',
+    },
+    points: {
+      ru: [
+        'getNamespacedData / getDescription / getPermission / commandTree — регистрируется в Brigadier',
+        'CommandNode.build { } — DSL: choice("literal") для статичных веток, dynamic { sender → list } для игроков/предметов',
+        'executes { args } на любом узле — выполняется самый глубокий совпавший',
+        'Автодополнение строится из того же дерева',
+        'Создавать в onLoad, не в onEnable — Brigadier регистрирует команды на фазе загрузки',
+      ],
+      en: [
+        'getNamespacedData / getDescription / getPermission / commandTree — registered with Brigadier',
+        'CommandNode.build { } — DSL: choice("literal") for static branches, dynamic { sender → list } for players/items',
+        'executes { args } on any node — the deepest match runs',
+        'Tab completion built from the same tree',
+        'Create in onLoad, not onEnable — Brigadier registers commands during the load phase',
+      ],
+    },
+  },
+  {
+    id: 'locale',
+    name: 'EffectiveLocale',
+    summary: {
+      ru: 'Мультиязычные сообщения из yml, legacy-коды и MiniMessage.',
+      en: 'Multilingual messages from yml, legacy codes and MiniMessage.',
+    },
+    points: {
+      ru: [
+        'languages/*.yml из jar копируются в plugins/<Plugin>/languages при первом запуске',
+        'Язык берётся из конфига EffectiveSpigot, фолбэк на en.yml',
+        'getMessage(key, args) — строка с & кодами и String.format',
+        'getComponent(key, args) — Adventure: MiniMessage (<red>, <gradient>) или legacy-коды, определяется автоматически',
+        'EffectiveConfig — та же схема для config.yml: init(), типизированные геттеры, set пишет на диск',
+      ],
+      en: [
+        'languages/*.yml from the jar copied to plugins/<Plugin>/languages on first run',
+        'Language taken from the EffectiveSpigot config, fallback to en.yml',
+        'getMessage(key, args) — string with & codes and String.format',
+        'getComponent(key, args) — Adventure: MiniMessage (<red>, <gradient>) or legacy codes, detected automatically',
+        'EffectiveConfig — same scheme for config.yml: init(), typed getters, set writes to disk',
+      ],
+    },
+  },
+  {
+    id: 'events',
+    name: 'Events & coroutines',
+    summary: {
+      ru: 'Слушатели одной строкой и корутины вместо шедулеров.',
+      en: 'One-line listeners and coroutines instead of schedulers.',
+    },
+    points: {
+      ru: [
+        'plugin.event<PlayerJoinEvent> { … } — без Listener-классов и @EventHandler, класс события выводится из generic',
+        'priority и ignoreCancelled параметрами, listener.unregister() для отписки',
+        'MCCoroutine: plugin.launch { delay(20.ticks) } вместо runTaskLater, while-цикл с delay вместо runTaskTimer',
+        'Цепочки фаз (NPC-сцены, раунды мини-игр) пишутся линейно, без вложенных Runnable',
+      ],
+      en: [
+        'plugin.event<PlayerJoinEvent> { … } — no Listener classes or @EventHandler, the event class is inferred from the generic',
+        'priority and ignoreCancelled as parameters, listener.unregister() to unsubscribe',
+        'MCCoroutine: plugin.launch { delay(20.ticks) } instead of runTaskLater, a while loop with delay instead of runTaskTimer',
+        'Phase chains (NPC scenes, minigame rounds) are written linearly, without nested Runnables',
+      ],
+    },
+  },
+  {
+    id: 'utils',
+    name: 'Utils',
+    summary: {
+      ru: 'Мелочи, которые иначе пишутся в каждом плагине заново.',
+      en: 'Small things otherwise rewritten in every plugin.',
+    },
+    points: {
+      ru: [
+        'EffectiveInventoryUtils — giveItem с дропом излишка, hasItems / removeItems с учётом кастомных ключей, предмет из руки или слота',
+        'EffectiveParticles — линии и боксы из dust-частиц только для нужных игроков',
+        'CustomLootable — лут-таблицы с шансами: в контейнер или на землю',
+        'AdditionalArgs — параметры экземпляра предмета/сущности через /egive и /emob',
+        'Component + Component, Component + "строка"',
+        'EffectiveItems.EMPTY — прозрачный предмет-заглушка для слотов меню',
+      ],
+      en: [
+        'EffectiveInventoryUtils — giveItem dropping the overflow, hasItems / removeItems aware of custom keys, item from hand or slot',
+        'EffectiveParticles — lines and boxes of dust particles for chosen players only',
+        'CustomLootable — chance-based loot tables: into a container or on the ground',
+        'AdditionalArgs — per-instance item/entity parameters via /egive and /emob',
+        'Component + Component, Component + "string"',
+        'EffectiveItems.EMPTY — a transparent placeholder item for menu slots',
+      ],
+    },
+  },
+  {
+    id: 'datacontainer',
+    name: 'EffectiveDataContainerUtils',
+    summary: {
+      ru: 'Работа с PersistentDataContainer без бойлерплейта.',
+      en: 'PersistentDataContainer without boilerplate.',
+    },
+    points: {
+      ru: [
+        'getContainerValue / setContainerValue для ItemStack, любого PersistentDataHolder (сущность, блок, чанк, мир) и голого контейнера',
+        'Тип выводится из generic: get<Int>, set<List<String>>; или явный PersistentDataType',
+        'set на ItemStack возвращает обновлённый стак — ItemMeta клонируется, не мутируется',
+        'setItems / getItems — список ItemStack (инвентарь) целиком в один ключ',
+        'setLocation / getLocation — мир и координаты структурно',
+        'UUID и списки UUID упакованы в LONG_ARRAY; getEntityFromLongArray сразу возвращает живую сущность',
+        'Любой Serializable/Bukkit-объект через Base64 в строку',
+        'Вложенные контейнеры: getContainer / setContainer',
+        'Все геттеры возвращают null вместо исключения, если ключа нет',
+      ],
+      en: [
+        'getContainerValue / setContainerValue for ItemStack, any PersistentDataHolder (entity, block, chunk, world) and a bare container',
+        'Type inferred from the generic: get<Int>, set<List<String>>; or an explicit PersistentDataType',
+        'set on an ItemStack returns the updated stack — ItemMeta is cloned, not mutated',
+        'setItems / getItems — a list of ItemStack (an inventory) in one key',
+        'setLocation / getLocation — world and coordinates stored structurally',
+        'UUID and UUID lists packed into LONG_ARRAY; getEntityFromLongArray returns the live entity',
+        'Any Serializable/Bukkit object via Base64 into a string',
+        'Nested containers: getContainer / setContainer',
+        'Every getter returns null instead of throwing when the key is absent',
+      ],
+    },
+  },
+]

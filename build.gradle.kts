@@ -1,7 +1,7 @@
 plugins {
-  kotlin("jvm") version "2.2.0"
-  id("com.gradleup.shadow") version "8.3.6"
-  id("xyz.jpenilla.run-paper") version "2.3.1"
+  kotlin("jvm") version "2.4.20"
+  id("com.gradleup.shadow") version "9.4.1"
+  id("xyz.jpenilla.run-paper") version "3.0.2"
   id("org.jetbrains.dokka") version "2.2.0"
   `maven-publish`
 }
@@ -25,7 +25,8 @@ repositories {
 
 dependencies {
   implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-  compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+  compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+  compileOnly("io.netty:netty-transport:4.1.115.Final")
 
   implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-api:2.22.0")
   implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-core:2.22.0")
@@ -34,7 +35,9 @@ dependencies {
   implementation("org.bstats:bstats-bukkit:3.1.0")
 }
 
-kotlin { jvmToolchain(21) }
+kotlin {
+  jvmToolchain(21)
+}
 
 // Скрываем из документации внутреннюю реализацию (не публичный API для дочерних плагинов).
 // В V2 фильтр по видимости работает штатно: internal-типы в доки не попадают сами;

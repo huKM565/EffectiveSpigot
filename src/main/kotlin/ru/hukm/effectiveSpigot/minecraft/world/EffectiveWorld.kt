@@ -15,6 +15,12 @@ import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA.EffectiveChunkCursor
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlockData
 
+/**
+ * Per-world block cache (SoA chunk snapshots) used by zones and custom blocks for material lookups.
+ *
+ * ⚠️ **Known bugs.** The cache can drift from the real world (see `verifySync` desync logging); callers
+ * needing precision should confirm with `World.getBlockAt`. Internal — not part of the public API.
+ */
 internal class EffectiveWorld private constructor(val name: String) {
     data class BlockData(val x: Int, val y: Int, val z: Int, val material: Material)
 
@@ -127,6 +133,7 @@ internal class EffectiveWorld private constructor(val name: String) {
     }
 
     fun updateBlock(block: Block) {
+        if (block.y < block.world.minHeight || block.y >= block.world.maxHeight) return
         updateBlock(block.chunk.x, block.chunk.z, block.x and 15, block.y, block.z and 15, block.type)
     }
 

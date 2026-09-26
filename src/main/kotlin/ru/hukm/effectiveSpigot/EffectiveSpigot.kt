@@ -14,12 +14,14 @@ import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveCompositeEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.EffectiveEntity
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInteractable
 import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityLookable
+import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityImmovable
+import ru.hukm.effectiveSpigot.minecraft.entities.interfaces.EffectiveEntityInvulnerable
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItems
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.*
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveTextureMenu
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveResourcepack
-import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveScreenEffects
+import ru.hukm.effectiveSpigot.minecraft.screen.EffectiveScreenEffects
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
 import ru.hukm.effectiveSpigot.minecraft.zone.EffectiveZone
 
@@ -68,6 +70,8 @@ class EffectiveSpigot : JavaPlugin() {
 				EffectiveEntityInteractable.getModule(),
 				EffectiveMenu.getModule(),
 				EffectiveEntityLookable.getModule(),
+				EffectiveEntityInvulnerable.getModule(),
+				EffectiveEntityImmovable.getModule(),
 				EffectiveZone.getModule(),
 				EffectiveBrewable.getModule(),
 				EffectiveAdvancement.getModule(),

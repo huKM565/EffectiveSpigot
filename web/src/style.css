@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+html {
+  @apply bg-white text-black antialiased;
+}
+
+html.dark {
+  @apply bg-black text-white;
+}
+
+.dots {
+  --dot: rgb(0 0 0 / 0.12);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.dark .dots {
+  --dot: rgb(255 255 255 / 0.12);
+}
+
+.card {
+  @apply border border-black/10 bg-white transition dark:border-white/10 dark:bg-black;
+}
+
+.card:hover {
+  @apply border-black/40 dark:border-white/40;
+}

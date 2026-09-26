@@ -12,11 +12,14 @@ package ru.hukm.effectiveSpigot.minecraft.resourcepack
  * @property texturePath resource path to the texture inside the plugin jar
  * @property height glyph height in pixels
  * @property ascent vertical baseline offset in pixels (must be ≤ [height])
+ * @property textureBytes optional in-memory PNG; when set it is written at [texturePath] instead of
+ *   reading the plugin resource
  */
 data class EffectiveGlyph(
     val texturePath: String,
     val height: Int = 8,
-    val ascent: Int = 7
+    val ascent: Int = 7,
+    val textureBytes: ByteArray? = null
 ) {
     val charGlyph = EffectiveFontChar.getNextFree()
 }
