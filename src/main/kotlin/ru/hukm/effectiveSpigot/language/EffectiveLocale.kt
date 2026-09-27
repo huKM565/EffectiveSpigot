@@ -16,7 +16,8 @@ import java.util.jar.JarFile
  * The plugin must ship its language files under `src/main/resources/languages/` (e.g. `en.yml`,
  * `ru.yml`). On construction the class copies every bundled YAML from that folder into the plugin's
  * data folder (`plugins/<PluginName>/languages/`), then loads the file for the language configured
- * in EffectiveSpigot's own config (falling back to `en.yml`).
+ * in EffectiveSpigot's own config (falling back to `en.yml`). The copy on disk is never overwritten, so
+ * server owners can edit it; keys it lacks (added in a newer plugin version) fall back to the bundled file.
  * Look up messages with [getMessage] (legacy string) or [getComponent] (Adventure component).
  *
  * ```kotlin
@@ -52,12 +53,16 @@ abstract class EffectiveLocale {
         }
 
         val langFile = File(langFolder, "$langCode.yml")
+        val resolvedCode = if (langFile.exists()) langCode else "en"
         languageConfig = if (langFile.exists()) {
             YamlConfiguration.loadConfiguration(langFile)
         } else {
             plugin.logger.warning("Language file $langCode.yml not found for plugin '${plugin.name}', falling back to en.")
             val fallback = File(langFolder, "en.yml")
             if (fallback.exists()) YamlConfiguration.loadConfiguration(fallback) else YamlConfiguration()
+        }
+        plugin.getResource("languages/$resolvedCode.yml")?.reader(Charsets.UTF_8)?.use {
+            languageConfig?.setDefaults(YamlConfiguration.loadConfiguration(it))
         }
     }
 

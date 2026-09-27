@@ -5,6 +5,7 @@ import xyz.jpenilla.reflectionremapper.proxy.ReflectionProxyFactory
 import xyz.jpenilla.reflectionremapper.proxy.annotation.ConstructorInvoker
 import xyz.jpenilla.reflectionremapper.proxy.annotation.FieldGetter
 import xyz.jpenilla.reflectionremapper.proxy.annotation.Proxies
+import xyz.jpenilla.reflectionremapper.proxy.annotation.Static
 import xyz.jpenilla.reflectionremapper.proxy.annotation.Type
 
 @Proxies(className = "net.minecraft.world.level.Level")
@@ -56,7 +57,22 @@ interface ConnectionProxy {
 @Proxies(className = "net.minecraft.network.Connection")
 interface NetworkConnectionProxy {
     @FieldGetter("channel")
-    fun channel(instance: Any): Any
+    fun channel(instance: Any): Any?
+}
+
+@Proxies(className = "net.minecraft.resources.Identifier")
+interface IdentifierProxy {
+    @Static
+    fun fromNamespaceAndPath(namespace: String, path: String): Any
+}
+
+@Proxies(className = "net.minecraft.server.level.ServerPlayer")
+interface PostEffectsProxy {
+    fun addPostEffect(instance: Any, @Type(className = "net.minecraft.resources.Identifier") id: Any): Boolean
+
+    fun removePostEffect(instance: Any, @Type(className = "net.minecraft.resources.Identifier") id: Any): Boolean
+
+    fun getPostEffects(instance: Any): List<*>
 }
 
 @Proxies(className = "net.minecraft.network.protocol.game.ClientboundPlayerRotationPacket")
@@ -69,6 +85,38 @@ interface RotationPacketProxy {
 interface AbsoluteRotationPacketProxy {
     @ConstructorInvoker
     fun create(yaw: Float, pitch: Float): Any
+}
+
+@Proxies(className = "net.minecraft.world.entity.Entity")
+interface EntityFlagsProxy {
+    fun getSharedFlag(instance: Any, flag: Int): Boolean
+}
+
+@Proxies(className = "net.minecraft.world.entity.LivingEntity")
+interface LivingEntityProxy {
+    fun getPreciseBodyRotation(instance: Any, partialTick: Float): Float
+}
+
+@Proxies(className = "net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket")
+interface EntityDataPacketProxy {
+    @ConstructorInvoker
+    fun create(entityId: Int, values: List<*>): Any
+}
+
+@Proxies(className = "net.minecraft.network.syncher.SynchedEntityData\$DataValue")
+interface DataValueProxy {
+    @ConstructorInvoker
+    fun create(
+        id: Int,
+        @Type(className = "net.minecraft.network.syncher.EntityDataSerializer") serializer: Any,
+        value: Any
+    ): Any
+}
+
+@Proxies(className = "net.minecraft.network.protocol.game.ClientboundSetExperiencePacket")
+interface ExperiencePacketProxy {
+    @ConstructorInvoker
+    fun create(progress: Float, totalExperience: Int, level: Int): Any
 }
 
 object NmsProxies {
@@ -86,6 +134,13 @@ object NmsProxies {
     val serverPlayer: ServerPlayerProxy by lazy { factory.reflectionProxy(ServerPlayerProxy::class.java) }
     val connection: ConnectionProxy by lazy { factory.reflectionProxy(ConnectionProxy::class.java) }
     val networkConnection: NetworkConnectionProxy by lazy { factory.reflectionProxy(NetworkConnectionProxy::class.java) }
+    val identifier: IdentifierProxy by lazy { factory.reflectionProxy(IdentifierProxy::class.java) }
+    val postEffects: PostEffectsProxy by lazy { factory.reflectionProxy(PostEffectsProxy::class.java) }
     val rotationPacket: RotationPacketProxy? by lazy { runCatching { factory.reflectionProxy(RotationPacketProxy::class.java) }.getOrNull() }
     val absoluteRotationPacket: AbsoluteRotationPacketProxy by lazy { factory.reflectionProxy(AbsoluteRotationPacketProxy::class.java) }
+    val entityFlags: EntityFlagsProxy by lazy { factory.reflectionProxy(EntityFlagsProxy::class.java) }
+    val livingEntity: LivingEntityProxy by lazy { factory.reflectionProxy(LivingEntityProxy::class.java) }
+    val entityDataPacket: EntityDataPacketProxy by lazy { factory.reflectionProxy(EntityDataPacketProxy::class.java) }
+    val dataValue: DataValueProxy by lazy { factory.reflectionProxy(DataValueProxy::class.java) }
+    val experiencePacket: ExperiencePacketProxy by lazy { factory.reflectionProxy(ExperiencePacketProxy::class.java) }
 }

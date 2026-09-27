@@ -91,6 +91,9 @@ errors:
     unknown_additional_arg_key: "Unknown additional arg key: '%s'"
   screen_images:
     already_registered: "Screen image with namespaced name '%s' is already registered"
+  post_effects:
+    unsupported_version: "Post effects require Minecraft 26.3 or newer, the server runs %s"
+    already_registered: "Post effect with namespaced name '%s' is already registered"
   blocks:
     already_registered: "Block with namespaced name '%s' is already registered"
     variations_exhausted: "No free variation left for block '%s' (1..799 are taken)"
@@ -118,4 +121,5 @@ errors:
     glyphs_exhausted: "Ran out of Private Use Area glyph slots (limit %d)"
     model_not_found: "Model '%s' not found in plugin '%s' resources"
     texture_not_found: "Texture '%s' not found in plugin '%s' resources"
+    shader_not_found: "Shader '%s' not found in plugin '%s' resources"
     ip_not_set: "Resource pack HTTP server is enabled, but 'resourcepack.http-server.ip' is not set in EffectiveSpigot's config.yml. Set it to the server's public IP/domain, or disable resourcepack.http-server.enable."

@@ -6,11 +6,13 @@ export const screen: Section = {
     ru: [
       'Затемнение экрана и тряска камеры — приёмы из катсцен: спрятать телепорт, показать взрыв, оглушить. В Bukkit первого нет вовсе, второе делается телепортами и дёргает игрока.',
       'EffectiveScreenEffects рисует затемнение полноэкранным глифом из пака фреймворка, а тряску шлёт пакетом относительного поворота — камера дрожит, игрок не двигается.',
+      'EffectiveExperienceBar рисует любой прогресс в полоске опыта — индикатор заряда или каста. Опыт игрока не меняется: полоска обновляется пакетом, reset возвращает настоящую.',
       'EffectiveScreenImage и EffectiveScreenText идут дальше: картинка или текст в любой точке экрана. Пак фреймворка подменяет core-шейдер текста, а координаты и размер передаются в цвете символа — клиенту не нужно ничего, кроме ресурспака.',
     ],
     en: [
       'Screen fade and camera shake are cutscene tools: hide a teleport, sell an explosion, stun. Bukkit has no fade at all, and shake is done with teleports that jerk the player.',
       'EffectiveScreenEffects draws the fade with a full-screen glyph from the framework pack and sends shake as a relative rotation packet — the camera trembles, the player does not move.',
+      'EffectiveExperienceBar draws any progress into the experience bar — a charge or cast indicator. The experience the player owns is untouched: the bar is updated by packet and reset puts the real one back.',
       'EffectiveScreenImage and EffectiveScreenText go further: an image or text at any point of the screen. The framework pack overrides the text core shader, and position and size travel in the character colour — the client needs nothing but the resource pack.',
     ],
   },
@@ -26,6 +28,16 @@ export const screen: Section = {
       code: `EffectiveScreenEffects.runCameraShake(player, intensity = 3f, duration = 40, type = ShakeType.EASE_OUT)
 
 EffectiveScreenEffects.runCameraShake(player, intensity = 1f) { Arena.isRunning }`,
+    },
+    {
+      title: { ru: 'Полоска заряда', en: 'Charge bar' },
+      code: `EffectiveExperienceBar.show(player, charge / 60f)
+
+EffectiveExperienceBar.reset(player)`,
+      note: {
+        ru: 'Полоску прыжка лошади сервером не нарисовать: клиент показывает её только на прыгающем маунте и сам считает заполнение от удержания пробела.',
+        en: 'The horse jump bar cannot be driven by a server: the client only draws it on a jumpable mount and computes the fill itself from how long jump is held.',
+      },
     },
     {
       title: { ru: 'Картинка и текст на экране', en: 'Image and text on screen' },

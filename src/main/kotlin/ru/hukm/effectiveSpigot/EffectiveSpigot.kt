@@ -20,6 +20,7 @@ import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItems
 import ru.hukm.effectiveSpigot.minecraft.items.interfaces.*
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveMenu
 import ru.hukm.effectiveSpigot.minecraft.menu.EffectiveTextureMenu
+import ru.hukm.effectiveSpigot.minecraft.network.EffectivePacketHook
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveResourcepack
 import ru.hukm.effectiveSpigot.minecraft.screen.EffectiveScreenEffects
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
@@ -81,7 +82,8 @@ class EffectiveSpigot : JavaPlugin() {
 				EffectiveTextureMenu.getModule(),
 				EffectiveBlock.getModule(),
 				EffectiveBlockInteractable.getModule(),
-				EffectiveBlockWithEntity.getModule()
+				EffectiveBlockWithEntity.getModule(),
+				EffectivePacketHook.getModule()
 			)
 
 		EffectiveItems.ZONE_SELECTOR
@@ -93,5 +95,6 @@ class EffectiveSpigot : JavaPlugin() {
 
 	override fun onDisable() {
 		EffectiveHttpServer.stop()
+		EffectivePacketHook.removeAll()
 	}
 }

@@ -23,8 +23,8 @@ val charges = EffectiveDataContainerUtils.getContainerValue<Int>(stack, KEY) ?: 
 EffectiveDataContainerUtils.setContainerValue(player, KEY, listOf("a", "b"))
 val tags = EffectiveDataContainerUtils.getContainerValue<List<String>>(player, KEY)`,
       note: {
-        ru: 'Для ItemStack set возвращает новый стак — используйте возвращённое значение, исходный не меняется.',
-        en: 'For an ItemStack set returns a new stack — use the returned value, the original is unchanged.',
+        ru: 'Для ItemStack set меняет переданный стак и возвращает его же: мету он достаёт копией, правит и кладёт обратно. Если у стака нет меты (воздух), он возвращается без изменений.',
+        en: 'For an ItemStack set changes the passed stack and returns it: it takes a copy of the meta, edits it and puts it back. A stack without meta (air) is returned unchanged.',
       },
     },
     {

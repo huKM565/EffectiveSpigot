@@ -91,6 +91,9 @@ errors:
     look_distance_exceeded: "Дистанция обзора превышает максимально допустимое значение"
   screen_images:
     already_registered: "Картинка на экране с ключом '%s' уже зарегистрирована"
+  post_effects:
+    unsupported_version: "Постэффекты работают только на Minecraft 26.3 и выше, а сервер на %s"
+    already_registered: "Постэффект с ключом '%s' уже зарегистрирован"
   blocks:
     already_registered: "Блок с ключом '%s' уже зарегистрирован"
     variations_exhausted: "Не осталось свободных вариаций для блока '%s' (занято 1..799)"
@@ -118,4 +121,5 @@ errors:
     glyphs_exhausted: "Закончились свободные символы Private Use Area для глифов (лимит %d)"
     model_not_found: "Модель '%s' не найдена в ресурсах плагина '%s'"
     texture_not_found: "Текстура '%s' не найдена в ресурсах плагина '%s'"
+    shader_not_found: "Шейдер '%s' не найден в ресурсах плагина '%s'"
     ip_not_set: "HTTP-сервер ресурспаков включён, но 'resourcepack.http-server.ip' не указан в config.yml EffectiveSpigot'а. Впишите публичный IP/домен вашего сервера или отключите resourcepack.http-server.enable."

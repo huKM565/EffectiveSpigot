@@ -17,7 +17,6 @@ export const block: Section = {
       title: { ru: 'Минимальный блок', en: 'Minimal block' },
       code: `object RubyOre : EffectiveBlock() {
     override fun getNamespacedData() = MyPlugin.instance to "ruby_ore"
-    override fun getVariation() = 0
 
     override fun getResourcePackData() =
         ResourcePackData(texture = "textures/block/ruby_ore.png")
@@ -38,8 +37,8 @@ export const block: Section = {
     fun init() {}
 }`,
       note: {
-        ru: 'getVariation — число 0..799, уникальное среди всех блоков всех плагинов на сервере. Два блока с одной вариацией — одно и то же состояние нотного блока.',
-        en: 'getVariation is a number 0..799, unique across all blocks of all plugins on the server. Two blocks with the same variation are the same note-block state.',
+        ru: 'Состояние нотного блока (вариацию 1..799) фреймворк выдаёт сам и хранит в корне сохранения мира: world/data/effectivespigot/block_variations.json. Номер закреплён за блоком навсегда — добавление, удаление и порядок загрузки плагинов его не меняют.',
+        en: 'The note-block state (variation 1..799) is assigned by the framework and stored at the world save root: world/data/effectivespigot/block_variations.json. The number sticks to the block for good — adding, removing or reordering plugins does not change it.',
       },
     },
     {
@@ -106,8 +105,7 @@ override fun requiresCorrectTool() = true`,
   ],
   methods: [
     { name: 'getNamespacedData()', required: true, desc: { ru: 'Плагин и id блока', en: 'Plugin and block id' } },
-    { name: 'getVariation()', required: true, desc: { ru: 'Состояние нотного блока 0..799, уникальное на сервере', en: 'Note-block state 0..799, unique on the server' } },
-    { name: 'getResourcePackData()', required: true, desc: { ru: 'Текстура; отдельные грани через up/down/north/…', en: 'Texture; per-face overrides via up/down/north/…' } },
+    { name: 'getResourcePackData()', required: true, desc: { ru: 'Текстура; отдельные грани через up/down/north/…, animation — анимация граней', en: 'Texture; per-face overrides via up/down/north/…, animation — animated faces' } },
     { name: 'editItemMeta(meta)', required: true, desc: { ru: 'Мета предмета-блока в инвентаре', en: 'Meta of the block item in the inventory' } },
     { name: 'getHardness()', required: false, default: '0.8', desc: { ru: 'Твёрдость как у ванили (камень 1.5, обсидиан 50)', en: 'Hardness like vanilla (stone 1.5, obsidian 50)' } },
     { name: 'getCorrectTools()', required: false, default: 'emptySet()', desc: { ru: 'Инструменты, которые копают быстрее', en: 'Tools that mine faster' } },
@@ -123,7 +121,7 @@ override fun requiresCorrectTool() = true`,
       'Подсистема в разработке: getCustomBlocks() идёт через внутренний кеш мира (EffectiveWorld) с известными багами; ломание/дроп/звуки обкатаны меньше предметов.',
       'Блок ставится, но выглядит как нотный блок — забыт EffectiveResourcepack.addServerResourcepack(this, "", "") в onEnable после init(): модель и blockstates генерируются только в собранный пак.',
       'В paper-global.yml должно стоять block-updates.disable-noteblock-updates: true — иначе сервер сам сбросит состояние нотного блока при обновлении соседей.',
-      'Вариации — общий ресурс на сервер. Держите реестр вариаций своих плагинов, чтобы не пересечься.',
+      'Не удаляйте world/data/effectivespigot/block_variations.json: без него блоки получат новые номера, и уже поставленные превратятся в другие. На версиях до 26.x файл лежит в папке основного мира, а незер и энд — в своих папках.',
       'Правый клик по блоку с предметом в руке: фреймворк запрещает ванильное взаимодействие (нота), поэтому предметы вроде огнива работают только через isIgnitable / addInteractHandler.',
       'EffectiveBlockWithEntity кладёт маркер-сущность в блок — удаление маркера удаляет блок и наоборот.',
     ],
@@ -131,7 +129,7 @@ override fun requiresCorrectTool() = true`,
       'Work in progress: getCustomBlocks() goes through the internal world cache (EffectiveWorld) which has known bugs; mining/drops/sounds are less battle-tested than items.',
       'The block places but looks like a note block — EffectiveResourcepack.addServerResourcepack(this, "", "") in onEnable after init() is missing: the model and blockstates are generated only into a built pack.',
       'paper-global.yml must have block-updates.disable-noteblock-updates: true — otherwise the server resets the note-block state on neighbour updates.',
-      'Variations are a server-wide resource. Keep a registry of your plugins\' variations so they do not collide.',
+      'Do not delete world/data/effectivespigot/block_variations.json: without it blocks get new numbers and the already placed ones turn into other blocks. Before 26.x the file lives in the main world folder, while the nether and the end have their own folders.',
       'Right-click with an item in hand: the framework denies the vanilla interaction (the note), so items like flint and steel only work through isIgnitable / addInteractHandler.',
       'EffectiveBlockWithEntity puts a marker entity into the block — removing the marker removes the block and vice versa.',
     ],

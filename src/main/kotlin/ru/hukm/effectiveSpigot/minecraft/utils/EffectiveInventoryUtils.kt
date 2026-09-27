@@ -10,7 +10,8 @@ import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 
 /**
  * Inventory helpers. Item matching uses [EffectiveItem.equalByNamespacedKeyIfExistElseByMaterial], so
- * custom items match by their key and vanilla items by material.
+ * custom items match by their key and vanilla items by material. From Java call them through the object
+ * instance: `EffectiveInventoryUtils.INSTANCE.giveItem(...)` (not `@JvmStatic`, to keep compiled plugins working).
  */
 object EffectiveInventoryUtils {
     /** Outcome of [giveItem]: fully added, or overflow dropped on the ground. */

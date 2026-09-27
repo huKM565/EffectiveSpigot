@@ -4,12 +4,12 @@ export const setup: Section = {
   id: 'setup',
   why: {
     ru: [
-      'Требования: Paper 1.21.4+ (включая 26.x), Java 21, Kotlin 2.2. Фреймворк ставится на сервер как обычный плагин; Kotlin-рантайм и корутины внутри него.',
+      'Требования: Paper 1.21.4+ (включая 26.x), Java 21, Kotlin 2.4. Фреймворк ставится на сервер как обычный плагин; Kotlin-рантайм и корутины внутри него.',
       'Дочерний плагин не тянет фреймворк напрямую. Вместо этого он подключает gradle-плагин ru.hukm.effective-plugin — тот приносит Kotlin, shadow, релокацию kotlin-классов, Paper API и compileOnly-зависимость на свежий EffectiveSpigot.',
       'На сервере EffectiveSpigot стоит как отдельный плагин, а ваш jar объявляет его в depend. Kotlin-рантайм и корутины уже внутри фреймворка — в ваш jar они не попадают.',
     ],
     en: [
-      'Requirements: Paper 1.21.4+ (26.x included), Java 21, Kotlin 2.2. The framework is installed on the server as a regular plugin; the Kotlin runtime and coroutines live inside it.',
+      'Requirements: Paper 1.21.4+ (26.x included), Java 21, Kotlin 2.4. The framework is installed on the server as a regular plugin; the Kotlin runtime and coroutines live inside it.',
       'A child plugin does not depend on the framework directly. It applies the ru.hukm.effective-plugin gradle plugin, which brings Kotlin, shadow, relocation of kotlin classes, the Paper API and a compileOnly dependency on the latest EffectiveSpigot.',
       'On the server EffectiveSpigot is a separate plugin and your jar lists it in depend. The Kotlin runtime and coroutines already live inside the framework — they are not bundled into your jar.',
     ],
@@ -28,8 +28,8 @@ rootProject.name = "MyPlugin"`,
     {
       title: { ru: 'build.gradle.kts', en: 'build.gradle.kts' },
       code: `plugins {
-    kotlin("jvm") version "2.2.0"
-    id("com.gradleup.shadow") version "8.3.6"
+    kotlin("jvm") version "2.4.20"
+    id("com.gradleup.shadow") version "9.4.1"
     id("ru.hukm.effective-plugin") version "1.0.0-SNAPSHOT"
 }
 

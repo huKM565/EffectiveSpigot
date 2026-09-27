@@ -15,6 +15,7 @@ import ru.hukm.effectiveSpigot.interfaces.IModule
 import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
+import ru.hukm.effectiveSpigot.minecraft.posteffect.EffectivePostEffect
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 import java.io.ByteArrayOutputStream
@@ -25,6 +26,7 @@ import java.security.MessageDigest
 import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import java.util.logging.Level
 
 /**
  * Assembles and serves a per-plugin resource pack.
@@ -36,6 +38,14 @@ import java.util.zip.ZipOutputStream
  */
 object EffectiveResourcepack {
     private lateinit var resourcePackRequest: ResourcePackRequest
+    /**
+     * Logs a failed pack build of [instance] with its stack trace. [LinkageError]s are caught too: a plugin compiled
+     * against an older framework (e.g. a changed `ResourcePackData` constructor) must not stop the other plugins' packs.
+     */
+    private fun logBuildFailure(instance: JavaPlugin, e: Throwable) {
+        instance.logger.log(Level.WARNING, Locale.getMessage("errors.resourcepack.build_failed", instance.name, e.message ?: e.toString()), e)
+    }
+
     private val resourcepacksInfo = arrayListOf<ResourcePackInfo>()
     private var toBuild = arrayListOf<JavaPlugin>()
 
@@ -69,22 +79,18 @@ object EffectiveResourcepack {
      */
     fun addServerResourcepack(instance: JavaPlugin, url: String, sha1Hex: String) {
         if (Config.isResourcepackHttpServerEnabled()) addToBuild(instance)
-        else register(url, sha1Hex)
+        else register(url, sha1Hex, UUID.nameUUIDFromBytes("url:$url".toByteArray()))
     }
 
-    private fun register(url: String, sha1Hex: String) {
-        val bytes = ByteArray(sha1Hex.length / 2)
-
-        for (index in bytes.indices) {
-            bytes[index] = sha1Hex.substring(index * 2..(index * 2 + 1)).toInt(16).toByte()
-        }
-
-        val bb = ByteBuffer.wrap(bytes)
-        val uuid = UUID(bb.getLong(), bb.getLong())
-
+    /**
+     * Registers a pack to send on join under a **stable** [id] (per plugin for built packs, per URL for external
+     * ones). The client keys server packs by id: with a stable one a changed pack replaces the previous version,
+     * while an id derived from the content hash made every edit a new pack and the stale one kept overriding it.
+     */
+    private fun register(url: String, sha1Hex: String, id: UUID) {
         resourcepacksInfo.add(
             ResourcePackInfo.resourcePackInfo()
-                .id(uuid)
+                .id(id)
                 .uri(URI.create(url))
                 .hash(sha1Hex)
                 .build()
@@ -143,6 +149,8 @@ object EffectiveResourcepack {
         addBlocks(resourcepackFiles, instance)
 
         addFont(resourcepackFiles, instance)
+
+        addPostEffects(resourcepackFiles, instance)
 
         if (instance === EffectiveSpigot.instance) {
             resourcepackFiles["assets/minecraft/sounds.json"] = """
@@ -210,7 +218,7 @@ object EffectiveResourcepack {
         val ip = Config.getResourcepackHttpServerIp()
             .ifBlank { error(Locale.getMessage("errors.resourcepack.ip_not_set")) }
         val url = "http://$ip:${Config.getResourcepackHttpServerPort()}$path"
-        register(url, sha1Hex)
+        register(url, sha1Hex, UUID.nameUUIDFromBytes("effectivespigot:${EffectiveMinecraftUtils.getNamespace(instance)}".toByteArray()))
     }
 
     private fun addItemModel(
@@ -256,6 +264,46 @@ object EffectiveResourcepack {
         if (textureBytes != null) {
             resourcepackFiles["assets/$namespace/textures/item/$itemName.png"] = textureBytes
             data.animation?.let { resourcepackFiles["assets/$namespace/textures/item/$itemName.png.mcmeta"] = it.toMcmeta().toByteArray() }
+        }
+    }
+
+    /**
+     * Adds [instance]'s [EffectivePostEffect]s: each fragment shader as `assets/<namespace>/shaders/post/<name>.fsh`
+     * and a `post_effect/<name>.json` pipeline running it from `minecraft:main` into a `swap` target and blitting
+     * `swap` back into `minecraft:main`. Missing shader files are logged and skipped.
+     */
+    private fun addPostEffects(resourcepackFiles: MutableMap<String, ByteArray>, instance: JavaPlugin) {
+        val namespace = EffectiveMinecraftUtils.getNamespace(instance)
+
+        for (effect in EffectivePostEffect.ofPlugin(instance)) {
+            val shader = instance.getResource(effect.fragmentShaderPath)?.use { it.readBytes() } ?: run {
+                instance.logger.warning(Locale.getMessage("errors.resourcepack.shader_not_found", effect.fragmentShaderPath, instance.name))
+                continue
+            }
+
+            resourcepackFiles["assets/$namespace/shaders/post/${effect.name}.fsh"] = shader
+            resourcepackFiles["assets/$namespace/post_effect/${effect.name}.json"] = """
+                {
+                  "targets": { "swap": {} },
+                  "passes": [
+                    {
+                      "vertex_shader": "minecraft:core/screenquad",
+                      "fragment_shader": "$namespace:post/${effect.name}",
+                      "inputs": [ { "sampler_name": "In", "target": "minecraft:main" } ],
+                      "output": "swap"
+                    },
+                    {
+                      "vertex_shader": "minecraft:core/screenquad",
+                      "fragment_shader": "minecraft:post/blit",
+                      "inputs": [ { "sampler_name": "In", "target": "swap" } ],
+                      "uniforms": {
+                        "BlitConfig": [ { "name": "ColorModulate", "type": "vec4", "value": [1.0, 1.0, 1.0, 1.0] } ]
+                      },
+                      "output": "minecraft:main"
+                    }
+                  ]
+                }
+            """.trimIndent().toByteArray()
         }
     }
 
@@ -405,9 +453,9 @@ object EffectiveResourcepack {
                         try {
                             tryBuild(instance)
                         } catch (e: Exception) {
-                            instance.logger.warning(
-                                Locale.getMessage("errors.resourcepack.build_failed", instance.name, e.message ?: e.toString())
-                            )
+                            logBuildFailure(instance, e)
+                        } catch (e: LinkageError) {
+                            logBuildFailure(instance, e)
                         }
                     }
                 }

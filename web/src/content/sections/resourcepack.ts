@@ -101,6 +101,23 @@ override fun getResourcePackData() = ResourcePackData(
         en: 'Item ResourcePackData: texturePath — PNG from the jar (generated model by default), modelJson or modelPath — own model, textureBytes — PNG from memory. The model lands in assets/<plugin>/models/item/<id>.json, item_model is set automatically.',
       },
     },
+    {
+      title: { ru: 'Анимированные текстуры', en: 'Animated textures' },
+      code: `override fun getResourcePackData() = ResourcePackData(
+    texturePath = "textures/item/wand.png",
+    animation = EffectiveTextureAnimation(frameTime = 2),
+)
+
+override fun getResourcePackData() = ResourcePackData(
+    texture = "textures/block/crystal_side.png",
+    up = "textures/block/crystal_top.png",
+    animation = EffectiveTextureAnimation(frameTime = 4, interpolate = true),
+)`,
+      note: {
+        ru: 'Текстура — полоса кадров сверху вниз: 16×64 = 4 кадра 16×16. Число кадров клиент считает сам, высота должна делиться на ширину. frameTime — тиков на кадр, interpolate — плавное перетекание (для смены цвета, не для движения), frames — свой порядок кадров. У блока анимация пишется на все грани: грань с обычной квадратной картинкой остаётся статичной. Кадры крутит клиент, все копии идут синхронно, запустить или остановить с сервера нельзя.',
+        en: 'The texture is a strip of frames top to bottom: 16×64 = four 16×16 frames. The client counts the frames itself, the height must be a multiple of the width. frameTime — ticks per frame, interpolate — smooth blending (for colour changes, not movement), frames — own frame order. For a block the animation is written for every face: a face with a plain square image stays static. The client cycles the frames, all copies run in sync, the server cannot start or stop it.',
+      },
+    },
   ],
   methods: [],
   pitfalls: {
@@ -111,6 +128,7 @@ override fun getResourcePackData() = ResourcePackData(
       'Текстура глифа ограничена по размеру — 4096×4096 клиент не загрузит, глиф станет «тофу». Уменьшайте PNG.',
       'Клиент кеширует пак по sha1 — если пак не обновился на клиенте, значит, содержимое не поменялось или отдался старый zip.',
       'Ванильные звуки нотного блока заглушены паком фреймворка — так и задумано, свои блоки играют required.wood.*.',
+      'animation анимирует только текстуру из texturePath/textureBytes (у блока — грани). Текстуры, которые подключает своя модель, и глифы шрифта через неё не анимируются.',
     ],
     en: [
       'Without addServerResourcepack in onEnable no pack is built for the plugin — items exist, textures do not.',
@@ -119,6 +137,7 @@ override fun getResourcePackData() = ResourcePackData(
       'Glyph textures are size-limited — the client will not load 4096×4096, the glyph turns into "tofu". Downscale the PNG.',
       'The client caches the pack by sha1 — if it did not update, the content did not change or an old zip was served.',
       'Vanilla note-block sounds are muted by the framework pack — by design, custom blocks play required.wood.*.',
+      'animation animates only the texture from texturePath/textureBytes (faces for a block). Textures pulled in by an own model and font glyphs are not animated by it.',
     ],
   },
 }

@@ -3,6 +3,7 @@ package ru.hukm.effectiveSpigot.minecraft.nms
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.World
+import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
@@ -24,6 +25,11 @@ object CraftReflection {
         lookup.unreflect(craftPlayer.getMethod("getHandle"))
     }
 
+    private val entityGetHandle: MethodHandle by lazy {
+        val craftEntity = Class.forName("$craftBukkitPackage.entity.CraftEntity")
+        lookup.unreflect(craftEntity.getMethod("getHandle"))
+    }
+
     private val getMaterialByBlock: MethodHandle by lazy {
         val magicNumbers = Class.forName("$craftBukkitPackage.util.CraftMagicNumbers")
         val nmsBlockName = NmsProxies.remapper.remapClassName("net.minecraft.world.level.block.Block")
@@ -36,6 +42,8 @@ object CraftReflection {
     fun getWorldHandle(world: World): Any = worldGetHandle.invoke(world)
 
     fun getPlayerHandle(player: Player): Any = playerGetHandle.invoke(player)
+
+    fun getEntityHandle(entity: Entity): Any = entityGetHandle.invoke(entity)
 
     fun getMaterial(nmsBlock: Any): Material = getMaterialByBlock.invoke(nmsBlock) as Material
 }

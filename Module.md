@@ -7,7 +7,7 @@ and the framework handles registration, identity, persistence and events.
 
 This is the API reference. For a guided tour — why each subsystem exists, minimal examples, what to
 override and common pitfalls — see the roadmap at [effectivespigot.hukm.dev](https://effectivespigot.hukm.dev).
-Requires Paper 1.21.4+ (26.x included), Java 21 and Kotlin 2.2.
+Requires Paper 1.21.4+ (26.x included), Java 21 and Kotlin 2.4.
 
 ---
 
@@ -118,7 +118,9 @@ Opt-in item behaviours: `EffectiveClickable`, `EffectiveCraftable`, `EffectiveDr
 
 Custom blocks on note-block states (`EffectiveBlock`): generated model and blockstates, own hardness,
 tool types and tiers, sounds, drops, `onPlace` / `onBreak` hooks; `EffectiveBlockWithEntity` adds a marker
-entity per block for per-block data.
+entity per block for per-block data. The note-block state (variation) is assigned by the framework and kept in
+the save-root registry `<level>/data/effectivespigot/block_variations.json`, so a block keeps its number whatever
+plugins are added or removed.
 
 # Package ru.hukm.effectiveSpigot.minecraft.blocks.interfaces
 
@@ -159,14 +161,21 @@ Custom advancements with parent/child trees and grant helpers.
 # Package ru.hukm.effectiveSpigot.minecraft.resourcepack
 
 Per-plugin resource pack: item/block models, bitmap glyphs (`EffectiveGlyph`), negative-space providers,
-SHA-1 hashing and (optional) built-in HTTP hosting. Enabled per plugin with
-`EffectiveResourcepack.addServerResourcepack`.
+client-side animated item/block textures (`EffectiveTextureAnimation`), SHA-1 hashing and (optional) built-in
+HTTP hosting. Enabled per plugin with `EffectiveResourcepack.addServerResourcepack`.
 
 # Package ru.hukm.effectiveSpigot.minecraft.screen
 
 Player-screen effects: `EffectiveScreenEffects` (full-screen fade with a mid-fade callback, camera shake
 with easing), `EffectiveScreenImage` and `EffectiveScreenText` (an image or text at any screen position via
-the pack's text core shader).
+the pack's text core shader), `EffectiveExperienceBar` (any fill in the experience bar as a charge indicator,
+without touching the player's experience).
+
+# Package ru.hukm.effectiveSpigot.minecraft.posteffect
+
+`EffectivePostEffect` — per-player full-screen post shaders (vignettes, tints, blur): you ship only the `.fsh`,
+the framework adds it and a two-pass `post_effect` pipeline to the plugin's resource pack and toggles it with
+`apply` / `remove`. Minecraft 26.3+ only; a no-op on older servers.
 
 # Package ru.hukm.effectiveSpigot.minecraft.loottables
 
@@ -176,7 +185,8 @@ type `EffectiveBlock.getDrop()` returns.
 # Package ru.hukm.effectiveSpigot.minecraft.utils
 
 Minecraft-side helpers: `EffectiveDataContainerUtils` (typed PDC access, items, locations, UUIDs, Base64,
-nested containers), `EffectiveInventoryUtils` (give / has / remove aware of custom keys),
+nested containers), `EffectiveInventoryUtils` (give / has / remove aware of custom keys) — from Java through
+`INSTANCE`,
 `EffectiveParticles` (per-player dust lines and boxes), `EffectiveBlockPos`, `Component + String`.
 
 # Package ru.hukm.effectiveSpigot.minecraft.additional
