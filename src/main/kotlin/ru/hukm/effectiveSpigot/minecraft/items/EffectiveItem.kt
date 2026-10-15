@@ -88,6 +88,11 @@ abstract class EffectiveItem {
      * supplied model brings its own textures. [modelJson] takes precedence over [modelPath], and
      * [textureBytes] over [texturePath].
      *
+     * A model with several textures (a 3D model from Blockbench) references them in the plugin's namespace,
+     * `"<namespace>:item/musket/barrel"`, and keeps the files in the jar under `textures/`
+     * (`textures/item/musket/barrel.png`): every such reference is copied into the pack. The namespace is
+     * `EffectiveMinecraftUtils.getNamespace(plugin)`. References to other namespaces stay as they are.
+     *
      * Set [animation] to make the texture animated (see [EffectiveTextureAnimation]). It applies only to the
      * texture given via [texturePath]/[textureBytes]; textures referenced by a custom model aren't animated by it.
      */
@@ -174,7 +179,6 @@ abstract class EffectiveItem {
     }
 
     init {
-        //TODO(Сделать, чтобы нельзя было использовать названия обычных предметов)
         val namespacedName = getNamespacedName()
         if (namespacedKeyToItem.containsKey(namespacedName)) {
             throw IllegalArgumentException(Locale.getMessage("errors.items.already_registered", namespacedName))

@@ -283,15 +283,24 @@ abstract class EffectiveEntity {
      *
      * @param whoToLook predicate choosing which entities to look at (default: nearest player)
      * @param lookDistance max distance to look, in blocks
+     * @param turnSpeed degrees per tick the entity turns toward its target; `0` (default) snaps instantly,
+     *   a positive value turns smoothly at that rate
+     * @param lookAtSpectators whether players in spectator mode are looked at; `false` (default) ignores them
+     *   like vanilla mobs, whatever [whoToLook] says
      */
+    @JvmOverloads
     fun doEntityNearLookable(
         whoToLook: (Entity) -> Boolean = EffectiveEntityLookable.Look.TO_NEAR_PLAYER,
-        lookDistance: Float = 5.0f
+        lookDistance: Float = 5.0f,
+        turnSpeed: Float = 0.0f,
+        lookAtSpectators: Boolean = false
     ) {
         EffectiveEntityLookable.doEntityLookable(
             createEntity(null),
             whoToLook,
-            lookDistance
+            lookDistance,
+            turnSpeed,
+            lookAtSpectators
         )
     }
 

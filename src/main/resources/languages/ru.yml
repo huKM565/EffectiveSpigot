@@ -64,6 +64,10 @@ items:
   spawn_egg:
     name: "Яйцо призыва "
 
+dialog:
+  confirm: "<green>Подтвердить"
+  cancel: "<red>Отмена"
+
 errors:
   unsupported_version: "Неподдерживаемая версия Minecraft: %s"
   commands:
@@ -89,8 +93,16 @@ errors:
     no_additional_args_defined: "Дополнительные аргументы не определены"
     unknown_additional_arg_key: "Неизвестный ключ дополнительного аргумента: '%s'"
     look_distance_exceeded: "Дистанция обзора превышает максимально допустимое значение"
+  screen_animations:
+    already_registered: "Анимация на экране с ключом '%s' уже зарегистрирована"
+    no_frames: "В папке '%s' плагина '%s' нет PNG-кадров"
+    frame_size_mismatch: "Все кадры анимации на экране '%s' должны быть одного размера"
+    too_long: "У анимации на экране '%s' %d кадров, предел %d"
   screen_images:
     already_registered: "Картинка на экране с ключом '%s' уже зарегистрирована"
+    too_large: "Картинка на экране '%s' размером %dx%d, предел 4090x4090"
+  dialog:
+    unsupported_version: "Диалоговые окна требуют Minecraft 1.21.6 или новее, на сервере %s"
   post_effects:
     unsupported_version: "Постэффекты работают только на Minecraft 26.3 и выше, а сервер на %s"
     already_registered: "Постэффект с ключом '%s' уже зарегистрирован"
@@ -122,4 +134,6 @@ errors:
     model_not_found: "Модель '%s' не найдена в ресурсах плагина '%s'"
     texture_not_found: "Текстура '%s' не найдена в ресурсах плагина '%s'"
     shader_not_found: "Шейдер '%s' не найден в ресурсах плагина '%s'"
+    kick_failed: "Без ресурспака сервера играть нельзя: он отклонён или не загрузился. Перезайдите и примите его"
+    kick_timeout: "Ресурспак сервера не загрузился за минуту. Перезайдите и примите его"
     ip_not_set: "HTTP-сервер ресурспаков включён, но 'resourcepack.http-server.ip' не указан в config.yml EffectiveSpigot'а. Впишите публичный IP/домен вашего сервера или отключите resourcepack.http-server.enable."

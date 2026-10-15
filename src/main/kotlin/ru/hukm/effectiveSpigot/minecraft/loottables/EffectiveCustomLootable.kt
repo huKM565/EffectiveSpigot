@@ -6,7 +6,7 @@ import org.bukkit.inventory.ItemStack
 import ru.hukm.effectiveSpigot.Locale
 
 /** Simple weighted loot tables: lists of items each with an independent spawn chance. */
-object CustomLootable {
+object EffectiveCustomLootable {
     /** One loot entry: an [item] and its independent [chanceSpawn] in `0.0..1.0`. */
     data class ItemCellData(
         val item: ItemStack,

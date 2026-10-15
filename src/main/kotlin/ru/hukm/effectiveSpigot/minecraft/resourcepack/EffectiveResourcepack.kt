@@ -1,10 +1,17 @@
 package ru.hukm.effectiveSpigot.minecraft.resourcepack
 
+import com.google.gson.JsonParser
 import org.bukkit.Bukkit
 import net.kyori.adventure.resource.ResourcePackInfo
 import net.kyori.adventure.resource.ResourcePackRequest
-import org.bukkit.Instrument
+import net.kyori.adventure.resource.ResourcePackStatus
+import net.kyori.adventure.audience.Audience
+import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.ticks
+import kotlinx.coroutines.delay
+import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.server.ServerLoadEvent
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.Config
@@ -16,12 +23,12 @@ import ru.hukm.effectiveSpigot.minecraft.blocks.EffectiveBlock
 import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
 import ru.hukm.effectiveSpigot.minecraft.posteffect.EffectivePostEffect
+import ru.hukm.effectiveSpigot.minecraft.screen.EffectiveScreenTextFont
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 import ru.hukm.effectiveSpigot.utils.EffectiveUtils
 import java.io.ByteArrayOutputStream
 import java.net.URI
 import javax.imageio.ImageIO
-import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.util.*
 import java.util.zip.ZipEntry
@@ -38,6 +45,51 @@ import java.util.logging.Level
  */
 object EffectiveResourcepack {
     private lateinit var resourcePackRequest: ResourcePackRequest
+
+    private const val PACK_LOAD_TIMEOUT_TICKS = 20 * 60
+
+    /**
+     * Pack ids each joined player has successfully loaded so far; a player leaves the map once all packs are loaded.
+     *
+     * The packs are required: a player is kicked when the client declines a pack or fails to download or apply it, and
+     * also when not all packs are loaded within [PACK_LOAD_TIMEOUT_TICKS] of joining. `required(true)` alone does not
+     * enforce anything on the server: it only makes the client show «Proceed / Disconnect», and a client that never
+     * shows that prompt sends no answer at all, so the timeout is what catches it. Paper's own kick works only for the
+     * `server.properties` pack (`require-resource-pack`).
+     */
+    private val pendingPacks = HashMap<UUID, MutableSet<UUID>>()
+
+    private fun awaitPacks(player: Player) {
+        val playerId = player.uniqueId
+        val loaded = HashSet<UUID>()
+        pendingPacks[playerId] = loaded
+        EffectiveSpigot.instance.launch {
+            delay(PACK_LOAD_TIMEOUT_TICKS.ticks)
+            if (pendingPacks[playerId] !== loaded) return@launch
+            pendingPacks.remove(playerId)
+            Bukkit.getPlayer(playerId)?.kick(Locale.getComponent("errors.resourcepack.kick_timeout"))
+        }
+    }
+
+    private fun onPackStatus(packId: UUID, status: ResourcePackStatus, audience: Audience) {
+        val player = audience as? Player ?: return
+        val loaded = pendingPacks[player.uniqueId] ?: return
+        when (status) {
+            ResourcePackStatus.SUCCESSFULLY_LOADED -> {
+                loaded.add(packId)
+                if (loaded.size >= resourcepacksInfo.size) pendingPacks.remove(player.uniqueId)
+            }
+            ResourcePackStatus.DECLINED,
+            ResourcePackStatus.INVALID_URL,
+            ResourcePackStatus.FAILED_DOWNLOAD,
+            ResourcePackStatus.FAILED_RELOAD -> {
+                pendingPacks.remove(player.uniqueId)
+                player.kick(Locale.getComponent("errors.resourcepack.kick_failed"))
+            }
+            else -> {}
+        }
+    }
+
     /**
      * Logs a failed pack build of [instance] with its stack trace. [LinkageError]s are caught too: a plugin compiled
      * against an older framework (e.g. a changed `ResourcePackData` constructor) must not stop the other plugins' packs.
@@ -194,8 +246,22 @@ object EffectiveResourcepack {
 
             resourcepackFiles["assets/minecraft/textures/particle/note.png"] = EffectiveUtils.transparentPng(8)
 
+            for (sprite in listOf("green_background", "green_progress")) {
+                resourcepackFiles["assets/minecraft/textures/gui/sprites/boss_bar/$sprite.png"] = EffectiveUtils.transparentPng(16)
+            }
+
+            for (sprite in listOf("warning_button", "warning_button_disabled", "warning_button_highlighted")) {
+                resourcepackFiles["assets/minecraft/textures/gui/sprites/dialog/$sprite.png"] = EffectiveUtils.transparentPng(20)
+            }
+
+            resourcepackFiles["assets/minecraft/textures/gui/inworld_menu_background.png"] = EffectiveUtils.transparentPng(32)
+            resourcepackFiles["assets/minecraft/post_effect/blur.json"] = menuBlurChain()
+            resourcepackFiles["assets/effectivespigot/shaders/post/menu_blur.fsh"] =
+                instance.getResource("shaders/post/menu_blur.fsh")!!.use { it.readBytes() }
+
             resourcepackFiles["assets/minecraft/shaders/core/text.vsh"] =
                 instance.getResource("shaders/core/text.vsh")!!.use { it.readBytes() }
+            EffectiveScreenTextFont.addTo(resourcepackFiles)
         }
 
         val packBytes = ByteArrayOutputStream().use { baos ->
@@ -264,6 +330,36 @@ object EffectiveResourcepack {
         if (textureBytes != null) {
             resourcepackFiles["assets/$namespace/textures/item/$itemName.png"] = textureBytes
             data.animation?.let { resourcepackFiles["assets/$namespace/textures/item/$itemName.png.mcmeta"] = it.toMcmeta().toByteArray() }
+        }
+        addModelTextures(resourcepackFiles, instance, namespace, modelBytes)
+    }
+
+    /**
+     * Copies the textures a custom item model references in [namespace] (`"$namespace:item/musket/barrel"`) from
+     * [instance]'s jar (`textures/item/musket/barrel.png`) into the pack. References to other namespaces, such as
+     * vanilla textures, and to texture variables (`#side`) are left as they are. Missing files are logged and skipped.
+     */
+    private fun addModelTextures(
+        resourcepackFiles: MutableMap<String, ByteArray>,
+        instance: JavaPlugin,
+        namespace: String,
+        modelBytes: ByteArray
+    ) {
+        val textures = runCatching {
+            JsonParser.parseString(modelBytes.toString(Charsets.UTF_8)).asJsonObject.getAsJsonObject("textures")
+        }.getOrNull() ?: return
+
+        for ((_, value) in textures.entrySet()) {
+            val reference = value.asString
+            if (!reference.startsWith("$namespace:")) continue
+            val path = reference.substringAfter(':')
+            val target = "assets/$namespace/textures/$path.png"
+            if (target in resourcepackFiles) continue
+            val bytes = instance.getResource("textures/$path.png")?.use { it.readBytes() } ?: run {
+                instance.logger.warning(Locale.getMessage("errors.resourcepack.texture_not_found", "textures/$path.png", instance.name))
+                continue
+            }
+            resourcepackFiles[target] = bytes
         }
     }
 
@@ -388,6 +484,39 @@ object EffectiveResourcepack {
             "{\n  \"variants\": {\n$variants\n  }\n}".toByteArray()
     }
 
+    /**
+     * The menu blur chain of the framework pack: the vanilla `minecraft:blur` passes (three horizontal and vertical box
+     * blur pairs) through `effectivespigot:post/menu_blur`, whose last pass also darkens like the vanilla
+     * `inworld_menu_background.png` (black at alpha 64/255), unless the dialog flag is on the screen
+     * (see `EffectiveDialogBackground`).
+     */
+    private fun menuBlurChain(): ByteArray {
+        val vanillaDarkness = 64f / 255f
+        val passes = (0 until 6).joinToString(",\n") { index ->
+            val horizontal = index % 2 == 0
+            val input = if (horizontal) "minecraft:main" else "swap"
+            val output = if (horizontal) "swap" else "minecraft:main"
+            val direction = if (horizontal) "1.0, 0.0" else "0.0, 1.0"
+            val darkness = if (index == 5) vanillaDarkness else 0f
+            """
+                {
+                  "vertex_shader": "minecraft:core/screenquad",
+                  "fragment_shader": "effectivespigot:post/menu_blur",
+                  "inputs": [ { "sampler_name": "In", "target": "$input", "bilinear": true } ],
+                  "output": "$output",
+                  "uniforms": {
+                    "MenuBlurConfig": [
+                      { "name": "BlurDir", "type": "vec2", "value": [ $direction ] },
+                      { "name": "Radius", "type": "float", "value": 0.0 },
+                      { "name": "Darkness", "type": "float", "value": $darkness }
+                    ]
+                  }
+                }
+            """.trimIndent()
+        }
+        return "{ \"targets\": { \"swap\": {} }, \"passes\": [\n$passes\n] }".toByteArray()
+    }
+
     private fun addFont(
         resourcepackFiles: MutableMap<String, ByteArray>,
         instance: JavaPlugin
@@ -439,13 +568,18 @@ object EffectiveResourcepack {
                         resourcePackRequest = ResourcePackRequest.resourcePackRequest()
                             .packs(resourcepacksInfo)
                             .required(true)
+                            .callback { packId, status, audience -> onPackStatus(packId, status, audience) }
                             .build()
                     }
 
                     player.sendResourcePacks(
                         resourcePackRequest
                     )
+
+                    if (resourcepacksInfo.isNotEmpty()) awaitPacks(player)
                 }
+
+                event<PlayerQuitEvent> { pendingPacks.remove(it.player.uniqueId) }
 
                 event<ServerLoadEvent> {
                     if (!Config.isResourcepackHttpServerEnabled()) return@event

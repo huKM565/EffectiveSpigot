@@ -54,7 +54,7 @@ import ru.hukm.effectiveSpigot.minecraft.events.event
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract
 import ru.hukm.effectiveSpigot.minecraft.interfaces.EffectiveAbstractInteract.Click
 import ru.hukm.effectiveSpigot.minecraft.items.EffectiveItem
-import ru.hukm.effectiveSpigot.minecraft.loottables.CustomLootable
+import ru.hukm.effectiveSpigot.minecraft.loottables.EffectiveCustomLootable
 import ru.hukm.effectiveSpigot.minecraft.resourcepack.EffectiveTextureAnimation
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 import ru.hukm.effectiveSpigot.minecraft.world.EffectiveWorld
@@ -95,6 +95,12 @@ enum class EffectiveToolTier(val level: Int) {
  * `EffectiveResourcepack.addServerResourcepack(this, "", "")` in `onEnable` **after** the blocks'
  * `init()`, otherwise the block places but looks like a plain note block. The server also needs
  * `block-updates.disable-noteblock-updates: true` in `paper-global.yml`.
+ *
+ * ### Sounds
+ * Note blocks share the wood sound group, so the framework pack silences vanilla `block.wood.place`,
+ * `block.wood.break` and `block.wood.step` for everyone, and the server replays them as `required.wood.*`
+ * for every wood block, vanilla ones included, on place, break and step. A new code path that places,
+ * breaks or walks on blocks must keep that replay, or vanilla wood goes silent.
  */
 abstract class EffectiveBlock {
 
@@ -250,9 +256,23 @@ abstract class EffectiveBlock {
                     it.isDropItems = false
                     if (it.player.gameMode != GameMode.CREATIVE && canHarvest(it.player.inventory.itemInMainHand, effectiveBlock)) {
                         effectiveBlock.getDrop()?.let {
-                            CustomLootable.spawnLootAtLocation(block.location.toCenterLocation(), it)
+                            EffectiveCustomLootable.spawnLootAtLocation(block.location.toCenterLocation(), it)
                         }
                     }
+                }
+
+                event<BlockBreakEvent>(EventPriority.MONITOR, ignoreCancelled = true) {
+                    val block = it.block
+                    if (getEffectiveBlock(block) != null) return@event
+                    val soundGroup = block.blockData.soundGroup
+                    if (soundGroup.breakSound != Sound.BLOCK_WOOD_BREAK) return@event
+                    block.world.playSound(
+                        block.location,
+                        "minecraft:required.wood.break",
+                        SoundCategory.BLOCKS,
+                        (soundGroup.volume + 1.0f) / 2.0f,
+                        soundGroup.pitch * 0.8f
+                    )
                 }
 
                 event<BlockPlaceEvent>(EventPriority.LOWEST) {
@@ -381,7 +401,7 @@ abstract class EffectiveBlock {
              for (block in customs) {
                 val effectiveBlock = getEffectiveBlock(block) ?: continue
                 effectiveBlock.getDrop()?.let {
-                    CustomLootable.spawnLootAtLocation(block.location.toCenterLocation(), it)
+                    EffectiveCustomLootable.spawnLootAtLocation(block.location.toCenterLocation(), it)
                 }
                 block.type = Material.AIR
             }
@@ -637,7 +657,7 @@ abstract class EffectiveBlock {
 
     open fun isIgnitable() = false
 
-    open fun getDrop(): ArrayList<CustomLootable.ItemCellData>? = null
+    open fun getDrop(): ArrayList<EffectiveCustomLootable.ItemCellData>? = null
 
     abstract fun editItemMeta(meta: ItemMeta)
     abstract fun getResourcePackData(): ResourcePackData

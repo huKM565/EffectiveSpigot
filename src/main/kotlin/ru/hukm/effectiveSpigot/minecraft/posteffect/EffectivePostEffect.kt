@@ -1,11 +1,10 @@
 package ru.hukm.effectiveSpigot.minecraft.posteffect
 
+import net.kyori.adventure.key.Key
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.Locale
-import ru.hukm.effectiveSpigot.minecraft.nms.CraftReflection
-import ru.hukm.effectiveSpigot.minecraft.nms.NmsProxies
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 
 /**
@@ -26,9 +25,9 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
  * into the shader, so different strengths are separate effects.
  *
  * Per-player post effects exist only since Minecraft 26.3: constructing an effect on an older server throws
- * [IllegalStateException] (check [isSupported] first in a plugin that also runs on older versions). Paper has no
- * API for them yet, so the vanilla `ServerPlayer` methods are called by reflection. Several effects on one player
- * stack in the order they were applied.
+ * [IllegalStateException] (check [isSupported] first in a plugin that also runs on older versions). Paper exposes
+ * them through `Player#postEffects()` since 26.3, but the framework compiles against 1.21.4, so the calls go
+ * through reflection proxies ([PostEffectProxies]). Several effects on one player stack in the order they were applied.
  *
  * ```kotlin
  * val RageVignette = EffectivePostEffect(plugin, "rage_vignette", "shaders/rage_vignette.fsh")
@@ -45,9 +44,7 @@ class EffectivePostEffect(val plugin: JavaPlugin, val name: String, val fragment
     /** Full id `<namespace>:<name>` the client resolves in the resource pack. */
     val id: String = "${EffectiveMinecraftUtils.getNamespace(plugin)}:$name"
 
-    private val identifier: Any by lazy {
-        NmsProxies.identifier.fromNamespaceAndPath(EffectiveMinecraftUtils.getNamespace(plugin), name)
-    }
+    private val key: Key by lazy { Key.key(EffectiveMinecraftUtils.getNamespace(plugin), name) }
 
     init {
         check(isSupported) { Locale.getMessage("errors.post_effects.unsupported_version", Bukkit.getMinecraftVersion()) }
@@ -58,20 +55,29 @@ class EffectivePostEffect(val plugin: JavaPlugin, val name: String, val fragment
 
     /**
      * Turns the effect on for [player]. Idempotent and cheap enough to call every tick: nothing is sent when the
-     * player already has it, and it is re-added if the server dropped it (e.g. after respawn).
+     * player already has it, and it is re-added if the server dropped it (e.g. after respawn). No-op on servers
+     * older than 26.3.
      */
     fun apply(player: Player) {
-        val handle = CraftReflection.getPlayerHandle(player)
-        if (!NmsProxies.postEffects.getPostEffects(handle).contains(identifier)) NmsProxies.postEffects.addPostEffect(handle, identifier)
+        val getter = PostEffectProxies.playerPostEffects ?: return
+        val proxy = PostEffectProxies.postEffects ?: return
+        val effects = getter.postEffects(player)
+        if (!proxy.values(effects).contains(key)) proxy.add(effects, key)
     }
 
-    /** Turns the effect off for [player]; false if it wasn't on. */
-    fun remove(player: Player): Boolean =
-        NmsProxies.postEffects.removePostEffect(CraftReflection.getPlayerHandle(player), identifier)
+    /** Turns the effect off for [player]; false if it wasn't on or the server is older than 26.3. */
+    fun remove(player: Player): Boolean {
+        val getter = PostEffectProxies.playerPostEffects ?: return false
+        val proxy = PostEffectProxies.postEffects ?: return false
+        return proxy.remove(getter.postEffects(player), key)
+    }
 
     /** Whether [player] currently has this effect on. */
-    fun isApplied(player: Player): Boolean =
-        NmsProxies.postEffects.getPostEffects(CraftReflection.getPlayerHandle(player)).contains(identifier)
+    fun isApplied(player: Player): Boolean {
+        val getter = PostEffectProxies.playerPostEffects ?: return false
+        val proxy = PostEffectProxies.postEffects ?: return false
+        return proxy.values(getter.postEffects(player)).contains(key)
+    }
 
     companion object {
         private val registry = linkedMapOf<String, EffectivePostEffect>()

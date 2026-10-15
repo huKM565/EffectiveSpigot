@@ -62,6 +62,10 @@ items:
     registered: "<green>Zone of type '%s' registered with ID %d."
     zone_not_registered: "<red>Zone type '%s' is not registered on this server."
 
+dialog:
+  confirm: "<green>Confirm"
+  cancel: "<red>Cancel"
+
 errors:
   unsupported_version: "Unsupported Minecraft version: %s"
   commands:
@@ -89,8 +93,16 @@ errors:
     cannot_parse_additional_arg: "Cannot parse argument #%s = '%s' for key '%s'"
     no_additional_args_defined: "No additional args defined"
     unknown_additional_arg_key: "Unknown additional arg key: '%s'"
+  screen_animations:
+    already_registered: "Screen animation with namespaced name '%s' is already registered"
+    no_frames: "No PNG frames found in '%s' of plugin '%s'"
+    frame_size_mismatch: "Frames of screen animation '%s' must all be the same size"
+    too_long: "Screen animation '%s' has %d frames, the limit is %d"
   screen_images:
     already_registered: "Screen image with namespaced name '%s' is already registered"
+    too_large: "Screen image '%s' is %dx%d, the limit is 4090x4090"
+  dialog:
+    unsupported_version: "Dialogs require Minecraft 1.21.6 or newer, the server runs %s"
   post_effects:
     unsupported_version: "Post effects require Minecraft 26.3 or newer, the server runs %s"
     already_registered: "Post effect with namespaced name '%s' is already registered"
@@ -122,4 +134,6 @@ errors:
     model_not_found: "Model '%s' not found in plugin '%s' resources"
     texture_not_found: "Texture '%s' not found in plugin '%s' resources"
     shader_not_found: "Shader '%s' not found in plugin '%s' resources"
+    kick_failed: "The server resource pack is required: it was declined or failed to load. Rejoin and accept it"
+    kick_timeout: "The server resource pack did not load within a minute. Rejoin and accept it"
     ip_not_set: "Resource pack HTTP server is enabled, but 'resourcepack.http-server.ip' is not set in EffectiveSpigot's config.yml. Set it to the server's public IP/domain, or disable resourcepack.http-server.enable."
