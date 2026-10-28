@@ -26,7 +26,10 @@ import ru.hukm.effectiveSpigot.minecraft.events.event
 abstract class EffectiveAdvancement {
     /**
      * Visual/behavioral display of an advancement.
-     * @property background background texture path (root advancements only)
+     * @property background background texture of the tab (root advancements only), as a texture id: the path inside
+     *   `textures/` without `.png`, e.g. `"minecraft:block/dirt"` or `"minecraft:gui/advancements/backgrounds/stone"`.
+     *   A full path such as `"minecraft:textures/block/dirt.png"` makes the client look for
+     *   `textures/textures/block/dirt.png.png` and draw the missing texture.
      * @property showToast whether the toast pops on grant
      * @property announceToChat whether the grant is broadcast to chat
      * @property hidden whether it stays hidden until unlocked

@@ -10,7 +10,7 @@ group = "ru.hukm"
 
 // Базовая версия без суффикса. По умолчанию сборка = снапшот;
 // `./gradlew build -Prelease` = релиз (чистая версия, уходит в maven-releases).
-val baseVersion = "1.0.1"
+val baseVersion = "1.0.5"
 version = if (project.hasProperty("release")) baseVersion else "$baseVersion-SNAPSHOT"
 
 val nexusUrl = (findProperty("nexusUrl") as String?) ?: "https://maven.hukm.dev"
@@ -26,13 +26,20 @@ repositories {
 dependencies {
   implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
   compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
-  compileOnly("io.netty:netty-transport:4.1.115.Final")
 
   implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-api:2.22.0")
   implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-core:2.22.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
   implementation("xyz.jpenilla:reflection-remapper:0.1.1")
   implementation("org.bstats:bstats-bukkit:3.1.0")
+
+  testImplementation("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+  testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
+  testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
+}
+
+tasks.test {
+  useJUnitPlatform()
 }
 
 kotlin {

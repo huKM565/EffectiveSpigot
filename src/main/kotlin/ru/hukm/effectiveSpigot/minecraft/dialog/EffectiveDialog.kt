@@ -5,6 +5,7 @@ import com.github.shynixn.mccoroutine.bukkit.ticks
 import kotlinx.coroutines.delay
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.event.inventory.InventoryType
 import ru.hukm.effectiveSpigot.EffectiveSpigot
 import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.interfaces.IModule
@@ -46,6 +47,8 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
  */
 abstract class EffectiveDialog {
     companion object {
+        private val OWN_INVENTORY_TYPES = setOf(InventoryType.CRAFTING, InventoryType.CREATIVE)
+
         /** Whether this server can show dialogs (Minecraft 1.21.6+). */
         @JvmStatic
         val isSupported: Boolean get() = EffectiveMinecraftUtils.isVersionAtLeast(1, 21, 6)
@@ -67,8 +70,10 @@ abstract class EffectiveDialog {
     open fun hasBackground(): Boolean = true
 
     /**
-     * Shows [getDialog] to [player]. It opens on the next tick and closes the player's open inventory first, so it is
-     * safe to call from a menu click handler.
+     * Shows [getDialog] to [player]. It opens on the next tick and first closes the container the player has open (a
+     * chest, an inventory menu), so it is safe to call from a menu click handler. With no container open nothing is
+     * closed: a dialog already on screen is replaced directly and the cursor stays where it is (closing first would
+     * hand the mouse back to the game and the client would recentre the cursor when the next screen opens).
      *
      * @throws IllegalStateException on servers older than 1.21.6 (check [isSupported] first).
      */
@@ -80,7 +85,7 @@ abstract class EffectiveDialog {
         EffectiveSpigot.instance.launch {
             delay(1.ticks)
             if (!player.isOnline) return@launch
-            player.closeInventory()
+            if (player.openInventory.type !in OWN_INVENTORY_TYPES) player.closeInventory()
             EffectiveDialogBackground.set(player, background)
             DialogProxies.audience.showDialog(player, dialog)
         }

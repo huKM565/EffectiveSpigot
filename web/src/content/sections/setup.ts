@@ -5,12 +5,12 @@ export const setup: Section = {
   why: {
     ru: [
       'Требования: Paper 1.21.4+ (включая 26.x), Java 21, Kotlin 2.4. Фреймворк ставится на сервер как обычный плагин; Kotlin-рантайм и корутины внутри него.',
-      'Дочерний плагин не тянет фреймворк напрямую. Вместо этого он подключает gradle-плагин ru.hukm.effective-plugin — тот приносит Kotlin, shadow, релокацию kotlin-классов, Paper API и compileOnly-зависимость на свежий EffectiveSpigot.',
+      'Дочерний плагин не тянет фреймворк напрямую. Вместо этого он подключает gradle-плагин ru.hukm.effective-plugin — тот приносит Kotlin, shadow, релокацию kotlin-классов и compileOnly-зависимость на свежий EffectiveSpigot. Paper API и версию Java плагин прописывает сам под свой сервер.',
       'На сервере EffectiveSpigot стоит как отдельный плагин, а ваш jar объявляет его в depend. Kotlin-рантайм и корутины уже внутри фреймворка — в ваш jar они не попадают.',
     ],
     en: [
       'Requirements: Paper 1.21.4+ (26.x included), Java 21, Kotlin 2.4. The framework is installed on the server as a regular plugin; the Kotlin runtime and coroutines live inside it.',
-      'A child plugin does not depend on the framework directly. It applies the ru.hukm.effective-plugin gradle plugin, which brings Kotlin, shadow, relocation of kotlin classes, the Paper API and a compileOnly dependency on the latest EffectiveSpigot.',
+      'A child plugin does not depend on the framework directly. It applies the ru.hukm.effective-plugin gradle plugin, which brings Kotlin, shadow, relocation of kotlin classes and a compileOnly dependency on the latest EffectiveSpigot. The plugin declares the Paper API and the Java version itself, for its own server.',
       'On the server EffectiveSpigot is a separate plugin and your jar lists it in depend. The Kotlin runtime and coroutines already live inside the framework — they are not bundled into your jar.',
     ],
   },
@@ -28,16 +28,22 @@ rootProject.name = "MyPlugin"`,
     {
       title: { ru: 'build.gradle.kts', en: 'build.gradle.kts' },
       code: `plugins {
-    kotlin("jvm") version "2.4.20"
-    id("com.gradleup.shadow") version "9.4.1"
     id("ru.hukm.effective-plugin") version "1.0.0-SNAPSHOT"
 }
 
 group = "ru.example"
-version = "1.0.0"`,
+version = "1.0.0"
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:26.3.build.26-alpha")
+}
+
+kotlin {
+    jvmToolchain(25)
+}`,
       note: {
-        ru: 'Версия в id("ru.hukm.effective-plugin") — это версия gradle-плагина, а не фреймворка. Фреймворк резолвится как latest.integration автоматически.',
-        en: 'The version in id("ru.hukm.effective-plugin") is the gradle plugin version, not the framework. The framework resolves as latest.integration automatically.',
+        ru: 'Версия в id("ru.hukm.effective-plugin") — это версия gradle-плагина, а не фреймворка. Фреймворк резолвится как latest.integration автоматически. Paper API и Java задаёт сам плагин: для 26.3 — 26.3.build.26-alpha и jvmToolchain(25), для 1.21.4 — 1.21.4-R0.1-SNAPSHOT и jvmToolchain(21). Paper API 26.x требует Java 25, иначе Gradle его не подключит.',
+        en: 'The version in id("ru.hukm.effective-plugin") is the gradle plugin version, not the framework. The framework resolves as latest.integration automatically. The plugin sets the Paper API and Java itself: for 26.3 — 26.3.build.26-alpha and jvmToolchain(25), for 1.21.4 — 1.21.4-R0.1-SNAPSHOT and jvmToolchain(21). Paper API 26.x needs Java 25, otherwise Gradle does not resolve it.',
       },
     },
     {

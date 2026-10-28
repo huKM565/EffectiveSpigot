@@ -61,6 +61,22 @@ fun open(player: Player) {
     openWithFreeSlots(player, saved)
 }`,
     },
+    {
+      title: { ru: 'Подтверждение через диалог', en: 'Confirmation dialog' },
+      code: `'b' to SlotData(BorderItem.createItemStack(), listOf(
+    ClickData(ClickType.LEFT) { player ->
+        EffectiveConfirmDialog(
+            Component.text("Expand the border"),
+            Component.text("Costs 64 big emeralds"),
+            onCancel = { it.openInventory(getMenu()) },
+        ) { expandBorder(it) }.show(player)
+    },
+)),`,
+      note: {
+        ru: 'EffectiveConfirmDialog — готовый наследник EffectiveDialog: нативное окно Paper (Minecraft 1.21.6+, тип multi_action) с кнопками «Подтвердить» и «Отмена» рядом, сразу под текстом, а не в нижней полосе. show открывает его на следующем тике и сам закрывает меню, так что звать можно прямо из ClickData. Колбэки идут в главном потоке, срабатывает только первый ответ, Esc не вызывает ни один. Свои диалоги — наследники EffectiveDialog: сам диалог любого типа собирается через Paper API в getDialog(player), а hasBackground решает фон (false — без ванильного размытия и затемнения, под окном всё видно чётко). На сервере старше 1.21.6 show бросает IllegalStateException — проверяйте EffectiveDialog.isSupported.',
+        en: 'EffectiveConfirmDialog is a ready-made EffectiveDialog subclass: a native Paper window (Minecraft 1.21.6+, multi_action type) with «Confirm» and «Cancel» side by side right under the text, not in the bottom bar. show opens it on the next tick and closes the menu itself, so it can be called straight from ClickData. Callbacks run on the main thread, only the first answer counts, Esc runs neither. Your own dialogs subclass EffectiveDialog: build the dialog of any type with the Paper API in getDialog(player), and hasBackground picks the background (false drops the vanilla blur and darkening, everything under the window stays sharp). On servers older than 1.21.6 show throws IllegalStateException — check EffectiveDialog.isSupported.',
+      },
+    },
   ],
   behavioursTitle: { ru: 'Слоты и раскладка', en: 'Slots and layout' },
   behaviours: [

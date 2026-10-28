@@ -29,14 +29,22 @@ rootProject.name = "MyPlugin"
 **`build.gradle.kts`**:
 ```kotlin
 plugins {
-    kotlin("jvm") version "2.2.0"
-    id("com.gradleup.shadow") version "8.3.6"
     id("ru.hukm.effective-plugin") version "1.0.0-SNAPSHOT"
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:26.3.build.26-alpha")
+}
+
+kotlin {
+    jvmToolchain(25)
 }
 ```
 The version above is the *convention plugin's* version; the framework itself resolves as `latest.integration`.
-The convention plugin already brings `paper-api`, the Kotlin stdlib and the framework as `compileOnly`, and
-relocates Kotlin/coroutines to match the framework — do not add your own `relocate` rules.
+The convention plugin brings Kotlin, shadow, the Kotlin stdlib and the framework as `compileOnly`, and relocates
+Kotlin/coroutines to match the framework — do not add your own `relocate` rules. It does **not** set the Paper API or
+the Java version: each plugin declares `paper-api` and `jvmToolchain` for its own server (26.3: `26.3.build.26-alpha`
+and `25`; 1.21.4: `1.21.4-R0.1-SNAPSHOT` and `21`). Paper API 26.x needs Java 25, otherwise Gradle does not resolve it.
 
 **`plugin.yml`** — declare the dependency:
 ```yaml

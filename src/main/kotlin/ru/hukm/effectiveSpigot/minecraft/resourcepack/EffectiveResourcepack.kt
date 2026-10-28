@@ -59,6 +59,16 @@ object EffectiveResourcepack {
      */
     private val pendingPacks = HashMap<UUID, MutableSet<UUID>>()
 
+    private val loadedPlayers = HashSet<UUID>()
+
+    /**
+     * Whether [player] has successfully loaded every pack sent on join (true right away when there are none). Until
+     * then the client draws with vanilla resources: show glyph-based screens (menus, dialogs, screen images) only after
+     * this turns true.
+     */
+    @JvmStatic
+    fun isLoaded(player: Player): Boolean = player.uniqueId in loadedPlayers
+
     private fun awaitPacks(player: Player) {
         val playerId = player.uniqueId
         val loaded = HashSet<UUID>()
@@ -77,7 +87,10 @@ object EffectiveResourcepack {
         when (status) {
             ResourcePackStatus.SUCCESSFULLY_LOADED -> {
                 loaded.add(packId)
-                if (loaded.size >= resourcepacksInfo.size) pendingPacks.remove(player.uniqueId)
+                if (loaded.size >= resourcepacksInfo.size) {
+                    pendingPacks.remove(player.uniqueId)
+                    loadedPlayers.add(player.uniqueId)
+                }
             }
             ResourcePackStatus.DECLINED,
             ResourcePackStatus.INVALID_URL,
@@ -317,14 +330,8 @@ object EffectiveResourcepack {
             """.trimIndent().toByteArray()
         }
 
-        resourcepackFiles["assets/$namespace/items/$itemName.json"] = """
-            {
-              "model": {
-                "type": "minecraft:model",
-                "model": "$namespace:item/$itemName"
-              }
-            }
-        """.trimIndent().toByteArray()
+        resourcepackFiles["assets/$namespace/items/$itemName.json"] =
+            ItemModelDefinition.build(namespace, itemName, data).toString().toByteArray()
 
         resourcepackFiles["assets/$namespace/models/item/$itemName.json"] = modelBytes
         if (textureBytes != null) {
@@ -332,6 +339,24 @@ object EffectiveResourcepack {
             data.animation?.let { resourcepackFiles["assets/$namespace/textures/item/$itemName.png.mcmeta"] = it.toMcmeta().toByteArray() }
         }
         addModelTextures(resourcepackFiles, instance, namespace, modelBytes)
+        ItemModelDefinition.extraModels(namespace, itemName, data).forEach { (target, path) ->
+            addExtraModel(resourcepackFiles, instance, namespace, target, path)
+        }
+    }
+
+    private fun addExtraModel(
+        resourcepackFiles: MutableMap<String, ByteArray>,
+        instance: JavaPlugin,
+        namespace: String,
+        target: String,
+        path: String
+    ) {
+        val bytes = instance.getResource(path)?.use { it.readBytes() } ?: run {
+            instance.logger.warning(Locale.getMessage("errors.resourcepack.model_not_found", path, instance.name))
+            return
+        }
+        resourcepackFiles[target] = bytes
+        addModelTextures(resourcepackFiles, instance, namespace, bytes)
     }
 
     /**
@@ -576,10 +601,13 @@ object EffectiveResourcepack {
                         resourcePackRequest
                     )
 
-                    if (resourcepacksInfo.isNotEmpty()) awaitPacks(player)
+                    if (resourcepacksInfo.isNotEmpty()) awaitPacks(player) else loadedPlayers.add(player.uniqueId)
                 }
 
-                event<PlayerQuitEvent> { pendingPacks.remove(it.player.uniqueId) }
+                event<PlayerQuitEvent> {
+                    pendingPacks.remove(it.player.uniqueId)
+                    loadedPlayers.remove(it.player.uniqueId)
+                }
 
                 event<ServerLoadEvent> {
                     if (!Config.isResourcepackHttpServerEnabled()) return@event

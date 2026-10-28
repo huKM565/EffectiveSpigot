@@ -94,7 +94,7 @@ internal class EffectiveChunkSoA{
         }
 
         fun setAir(relativeX: Int, y: Int, relativeZ: Int, effectiveChunkSoA: EffectiveChunkSoA) {
-            setType(relativeX, y, relativeZ, 2, effectiveChunkSoA)
+            updateBlock(relativeX, y, relativeZ, Material.AIR, effectiveChunkSoA)
         }
 
         private fun setType(relativeX: Int, y: Int, relativeZ: Int, type: Short, effectiveChunkSoA: EffectiveChunkSoA) {

@@ -223,6 +223,35 @@ val small = Bomb.createItemStack(3, listOf("2", "Alex"))`,
         en: 'The same item, but each stack has its own values: they are parsed from strings in declaration order and written to the stack\'s PDC on creation. /egive bomb Steve 6 Alex takes the same arguments. Types: scalar PersistentDataType (STRING, INTEGER, LONG, DOUBLE, FLOAT, BYTE, SHORT, BOOLEAN) and comma-separated arrays (BYTE_ARRAY, INTEGER_ARRAY, LONG_ARRAY). Read via additionalKey("radius") + EffectiveDataContainerUtils; showAdditionArgsInLore appends the values to the lore.',
       },
     },
+    {
+      title: { ru: 'Анимации модели', en: 'Model animations' },
+      code: `object Musket : EffectiveItem() {
+    val SHOT = EffectiveModelAnimation("shot", EffectiveModelAnimation.frames("models/musket/shot", 24), ticks = 10)
+    val COCKED = EffectiveModelState("cocked", "models/musket/cocked.json")
+
+    override fun getResourcePackData() = ResourcePackData(
+        modelPath = "models/musket.json",
+        modelAnimations = listOf(SHOT),
+        modelStates = listOf(COCKED),
+    )
+
+    fun init() {
+        addClickHandler(Click.RIGHT, { e ->
+            COCKED.apply(e.item)
+            Result.CANCEL_EVENT
+        })
+        addClickHandler(Click.LEFT, { e ->
+            EffectiveModelState.clear(e.item)
+            SHOT.play(e.player, e.item)
+            Result.CANCEL_EVENT
+        })
+    }
+}`,
+      note: {
+        ru: 'Кадры — обычные модели в jar (frames даёт пути 01.json…24.json), фреймворк кладёт их в пак и пишет items/<id>.json с выбором по custom_model_data и minecraft:cooldown. play — одна запись в стак и один пакет кулдауна, кадры клиент переключает сам на каждом кадре экрана (24 кадра за 10 тиков = 48 к/с). Состояние — модель в покое, держится на стаке и показывается сразу после конца анимации. Предмету с анимациями при создании ставится своя группа кулдауна <namespace>:<id>.',
+        en: 'Frames are ordinary models in the jar (frames gives the paths 01.json…24.json); the framework puts them into the pack and writes items/<id>.json that picks by custom_model_data and minecraft:cooldown. play is one write to the stack and one cooldown packet; the client switches frames by itself every rendered frame (24 frames in 10 ticks = 48 fps). A state is the model at rest; it stays on the stack and shows right after the animation ends. An item with animations gets its own cooldown group <namespace>:<id> on creation.',
+      },
+    },
   ],
   methods: [
     { name: 'getMaterial()', required: true, desc: { ru: 'Базовый ванильный материал стака', en: 'Base vanilla material of the stack' } },
@@ -240,6 +269,9 @@ val small = Bomb.createItemStack(3, listOf("2", "Alex"))`,
       'makeDurable должен быть вызван до первого createItemStack — прочность ставится при создании стака.',
       'Методы getNamespacedData / getMaterial дёргаются в конструкторе — не завязывайте их на поля наследника, только константы.',
       'player.itemOnCursor = x не компилируется (nullability геттера и сеттера в Paper не совпадает) — только player.setItemOnCursor(x).',
+      'Анимация модели — это кулдаун: пока она идёт, ПКМ предметом не работает и на хотбаре белая заливка. ЛКМ не блокируется.',
+      'У предмета с анимациями hand_animation_on_swap = false: при смене строк предмет не опускается в руке, но и при переключении на него в хотбаре не поднимается.',
+      'Стаки, созданные до появления анимаций, без группы кулдауна: их кулдаун общий на весь материал. Дописать use_cooldown старым стакам — забота плагина.',
     ],
     en: [
       'The item exists but has no texture — EffectiveResourcepack.addServerResourcepack(this, "", "") in onEnable after init() is missing. Without it no pack is built for the plugin.',
@@ -247,6 +279,9 @@ val small = Bomb.createItemStack(3, listOf("2", "Alex"))`,
       'makeDurable must be called before the first createItemStack — durability is applied when the stack is created.',
       'getNamespacedData / getMaterial are called from the constructor — do not rely on subclass fields, only constants.',
       'player.itemOnCursor = x does not compile (getter and setter nullability differ in Paper) — use player.setItemOnCursor(x).',
+      'A model animation is a cooldown: while it runs, right click with the item does nothing and the hotbar shows the white sweep. Left click is not blocked.',
+      'An item with animations has hand_animation_on_swap = false: changing the strings does not lower the item in hand, but switching to it in the hotbar does not raise it either.',
+      'Stacks created before the animations were added have no cooldown group, so their cooldown is shared by the whole material. Adding use_cooldown to old stacks is up to the plugin.',
     ],
   },
 }

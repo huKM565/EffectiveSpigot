@@ -26,7 +26,8 @@ import java.util.UUID
  * [EffectiveScreenText]: `RGBA 37, 13, 100 + n, 1`, where `n` is the distance in pixels from that corner to the text
  * line, so the shader can find the line), so ordinary text of any color is left alone. The whole 24-bit text color
  * then carries the placement: x and y 9 bits each (a step of 1/512 of the screen) and the size 6 bits. Coordinates are
- * screen fractions `0.0..1.0`, top-left origin.
+ * screen fractions `0.0..1.0`, top-left origin. [EffectiveScreenAnimation] bakes the same placement into its tiles and
+ * uses the color for its start tick and playback instead.
  *
  * Every element shown to a player shares ONE boss bar per player whose name is the concatenation of all shown
  * elements' glyphs, so any number of elements stay on screen together, each until its own [hide] or duration, and

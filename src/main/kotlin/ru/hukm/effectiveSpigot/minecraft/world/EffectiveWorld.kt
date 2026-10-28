@@ -18,8 +18,11 @@ import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlockD
 /**
  * Per-world block cache (SoA chunk snapshots) used by zones and custom blocks for material lookups.
  *
- * ⚠️ **Known bugs.** The cache can drift from the real world (see `verifySync` desync logging); callers
- * needing precision should confirm with `World.getBlockAt`. Internal — not part of the public API.
+ * Many block events fire before the world changes (physics, fading, forming, growing), and some removals fire no
+ * event at all except physics (a mushroom in light, a plant that lost its support). So every touched position is also
+ * queued and, one tick later, re-read from the world and written back if the cache differs ([reconcile]). Changes made
+ * without any event (plugins calling `setType`) can still drift; callers needing precision should confirm with
+ * `World.getBlockAt`. Internal — not part of the public API.
  */
 internal class EffectiveWorld private constructor(val name: String) {
     data class BlockData(val x: Int, val y: Int, val z: Int, val material: Material)
@@ -86,6 +89,14 @@ internal class EffectiveWorld private constructor(val name: String) {
         fun getBlock(world: World, pos: EffectiveBlockPos): EffectiveBlockData? {
             return getOrCreateInstance(world).getBlock(pos)
         }
+
+        fun markDirty(block: Block) {
+            getOrCreateInstance(block.world).markDirty(block)
+        }
+
+        fun markDirty(blocks: Collection<Block>) {
+            blocks.forEach { markDirty(it) }
+        }
     }
 
     fun findBlocksByMaterial(material: Material): ArrayList<EffectiveBlockData> {
@@ -140,19 +151,46 @@ internal class EffectiveWorld private constructor(val name: String) {
     private fun updateBlock(chunkX: Int, chunkZ: Int, x: Int, y: Int, z: Int, material: Material) {
         val cursor = findChunkOrLoad(chunkX, chunkZ) ?: return
         cursor.updateBlock(x, y, z, material, effectiveChunkSoA)
-        verifySync(chunkX * 16 + x, y, chunkZ * 16 + z)
+        markDirty(chunkX * 16 + x, y, chunkZ * 16 + z)
     }
 
-    private fun verifySync(worldX: Int, worldY: Int, worldZ: Int) {
-        val world = EffectiveWorldParser.stringToWorld(name)
-        Bukkit.getScheduler().runTask(instance, Runnable {
-            val soa = effectiveChunkSoA.getBlock(EffectiveBlockPos(worldX, worldY, worldZ))?.material
-            val bukkit = world.getBlockAt(worldX, worldY, worldZ).type
-            if (soa != bukkit) {
-                instance.logger.warning("[EffectiveWorld/$name] SoA desync at $worldX,$worldY,$worldZ — SoA=$soa, Bukkit=$bukkit")
-            }
-        })
+    private val dirty = HashSet<Long>()
+    private var reconcileScheduled = false
+
+    /** Queues [x], [y], [z] to be re-read from the world on the next tick, when the change behind an event is done. */
+    fun markDirty(x: Int, y: Int, z: Int) {
+        dirty.add(pack(x, y, z))
+        if (reconcileScheduled) return
+        reconcileScheduled = true
+        Bukkit.getScheduler().runTask(instance, Runnable { reconcile() })
     }
+
+    fun markDirty(block: Block) = markDirty(block.x, block.y, block.z)
+
+    private fun reconcile() {
+        reconcileScheduled = false
+        val world = Bukkit.getWorld(name) ?: run { dirty.clear(); return }
+        val positions = dirty.toLongArray()
+        dirty.clear()
+        for (packed in positions) {
+            val x = unpackX(packed)
+            val y = unpackY(packed)
+            val z = unpackZ(packed)
+            if (y < world.minHeight || y >= world.maxHeight || !world.isChunkLoaded(x shr 4, z shr 4)) continue
+            val cursor = effectiveChunkSoA.find(x shr 4, z shr 4) ?: continue
+            val actual = world.getBlockAt(x, y, z).type
+            if (cursor.getBlockAt(x and 15, y, z and 15, effectiveChunkSoA).material != actual) {
+                cursor.updateBlock(x and 15, y, z and 15, actual, effectiveChunkSoA)
+            }
+        }
+    }
+
+    private fun pack(x: Int, y: Int, z: Int): Long =
+        ((x.toLong() and 0x3FFFFFF) shl 38) or ((z.toLong() and 0x3FFFFFF) shl 12) or (y.toLong() and 0xFFF)
+
+    private fun unpackX(packed: Long): Int = (packed shr 38).toInt()
+    private fun unpackZ(packed: Long): Int = ((packed shl 26) shr 38).toInt()
+    private fun unpackY(packed: Long): Int = ((packed shl 52) shr 52).toInt()
 
     fun setAirs(blocks: List<Block>) {
         blocks.forEach { setAir(it) }
@@ -161,7 +199,7 @@ internal class EffectiveWorld private constructor(val name: String) {
     fun setAir(block: Block) {
         val cursor = findChunkOrLoad(block) ?: return
         cursor.setAir(block.x and 15, block.y, block.z and 15, effectiveChunkSoA)
-        verifySync(block.x, block.y, block.z)
+        markDirty(block)
     }
 
     fun updateBlock(x: Int, y: Int, z: Int, material: Material) {
@@ -190,7 +228,7 @@ internal class EffectiveWorld private constructor(val name: String) {
                         blockData.material,
                         effectiveChunkSoA
                     )
-                    verifySync(blockData.x, blockData.y, blockData.z)
+                    markDirty(blockData.x, blockData.y, blockData.z)
                 }
             }
         }

@@ -5,6 +5,7 @@ import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import ru.hukm.effectiveSpigot.Locale
+import ru.hukm.effectiveSpigot.minecraft.nms.CraftReflection
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
 
 /**
@@ -25,9 +26,10 @@ import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveMinecraftUtils
  * into the shader, so different strengths are separate effects.
  *
  * Per-player post effects exist only since Minecraft 26.3: constructing an effect on an older server throws
- * [IllegalStateException] (check [isSupported] first in a plugin that also runs on older versions). Paper exposes
- * them through `Player#postEffects()` since 26.3, but the framework compiles against 1.21.4, so the calls go
- * through reflection proxies ([PostEffectProxies]). Several effects on one player stack in the order they were applied.
+ * [IllegalStateException] (check [isSupported] first in a plugin that also runs on older versions). Newer Paper builds
+ * expose them through `Player#postEffects()`; 26.3 builds up to at least build 26 do not, and there the vanilla
+ * `ServerPlayer` methods are called instead. The framework compiles against 1.21.4, so both go through reflection
+ * proxies ([PostEffectProxies]). Several effects on one player stack in the order they were applied.
  *
  * ```kotlin
  * val RageVignette = EffectivePostEffect(plugin, "rage_vignette", "shaders/rage_vignette.fsh")
@@ -46,6 +48,10 @@ class EffectivePostEffect(val plugin: JavaPlugin, val name: String, val fragment
 
     private val key: Key by lazy { Key.key(EffectiveMinecraftUtils.getNamespace(plugin), name) }
 
+    private val identifier: Any? by lazy {
+        PostEffectProxies.identifier?.fromNamespaceAndPath(EffectiveMinecraftUtils.getNamespace(plugin), name)
+    }
+
     init {
         check(isSupported) { Locale.getMessage("errors.post_effects.unsupported_version", Bukkit.getMinecraftVersion()) }
         require(name.matches(Regex("[a-z0-9_.-]+"))) { "Post effect name must match [a-z0-9_.-]+: $name" }
@@ -59,24 +65,37 @@ class EffectivePostEffect(val plugin: JavaPlugin, val name: String, val fragment
      * older than 26.3.
      */
     fun apply(player: Player) {
-        val getter = PostEffectProxies.playerPostEffects ?: return
-        val proxy = PostEffectProxies.postEffects ?: return
-        val effects = getter.postEffects(player)
-        if (!proxy.values(effects).contains(key)) proxy.add(effects, key)
+        val getter = PostEffectProxies.playerPostEffects
+        val proxy = PostEffectProxies.postEffects
+        if (getter != null && proxy != null) {
+            val effects = getter.postEffects(player)
+            if (!proxy.values(effects).contains(key)) proxy.add(effects, key)
+            return
+        }
+        val vanilla = PostEffectProxies.serverPlayer ?: return
+        val id = identifier ?: return
+        val handle = CraftReflection.getPlayerHandle(player)
+        if (!vanilla.getPostEffects(handle).contains(id)) vanilla.addPostEffect(handle, id)
     }
 
     /** Turns the effect off for [player]; false if it wasn't on or the server is older than 26.3. */
     fun remove(player: Player): Boolean {
-        val getter = PostEffectProxies.playerPostEffects ?: return false
-        val proxy = PostEffectProxies.postEffects ?: return false
-        return proxy.remove(getter.postEffects(player), key)
+        val getter = PostEffectProxies.playerPostEffects
+        val proxy = PostEffectProxies.postEffects
+        if (getter != null && proxy != null) return proxy.remove(getter.postEffects(player), key)
+        val vanilla = PostEffectProxies.serverPlayer ?: return false
+        val id = identifier ?: return false
+        return vanilla.removePostEffect(CraftReflection.getPlayerHandle(player), id)
     }
 
     /** Whether [player] currently has this effect on. */
     fun isApplied(player: Player): Boolean {
-        val getter = PostEffectProxies.playerPostEffects ?: return false
-        val proxy = PostEffectProxies.postEffects ?: return false
-        return proxy.values(getter.postEffects(player)).contains(key)
+        val getter = PostEffectProxies.playerPostEffects
+        val proxy = PostEffectProxies.postEffects
+        if (getter != null && proxy != null) return proxy.values(getter.postEffects(player)).contains(key)
+        val vanilla = PostEffectProxies.serverPlayer ?: return false
+        val id = identifier ?: return false
+        return vanilla.getPostEffects(CraftReflection.getPlayerHandle(player)).contains(id)
     }
 
     companion object {

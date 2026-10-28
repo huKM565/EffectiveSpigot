@@ -74,10 +74,14 @@ doEntityNearLookable(lookDistance = 10f)
 
 doEntityNearLookable(whoToLook = Look.TO_NEAR_ENTITY)
 
-doEntityNearLookable(whoToLook = { it is Player && it.isSneaking }, lookDistance = 4f)`,
+doEntityNearLookable(whoToLook = { it is Player && it.isSneaking }, lookDistance = 4f)
+
+doEntityNearLookable(turnSpeed = 10f)
+
+doEntityNearLookable(lookAtSpectators = true)`,
       note: {
-        ru: 'Сущность поворачивает голову к ближайшей цели, пока та в lookDistance блоках. Look.TO_NEAR_PLAYER (по умолчанию) и TO_NEAR_ENTITY, либо свой предикат (Entity) -> Boolean.',
-        en: 'The entity turns its head towards the nearest target within lookDistance blocks. Look.TO_NEAR_PLAYER (default) and TO_NEAR_ENTITY, or your own (Entity) -> Boolean predicate.',
+        ru: 'Сущность поворачивает голову к ближайшей цели, пока та в lookDistance блоках. Look.TO_NEAR_PLAYER (по умолчанию) и TO_NEAR_ENTITY, либо свой предикат (Entity) -> Boolean. turnSpeed — скорость поворота в градусах за тик (0 — мгновенно). Игроков в спектаторе сущность не замечает, пока не передан lookAtSpectators = true.',
+        en: 'The entity turns its head towards the nearest target within lookDistance blocks. Look.TO_NEAR_PLAYER (default) and TO_NEAR_ENTITY, or your own (Entity) -> Boolean predicate. turnSpeed is the turn rate in degrees per tick (0 snaps instantly). Players in spectator mode are ignored unless lookAtSpectators = true.',
       },
     },
     {

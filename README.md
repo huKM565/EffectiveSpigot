@@ -17,7 +17,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = "MyPlugin"
+rootProject.name = "MyPlugin0"
 ```
 
 **`build.gradle.kts`**:
@@ -25,7 +25,24 @@ rootProject.name = "MyPlugin"
 plugins {
     id("ru.hukm.effective-plugin") version "1.0.0-SNAPSHOT"
 }
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:26.3.build.26-alpha")
+}
+
+kotlin {
+    jvmToolchain(25)
+}
 ```
+
+Convention-плагин приносит Kotlin, shadow, релокацию Kotlin под фреймворк, репозитории Paper и `maven.hukm.dev`, `compileOnly` на свежий EffectiveSpigot и подстановку `${version}` в `plugin.yml`. **Paper API и версию Java он не задаёт** — их каждый плагин прописывает сам под свой сервер:
+
+| Сервер | `paper-api` | `jvmToolchain` |
+|---|---|---|
+| 26.3 | `26.3.build.26-alpha` | `25` |
+| 1.21.4 | `1.21.4-R0.1-SNAPSHOT` | `21` |
+
+Paper API 26.x требует Java 25: с меньшим `jvmToolchain` или `options.release` Gradle не подключит его вовсе, и Bukkit/Paper-классы пропадут из проекта.
 
 **`plugin.yml`** — не забудьте зависимость от фреймворка:
 ```yaml

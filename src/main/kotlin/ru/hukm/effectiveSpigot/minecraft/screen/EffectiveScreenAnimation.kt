@@ -15,18 +15,19 @@ import javax.imageio.ImageIO
  * An animation on a player's screen that the client plays by itself.
  * ⚠️ **Experimental.** See [EffectiveScreenImage] — same caveats.
  *
- * The frames are the PNG files in the [getFramesPath] folder of the plugin jar, played in natural file-name order
- * (`2.png` before `10.png`), in a loop at [getFramesPerSecond] frames per second. Every frame is cut into tile glyphs like an
- * [EffectiveScreenImage] ([EffectiveScreenTiles]) and placed the same way: [getX]/[getY] are the top-left corner and
- * [getSize] the width as screen fractions, the height follows the frames' aspect ratio. All frames must be the same
- * size.
+ * The frames are the PNG files in the [getFramesPath] folder of the plugin jar, in natural file-name order (`2.png`
+ * before `10.png`), at [getFramesPerSecond] frames per second. Every frame is cut into tile glyphs like an
+ * [EffectiveScreenImage] ([EffectiveScreenTiles]). All frames must be the same size.
  *
- * [show] sends the tiles of every frame once. Each tile carries the animation marker `(37, 13, 70, 1)` and, next to
- * the picture data in its border, its frame index, the frame count and the frame rate. The shader takes the time from
- * the client's own game clock (`GameTime`, which the client advances every rendered frame including the fraction of
- * the current tick, so it is not limited to 20 steps a second) and collapses the tiles of every frame but the current
- * one into a point, so no packets are sent per frame and ping or its jitter cannot make the animation stutter. Frame
- * rates above 20 (e.g. 60) work, limited only by the client's own FPS.
+ * Unlike an image, the placement is fixed per animation and baked into the tiles: [getX]/[getY] are the top-left
+ * corner and [getSize] the width as screen fractions, the height follows the frames' aspect ratio. The text color
+ * carries the timing instead: the tick the animation starts at and its [Playback]. [getComponent] starts it from the
+ * first frame about when the player receives it (the world's game time plus [START_DELAY_TICKS]).
+ *
+ * The shader takes the time from the client's own game clock (`GameTime`, which the client advances every rendered
+ * frame including the fraction of the current tick, so it is not limited to 20 steps a second) and collapses the tiles
+ * of every frame but the current one into a point, so no packets are sent per frame and ping or its jitter cannot make
+ * the animation stutter. Frame rates above 20 (e.g. 60) work, limited only by the client's own FPS.
  *
  * ```kotlin
  * object Intro : EffectiveScreenAnimation() {
@@ -37,7 +38,7 @@ import javax.imageio.ImageIO
  *     fun init() {}
  * }
  *
- * Intro.show(player)
+ * Intro.show(player, Playback.ONCE)
  * Intro.hide(player)
  * ```
  *
@@ -46,20 +47,41 @@ import javax.imageio.ImageIO
  * unlike [show], which goes through the HUD under it.
  *
  * Notes:
- * - The loop phase comes from the world's game time, so the animation starts at whatever frame the clock is on, not
- *   necessarily the first one.
- * - The client's `GameTime` wraps every 24000 ticks (1200 seconds); unless the frame count divides
- *   `1200 × frames per second`, the animation jumps once per wrap.
+ * - The client's `GameTime` wraps every 24000 ticks (20 minutes), and the start is a tick within that cycle: a
+ *   [Playback.ONCE] animation plays again 20 minutes after its start, and a [Playback.LOOP] one jumps once per cycle
+ *   unless its frame count divides `1200 × frames per second`.
  * - At most 4095 frames.
  * - Every tile of every frame is a glyph in the pack and in the client's font sheets: long or large animations cost
  *   client memory and loading time.
  * - In a paused singleplayer game the clock, and so the animation, stops.
  */
 abstract class EffectiveScreenAnimation : EffectiveScreenElement() {
+    /** How the animation plays from the tick [getComponent] starts it at. */
+    enum class Playback {
+        /** Over and over. */
+        LOOP,
+
+        /** Once, then it stays on the last frame. */
+        ONCE,
+
+        /** Not at all: it stays on the first frame. */
+        PAUSED,
+
+        /** Not at all: it stays on the last frame, as a [ONCE] animation looks after playing. */
+        ENDED,
+
+        /** Once backwards, from the last frame to the first, then it stays on the first frame. */
+        REVERSE,
+    }
+
     companion object {
+        /** Ticks between sending the component and its first frame, so the start is not missed on arrival. */
+        const val START_DELAY_TICKS = 2
+
         private const val SIZE_STEPS = 64
         private const val GLYPH_HEIGHT = 8
         private const val MAX_FRAMES = 4095
+        private const val CLOCK_TICKS = 24000
 
         private val _namespacedKeyToScreenAnimation = hashMapOf<String, EffectiveScreenAnimation>()
 
@@ -85,6 +107,10 @@ abstract class EffectiveScreenAnimation : EffectiveScreenElement() {
     }
 
     private val plugin: JavaPlugin get() = getNamespacedData().first
+
+    /** Number of frames read from [getFramesPath]; with [getFramesPerSecond] it gives the length of one playback. */
+    var frameCount: Int = 0
+        private set
 
     private val built: Pair<List<EffectiveGlyph>, Int> = buildTiles()
 
@@ -113,13 +139,13 @@ abstract class EffectiveScreenAnimation : EffectiveScreenElement() {
     /** Frames played per second; may be above 20 (the server tick rate), e.g. 60. */
     open fun getFramesPerSecond(): Int = 20
 
-    /** Default left edge of the animation, screen fraction `0..1`. */
+    /** Left edge of the animation, screen fraction `0..1`; baked into the tiles. */
     open fun getX(): Float = 0f
 
-    /** Default top edge of the animation, screen fraction `0..1`. */
+    /** Top edge of the animation, screen fraction `0..1`; baked into the tiles. */
     open fun getY(): Float = 0f
 
-    /** Default animation width, fraction of the screen width `0..1`, quantized to 1/64; the height keeps the aspect. */
+    /** Animation width, fraction of the screen width `0..1`, quantized to 1/64; the height keeps the aspect. */
     open fun getSize(): Float = 0.25f
 
     private fun buildTiles(): Pair<List<EffectiveGlyph>, Int> {
@@ -137,11 +163,13 @@ abstract class EffectiveScreenAnimation : EffectiveScreenElement() {
             Locale.getMessage("errors.screen_images.too_large", getNamespacedName(), width, height)
         }
 
+        frameCount = frames.size
         val folder = "screen/${getNamespacedName().replace(':', '/')}"
+        val placement = packPlacement(getX(), getY(), Math.round(getSize() * SIZE_STEPS))
         val tiles = ArrayList<EffectiveGlyph>()
         var advance = 0
         frames.forEachIndexed { frameIndex, frame ->
-            val timing = listOf((frameIndex shl 12) or frames.size, framesPerSecond)
+            val timing = listOf((frameIndex shl 12) or frames.size, framesPerSecond, placement)
             EffectiveScreenTiles.cut(frame).forEachIndexed { tileIndex, tile ->
                 advance += EffectiveScreenTiles.advance(tile, timing.size, GLYPH_HEIGHT)
                 tiles += EffectiveGlyph(
@@ -171,21 +199,25 @@ abstract class EffectiveScreenAnimation : EffectiveScreenElement() {
         return names.map { name -> plugin.getResource(name)!!.use { ImageIO.read(it) } }
     }
 
-    /** All frames with the default placement encoded in their color; put it in a title, action bar, boss bar, … */
-    fun getComponent(): Component = getComponent(getX(), getY(), getSize())
-
-    /** All frames with an explicit placement encoded in their color (screen fractions, top-left origin). */
-    fun getComponent(x: Float, y: Float, size: Float): Component {
-        val step = Math.round(size * SIZE_STEPS)
+    /**
+     * All frames, started about when [player] receives them (see [START_DELAY_TICKS]) and played as [playback]; put it
+     * in a dialog title, a boss bar, …
+     */
+    @JvmOverloads
+    fun getComponent(player: Player, playback: Playback = Playback.LOOP): Component {
+        val start = ((player.world.gameTime + START_DELAY_TICKS) % CLOCK_TICKS).toInt()
         val text = glyphs.joinToString("") { it.charGlyph.string } + EffectiveScreenTiles.backSpaces(built.second)
-        return withShaderData(Component.text(text), packPlacement(x, y, step))
+        return withShaderData(Component.text(text), (playback.ordinal shl 15) or start)
     }
 
-    /** Shows the animation to [player] at the default placement until [hide]. */
-    fun show(player: Player) = show(player, FOREVER_TICKS)
+    /** Shows the animation to [player] on the HUD, played as [playback], until [hide]. */
+    @JvmOverloads
+    fun show(player: Player, playback: Playback = Playback.LOOP) = show(player, FOREVER_TICKS, playback)
 
-    /** Shows the animation to [player] for [durationTicks]. */
-    fun show(player: Player, durationTicks: Int) = showBar(player, getComponent(), durationTicks)
+    /** Shows the animation to [player] on the HUD, played as [playback], for [durationTicks]. */
+    @JvmOverloads
+    fun show(player: Player, durationTicks: Int, playback: Playback = Playback.LOOP) =
+        showBar(player, getComponent(player, playback), durationTicks)
 
     /** Unique identity as `"<plugin-name>:<id>"`, both lowercased. */
     fun getNamespacedName(): String =

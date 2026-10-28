@@ -95,15 +95,29 @@ abstract class EffectiveItem {
      *
      * Set [animation] to make the texture animated (see [EffectiveTextureAnimation]). It applies only to the
      * texture given via [texturePath]/[textureBytes]; textures referenced by a custom model aren't animated by it.
+     *
+     * [modelAnimations] and [modelStates] make the item play model animations on events and show other models at
+     * rest (see [EffectiveModelAnimation] and [EffectiveModelState]). Their models go into the pack as
+     * `models/item/<id>/<animation>/<NN>.json` and `models/item/<id>/state/<name>.json`, with their textures copied
+     * like the main model's. The item's `items/<id>.json` then selects the animation by `custom_model_data`
+     * string #0, the frame by `minecraft:cooldown` and the rest model by string #1, and sets
+     * `hand_animation_on_swap` to false: changing those strings would otherwise lower and raise the item in hand,
+     * at the cost of the item also not being raised when the player switches to it. Such items get their own
+     * cooldown group (`use_cooldown`, `<namespace>:<id>`) on creation unless [editMeta] already set one.
      */
     data class ResourcePackData(
         val texturePath: String? = null,
         val textureBytes: ByteArray? = null,
         val modelPath: String? = null,
         val modelJson: String? = null,
-        val animation: EffectiveTextureAnimation? = null
+        val animation: EffectiveTextureAnimation? = null,
+        val modelAnimations: List<EffectiveModelAnimation> = emptyList(),
+        val modelStates: List<EffectiveModelState> = emptyList()
     ) {
         val isEmpty get() = texturePath == null && modelPath == null && modelJson == null && textureBytes == null
+
+        /** True when the item has [modelAnimations] or [modelStates]. */
+        val isAnimated get() = modelAnimations.isNotEmpty() || modelStates.isNotEmpty()
     }
 
     companion object {
@@ -213,6 +227,15 @@ abstract class EffectiveItem {
                 EffectiveMinecraftUtils.getNamespace(getNamespacedData().first),
                 getNamespacedData().second
             )
+        }
+        if (resourcePackData?.isAnimated == true && !meta.hasUseCooldown()) {
+            meta.setUseCooldown(meta.useCooldown.apply {
+                cooldownSeconds = 0.05f
+                cooldownGroup = NamespacedKey(
+                    EffectiveMinecraftUtils.getNamespace(getNamespacedData().first),
+                    getNamespacedData().second
+                )
+            })
         }
 
         item.itemMeta = meta

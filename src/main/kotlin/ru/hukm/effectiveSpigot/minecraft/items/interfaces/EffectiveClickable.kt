@@ -14,8 +14,7 @@ import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.event.EventPriority
 import org.bukkit.event.block.Action
-import org.bukkit.event.entity.EntityDamageByEntityEvent
-import org.bukkit.event.entity.EntityDamageEvent
+import io.papermc.paper.event.player.PrePlayerAttackEntityEvent
 import org.bukkit.event.player.PlayerInteractAtEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
@@ -46,7 +45,11 @@ typealias InteractCallback = (EffectiveClickable.EventsCallOptions) -> Effective
  *
  * Click mapping:
  * - [Click.LEFT] — left-click on air/block **and** attacking an entity (the attacked entity is in
- *   [EventsCallOptions.clickedEntity]).
+ *   [EventsCallOptions.clickedEntity]). An attack is caught by Paper's `PrePlayerAttackEntityEvent`, so the
+ *   handler runs on every attack attempt, also when the entity takes no damage right now (hurt cooldown after
+ *   a recent hit, an entity that cannot be damaged); [EffectiveAbstractInteract.Result.CANCEL_EVENT] cancels
+ *   the whole attack: no damage, knockback, sweep or attack sounds. The arm swing of that attack does not
+ *   call the handler a second time.
  * - [Click.RIGHT] — right-click on air/block/entity.
  *
  * Callback result:
@@ -142,24 +145,20 @@ interface EffectiveClickable {
                         }
                     }
 
-                    event<EntityDamageByEntityEvent>(EventPriority.HIGHEST) {
-                        if (
-                            it.damager is Player &&
-                            it.cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
-                            ) {
-                            if (tryCall(EventsCallOptions(
-                                    it.damager as Player,
-                                    EffectiveAbstractInteract.Target.Item(
-                                        EffectiveInventoryUtils.getUsedItemFromHands(it.damager as Player) ?: ItemStack(Material.AIR),
-                                    ),
-                                    EffectiveAbstractInteract.resolveClick(it.damager as Player, isRight = false),
-                                    EquipmentSlot.HAND,
-                                    null,
-                                    null,
-                                    it.entity
-                            ))) {
-                                it.isCancelled = true
-                            }
+                    event<PrePlayerAttackEntityEvent>(EventPriority.HIGHEST) {
+                        playerUUIDInteractedWithEntity.add(it.player.uniqueId)
+                        if (tryCall(EventsCallOptions(
+                                it.player,
+                                EffectiveAbstractInteract.Target.Item(
+                                    EffectiveInventoryUtils.getUsedItemFromHands(it.player),
+                                ),
+                                EffectiveAbstractInteract.resolveClick(it.player, isRight = false),
+                                EquipmentSlot.HAND,
+                                null,
+                                null,
+                                it.attacked
+                        ))) {
+                            it.isCancelled = true
                         }
                     }
                 }
