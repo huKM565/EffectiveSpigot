@@ -5,29 +5,43 @@ import org.bukkit.Chunk
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.Block
-import ru.hukm.effectiveSpigot.EffectiveSpigot
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import ru.hukm.effectiveSpigot.EffectiveSpigot.Companion.instance
-import ru.hukm.effectiveSpigot.Locale
 import ru.hukm.effectiveSpigot.interfaces.IModule
+import ru.hukm.effectiveSpigot.minecraft.nms.CraftReflection
 import ru.hukm.effectiveSpigot.minecraft.nms.NmsChunkManager
 import ru.hukm.effectiveSpigot.minecraft.utils.EffectiveBlockPos
-import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA
-import ru.hukm.effectiveSpigot.minecraft.world.chunk.EffectiveChunkSoA.EffectiveChunkCursor
 import ru.hukm.effectiveSpigot.minecraft.world.chunk.dataclasses.EffectiveBlockData
 
 /**
- * Per-world block cache (SoA chunk snapshots) used by zones and custom blocks for material lookups.
+ * Per-world block access for zones and custom blocks, read straight from the server's chunk sections
+ * ([NmsChunkManager]) with no copy of the world, so [getBlock] always sees the live world and memory doesn't grow with
+ * loaded chunks.
  *
- * Many block events fire before the world changes (physics, fading, forming, growing), and some removals fire no
- * event at all except physics (a mushroom in light, a plant that lost its support). So every touched position is also
- * queued and, one tick later, re-read from the world and written back if the cache differs ([reconcile]). Changes made
- * without any event (plugins calling `setType`) can still drift; callers needing precision should confirm with
- * `World.getBlockAt`. Internal — not part of the public API.
+ * Material searches remember their result per chunk and material ([ChunkMaterialCache]): a repeated
+ * [findBlocksByMaterials] reads the remembered positions and only re-reads chunks that changed. Many block events fire
+ * before the world changes (physics, fading, forming, growing), so a touched chunk is dropped from the cache at once and
+ * again on the next tick, when the change behind the event is done. A change made with no event at all (a plugin
+ * calling `setType`, WorldEdit) is not seen by a cached search until that chunk is touched again or reloads. Only loaded
+ * chunks are searched and read; nothing here loads a chunk.
+ *
+ * [findBlocksByMaterialsAsync] scans the chunks without a cached result off the main thread, reading the sections
+ * lock-free (read only; a section's palette and packed data are taken together from its volatile `data`). Back on the
+ * main thread a chunk's result is stored only if the chunk wasn't touched or reloaded meanwhile
+ * ([ChunkMaterialCache.isCurrent]); the rest, and any chunk whose scan failed on a race, are read again on the main
+ * thread, so the result equals a synchronous search at the moment the future completes. The scan starts at once on
+ * a daemon thread (`EffectiveSpigot-BlockSearch`), so the future completes on the next tick.
+ * Internal — not part of the public API.
  */
 internal class EffectiveWorld private constructor(val name: String) {
     data class BlockData(val x: Int, val y: Int, val z: Int, val material: Material)
 
-    val effectiveChunkSoA = EffectiveChunkSoA()
+    private val cache = ChunkMaterialCache()
+    private var loadedSeeded = false
+    private val pendingChunks = HashSet<Long>()
+    private var flushScheduled = false
 
     companion object {
         object EffectiveWorldModule: IModule {
@@ -37,6 +51,10 @@ internal class EffectiveWorld private constructor(val name: String) {
         }
 
         val effectiveWorlds = arrayListOf<EffectiveWorld>()
+
+        private val searchExecutor: ExecutorService by lazy {
+            Executors.newSingleThreadExecutor { Thread(it, "EffectiveSpigot-BlockSearch").apply { isDaemon = true } }
+        }
 
         fun getOrCreateInstance(world: World): EffectiveWorld {
             return getOrCreateInstance(EffectiveWorldParser.worldToString(world))
@@ -56,6 +74,10 @@ internal class EffectiveWorld private constructor(val name: String) {
 
         fun findBlocksByMaterials(materials: List<Material>, world: World): ArrayList<EffectiveBlockData> {
             return getOrCreateInstance(world).findBlocksByMaterials(materials)
+        }
+
+        fun findBlocksByMaterialAsync(material: Material, world: World): CompletableFuture<ArrayList<EffectiveBlockData>> {
+            return getOrCreateInstance(world).findBlocksByMaterialsAsync(listOf(material))
         }
 
         fun tryUploadChunk(chunk: Chunk) {
@@ -104,163 +126,176 @@ internal class EffectiveWorld private constructor(val name: String) {
     }
 
     fun findBlocksByMaterials(materials: List<Material>): ArrayList<EffectiveBlockData> {
-        val materialsIndexes = materials.map { EffectiveWorldParser.materialToMaterialIndex(it) }
+        val world = Bukkit.getWorld(name) ?: return arrayListOf()
+        seed(world)
         val foundBlocks = arrayListOf<EffectiveBlockData>()
+        var level: Any? = null
+        val wanted = if (materials.size == 1) setOf(materials[0]) else materials.toSet()
+        val single = materials.singleOrNull()
+        val read = HashMap<Material, MutableList<EffectiveBlockData>>()
+        var targets: NmsChunkManager.Targets? = null
 
-        effectiveChunkSoA.forEachCursors { effectiveChunkCursor ->
-            foundBlocks.addAll(effectiveChunkCursor.findBlocksByMaterialIndexes(materialsIndexes, effectiveChunkSoA)!!)
+        for (entry in cache.loaded) {
+            val cached = if (single != null) entry.found.containsKey(single) else entry.found.keys.containsAll(wanted)
+            if (!cached) {
+                read.clear()
+                val handle = entry.handle ?: if (world.isChunkLoaded(entry.chunkX, entry.chunkZ)) {
+                    if (level == null) level = CraftReflection.getWorldHandle(world)
+                    NmsChunkManager.chunk(level, entry.chunkX, entry.chunkZ).also { entry.handle = it }
+                } else null
+                if (handle != null) {
+                    if (targets == null) targets = NmsChunkManager.Targets(wanted)
+                    NmsChunkManager.findInChunk(handle, world.minHeight, entry.chunkX, entry.chunkZ, targets, read)
+                }
+                wanted.forEach { entry.found[it] = read[it] ?: emptyList() }
+            }
+            if (single != null) {
+                val list = entry.found[single]!!
+                if (list.isNotEmpty()) foundBlocks.addAll(list)
+            } else {
+                for (material in materials) foundBlocks.addAll(entry.found[material]!!)
+            }
         }
 
         return foundBlocks
     }
 
+    private fun seed(world: World) {
+        if (loadedSeeded) return
+        world.loadedChunks.forEach { cache.load(it.x, it.z) }
+        loadedSeeded = true
+    }
+
+    private class Scan(val entry: ChunkMaterialCache.Entry, val version: Long, val handle: Any) {
+        var result: Map<Material, List<EffectiveBlockData>>? = null
+    }
+
+    fun findBlocksByMaterialsAsync(materials: List<Material>): CompletableFuture<ArrayList<EffectiveBlockData>> {
+        val future = CompletableFuture<ArrayList<EffectiveBlockData>>()
+        if (Bukkit.isPrimaryThread()) startAsync(materials, future)
+        else Bukkit.getScheduler().runTask(instance, Runnable { startAsync(materials, future) })
+        return future
+    }
+
+    private fun startAsync(materials: List<Material>, future: CompletableFuture<ArrayList<EffectiveBlockData>>) {
+        try {
+            val world = Bukkit.getWorld(name) ?: return run { future.complete(arrayListOf()) }
+            seed(world)
+            val wanted = materials.toSet()
+            val level = CraftReflection.getWorldHandle(world)
+            val scans = arrayListOf<Scan>()
+            for (entry in cache.loaded) {
+                if (entry.found.keys.containsAll(wanted)) continue
+                val handle = entry.handle
+                    ?: if (world.isChunkLoaded(entry.chunkX, entry.chunkZ)) NmsChunkManager.chunk(level, entry.chunkX, entry.chunkZ).also { entry.handle = it }
+                    else continue
+                scans += Scan(entry, entry.version, handle)
+            }
+            if (scans.isEmpty()) {
+                future.complete(findBlocksByMaterials(materials))
+                return
+            }
+            val targets = NmsChunkManager.Targets(wanted)
+            val minHeight = world.minHeight
+            searchExecutor.execute {
+                for (scan in scans) {
+                    val read = HashMap<Material, MutableList<EffectiveBlockData>>()
+                    scan.result = try {
+                        NmsChunkManager.findInChunk(scan.handle, minHeight, scan.entry.chunkX, scan.entry.chunkZ, targets, read)
+                        read
+                    } catch (_: Throwable) {
+                        null
+                    }
+                }
+                try {
+                    Bukkit.getScheduler().runTask(instance, Runnable {
+                        try {
+                            for (scan in scans) {
+                                val result = scan.result ?: continue
+                                if (cache.isCurrent(scan.entry, scan.version)) wanted.forEach { scan.entry.found[it] = result[it] ?: emptyList() }
+                            }
+                            future.complete(findBlocksByMaterials(materials))
+                        } catch (e: Throwable) {
+                            future.completeExceptionally(e)
+                        }
+                    })
+                } catch (e: Throwable) {
+                    future.completeExceptionally(e)
+                }
+            }
+        } catch (e: Throwable) {
+            future.completeExceptionally(e)
+        }
+    }
+
     fun getBlock(pos: EffectiveBlockPos): EffectiveBlockData? {
-        return effectiveChunkSoA.getBlock(pos)
+        val world = Bukkit.getWorld(name) ?: return null
+        val material = NmsChunkManager.materialAt(world, pos.x, pos.y, pos.z) ?: return null
+        return EffectiveBlockData(pos.x, pos.y, pos.z, material)
     }
 
     fun tryUploadChunk(chunk: Chunk) {
-        if(!chunk.isLoaded) throw IllegalArgumentException(Locale.getMessage("errors.chunk_not_loaded", chunk.x, chunk.z, name))
-        if(EffectiveWorldParser.worldToString(chunk.world) != name) throw IllegalArgumentException(Locale.getMessage("errors.chunk_wrong_world", chunk.x, chunk.z, chunk.world.name, name))
-
-        val cursor = effectiveChunkSoA.find(chunk.x, chunk.z)?.apply {
-            this.setLoad(true, effectiveChunkSoA)
-        }
-
-        if(cursor == null) {
-            effectiveChunkSoA.add(
-                chunk.x,
-                chunk.z,
-                NmsChunkManager.getBlocks(chunk.x, chunk.z, name)
-            )
-        }
+        cache.load(chunk.x, chunk.z)
     }
 
     fun setIsUnload(chunk: Chunk) {
-        effectiveChunkSoA.find(chunk.x, chunk.z)?.setLoad(false, effectiveChunkSoA)
+        cache.unload(chunk.x, chunk.z)
     }
+
+    private fun key(chunkX: Int, chunkZ: Int) = (chunkX.toLong() shl 32) or (chunkZ.toLong() and 0xFFFFFFFFL)
 
     fun updateBlocks(blocks: List<Block>) {
         blocks.forEach { updateBlock(it) }
     }
 
     fun updateBlock(block: Block) {
-        if (block.y < block.world.minHeight || block.y >= block.world.maxHeight) return
-        updateBlock(block.chunk.x, block.chunk.z, block.x and 15, block.y, block.z and 15, block.type)
+        touch(block.x, block.z)
     }
-
-    private fun updateBlock(chunkX: Int, chunkZ: Int, x: Int, y: Int, z: Int, material: Material) {
-        val cursor = findChunkOrLoad(chunkX, chunkZ) ?: return
-        cursor.updateBlock(x, y, z, material, effectiveChunkSoA)
-        markDirty(chunkX * 16 + x, y, chunkZ * 16 + z)
-    }
-
-    private val dirty = HashSet<Long>()
-    private var reconcileScheduled = false
-
-    /** Queues [x], [y], [z] to be re-read from the world on the next tick, when the change behind an event is done. */
-    fun markDirty(x: Int, y: Int, z: Int) {
-        dirty.add(pack(x, y, z))
-        if (reconcileScheduled) return
-        reconcileScheduled = true
-        Bukkit.getScheduler().runTask(instance, Runnable { reconcile() })
-    }
-
-    fun markDirty(block: Block) = markDirty(block.x, block.y, block.z)
-
-    private fun reconcile() {
-        reconcileScheduled = false
-        val world = Bukkit.getWorld(name) ?: run { dirty.clear(); return }
-        val positions = dirty.toLongArray()
-        dirty.clear()
-        for (packed in positions) {
-            val x = unpackX(packed)
-            val y = unpackY(packed)
-            val z = unpackZ(packed)
-            if (y < world.minHeight || y >= world.maxHeight || !world.isChunkLoaded(x shr 4, z shr 4)) continue
-            val cursor = effectiveChunkSoA.find(x shr 4, z shr 4) ?: continue
-            val actual = world.getBlockAt(x, y, z).type
-            if (cursor.getBlockAt(x and 15, y, z and 15, effectiveChunkSoA).material != actual) {
-                cursor.updateBlock(x and 15, y, z and 15, actual, effectiveChunkSoA)
-            }
-        }
-    }
-
-    private fun pack(x: Int, y: Int, z: Int): Long =
-        ((x.toLong() and 0x3FFFFFF) shl 38) or ((z.toLong() and 0x3FFFFFF) shl 12) or (y.toLong() and 0xFFF)
-
-    private fun unpackX(packed: Long): Int = (packed shr 38).toInt()
-    private fun unpackZ(packed: Long): Int = ((packed shl 26) shr 38).toInt()
-    private fun unpackY(packed: Long): Int = ((packed shl 52) shr 52).toInt()
 
     fun setAirs(blocks: List<Block>) {
         blocks.forEach { setAir(it) }
     }
 
     fun setAir(block: Block) {
-        val cursor = findChunkOrLoad(block) ?: return
-        cursor.setAir(block.x and 15, block.y, block.z and 15, effectiveChunkSoA)
-        markDirty(block)
+        touch(block.x, block.z)
     }
 
     fun updateBlock(x: Int, y: Int, z: Int, material: Material) {
-        val chunkX = x shr 4
-        val chunkZ = z shr 4
-        val blockX = x and 15
-        val blockZ = z and 15
-        
-        updateBlock(chunkX, chunkZ, blockX, y, blockZ, material)
+        touch(x, z)
     }
 
     @JvmName("updateBlocksData")
     fun updateBlocks(blocks: List<EffectiveBlockData>) {
-        val blocksByChunk = blocks.groupBy { block ->
-            Pair(block.x shr 4, block.z shr 4)
-        }
-
-        blocksByChunk.forEach { (chunkCoords, chunkBlocks) ->
-            val cursor = findChunkOrLoad(chunkCoords.first, chunkCoords.second)
-            cursor?.let { chunkCursor ->
-                chunkBlocks.forEach { blockData ->
-                    chunkCursor.updateBlock(
-                        blockData.x and 15,
-                        blockData.y,
-                        blockData.z and 15,
-                        blockData.material,
-                        effectiveChunkSoA
-                    )
-                    markDirty(blockData.x, blockData.y, blockData.z)
-                }
-            }
-        }
+        blocks.forEach { touch(it.x, it.z) }
     }
 
-    private fun findChunkOrLoad(block: Block): EffectiveChunkCursor? {
-        return findChunkOrLoad(block.chunk.x, block.chunk.z)
+    fun markDirty(x: Int, y: Int, z: Int) {
+        touch(x, z)
     }
 
-    private fun findChunkOrLoad(chunkX: Int, chunkZ: Int): EffectiveChunkCursor? {
-        val cursor = effectiveChunkSoA.find(chunkX, chunkZ)
-        if (cursor == null) {
-            instance.logger.warning(
-                Locale.getMessage("errors.world.update_unloaded_chunk", chunkX, chunkZ, name)
-            )
-            return null
-        }
-        return cursor
+    fun markDirty(block: Block) = touch(block.x, block.z)
+
+    private fun touch(x: Int, z: Int) {
+        val chunkX = x shr 4
+        val chunkZ = z shr 4
+        cache.invalidate(chunkX, chunkZ)
+        pendingChunks.add(key(chunkX, chunkZ))
+        if (flushScheduled) return
+        flushScheduled = true
+        Bukkit.getScheduler().runTask(instance, Runnable { flush() })
+    }
+
+    private fun flush() {
+        flushScheduled = false
+        pendingChunks.forEach { cache.invalidate((it shr 32).toInt(), it.toInt()) }
+        pendingChunks.clear()
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as EffectiveWorld
-
+        if (other !is EffectiveWorld) return false
         return name == other.name
     }
 
-    override fun hashCode(): Int {
-        var result = name.hashCode()
-        result = 31 * result + effectiveChunkSoA.hashCode()
-        return result
-    }
+    override fun hashCode(): Int = name.hashCode()
 }

@@ -4,6 +4,7 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import kotlinx.coroutines.delay
 import org.bukkit.Bukkit
+import java.util.concurrent.CompletableFuture
 import org.bukkit.GameEvent
 import org.bukkit.GameMode
 import org.bukkit.Instrument
@@ -587,6 +588,21 @@ abstract class EffectiveBlock {
         data.note = Note(variation % 400 % 25)
         data.isPowered = variation % 800 >= 400
         return data
+    }
+
+    /**
+     * [getCustomBlocks] without holding the main thread: chunks with no cached search result are scanned off the main
+     * thread, then checked and completed on the main thread, so the future's callbacks may touch the world. The result
+     * equals the synchronous call at the moment the future completes, on the next tick after the call; may be called
+     * from any thread.
+     */
+    fun getCustomBlocksAsync(): CompletableFuture<List<Block>> {
+        val perWorld = Bukkit.getWorlds().map { world ->
+            EffectiveWorld.findBlocksByMaterialAsync(Material.NOTE_BLOCK, world).thenApply { found ->
+                found.mapNotNull { data -> world.getBlockAt(data.x, data.y, data.z).takeIf { getEffectiveBlock(it) === this } }
+            }
+        }
+        return CompletableFuture.allOf(*perWorld.toTypedArray()).thenApply { perWorld.flatMap { it.join() } }
     }
 
     fun getCustomBlocks(): List<Block> {

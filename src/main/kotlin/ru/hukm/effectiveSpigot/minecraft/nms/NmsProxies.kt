@@ -29,6 +29,7 @@ interface LevelChunkSectionProxy {
     fun hasOnlyAir(instance: Any): Boolean
 
     fun getBlockState(instance: Any, x: Int, y: Int, z: Int): Any
+
 }
 
 @Proxies(className = "net.minecraft.world.level.block.state.BlockBehaviour\$BlockStateBase")

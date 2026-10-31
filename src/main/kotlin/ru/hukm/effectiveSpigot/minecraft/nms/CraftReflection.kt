@@ -39,6 +39,11 @@ object CraftReflection {
         lookup.unreflect(method)
     }
 
+    private val getBlockByMaterial: MethodHandle by lazy {
+        val magicNumbers = Class.forName("$craftBukkitPackage.util.CraftMagicNumbers")
+        lookup.unreflect(magicNumbers.getMethod("getBlock", Material::class.java))
+    }
+
     fun getWorldHandle(world: World): Any = worldGetHandle.invoke(world)
 
     fun getPlayerHandle(player: Player): Any = playerGetHandle.invoke(player)
@@ -46,4 +51,6 @@ object CraftReflection {
     fun getEntityHandle(entity: Entity): Any = entityGetHandle.invoke(entity)
 
     fun getMaterial(nmsBlock: Any): Material = getMaterialByBlock.invoke(nmsBlock) as Material
+
+    fun getBlock(material: Material): Any = getBlockByMaterial.invoke(material) as Any
 }
