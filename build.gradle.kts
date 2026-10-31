@@ -61,6 +61,12 @@ dokka {
 // TODO(дочерний плагин (без all) не видит релокацию)
 
 tasks {
+  processResources {
+    val props = mapOf("version" to project.version)
+    inputs.properties(props)
+    filesMatching("plugin.yml") { expand(props) }
+  }
+
   shadowJar {
     archiveClassifier.set("all")
 
