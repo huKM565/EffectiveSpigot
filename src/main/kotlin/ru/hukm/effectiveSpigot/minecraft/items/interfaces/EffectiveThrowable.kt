@@ -1,6 +1,7 @@
 package ru.hukm.effectiveSpigot.minecraft.items.interfaces
 
 import org.bukkit.Sound
+import org.bukkit.entity.Player
 import org.bukkit.entity.Snowball
 import org.bukkit.event.entity.ProjectileHitEvent
 import org.bukkit.inventory.ItemStack
@@ -40,6 +41,9 @@ interface EffectiveThrowable {
      * @property velocity speed multiplier along the thrower's look direction
      * @property consumeOnThrow whether one is removed from the stack per throw
      * @property throwSound sound played on throw, or null for silence
+     * @property cooldownData optional cooldown between throws; a per-player one also shows the grey sweep on the icon
+     * @property canThrow optional check run before each throw; false lets the click through without throwing or
+     *   starting the cooldown
      * @property onHit callback invoked with the projectile's [ProjectileHitEvent]
      */
     data class Data(
@@ -47,6 +51,8 @@ interface EffectiveThrowable {
         val velocity: Double = 1.5,
         val consumeOnThrow: Boolean = true,
         val throwSound: Sound? = Sound.ENTITY_SNOWBALL_THROW,
+        val cooldownData: EffectiveAbstractInteract.CooldownData<EffectiveClickable.EventsCallOptions>? = null,
+        val canThrow: ((Player) -> Boolean)? = null,
         val onHit: (ProjectileHitEvent) -> Unit,
     )
 
@@ -60,6 +66,7 @@ interface EffectiveThrowable {
 
             data.item.addClickHandler(EffectiveAbstractInteract.Click.RIGHT, { e ->
                 val player = e.player
+                if (data.canThrow?.invoke(player) == false) return@addClickHandler EffectiveAbstractInteract.Result.ALLOW_EVENT
 
                 if (data.consumeOnThrow) e.item.amount -= 1
 
@@ -71,7 +78,7 @@ interface EffectiveThrowable {
                 snowball.item = data.item.createItemStack()
 
                 EffectiveAbstractInteract.Result.CANCEL_EVENT
-            })
+            }, cooldownData = data.cooldownData)
         }
 
         /** Convenience overload that builds the [Data] from individual arguments. */
@@ -80,8 +87,10 @@ interface EffectiveThrowable {
             velocity: Double = 1.5,
             consumeOnThrow: Boolean = true,
             throwSound: Sound? = Sound.ENTITY_SNOWBALL_THROW,
+            cooldownData: EffectiveAbstractInteract.CooldownData<EffectiveClickable.EventsCallOptions>? = null,
+            canThrow: ((Player) -> Boolean)? = null,
             onHit: (ProjectileHitEvent) -> Unit,
-        ) = makeThrowable(Data(item, velocity, consumeOnThrow, throwSound, onHit))
+        ) = makeThrowable(Data(item, velocity, consumeOnThrow, throwSound, cooldownData, canThrow, onHit))
 
         /** Whether [item] belongs to a registered throwable item. */
         fun isThrowable(item: ItemStack?): Boolean {

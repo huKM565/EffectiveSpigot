@@ -133,8 +133,8 @@ addToLoot(
     hit.hitBlock?.let { it.world.createExplosion(it.location, 0f) }
 }`,
       note: {
-        ru: 'ПКМ запускает снежок с предметом внутри; onHit получает ProjectileHitEvent только этого предмета. EffectiveThrowable.isThrowable(stack) — проверка.',
-        en: 'Right-click launches a snowball carrying the item; onHit receives the ProjectileHitEvent of this item only. EffectiveThrowable.isThrowable(stack) checks it.',
+        ru: 'ПКМ запускает снежок с предметом внутри; onHit получает ProjectileHitEvent только этого предмета. cooldownData — кулдаун между бросками (на игрока — с серой заливкой на иконке), canThrow — проверка перед броском: false пропускает клик без броска и без кулдауна. EffectiveThrowable.isThrowable(stack) — проверка.',
+        en: 'Right-click launches a snowball carrying the item; onHit receives the ProjectileHitEvent of this item only. cooldownData — cooldown between throws (per-player ones show the grey sweep on the icon), canThrow — a check before each throw: false lets the click through with no throw and no cooldown. EffectiveThrowable.isThrowable(stack) checks it.',
       },
     },
     {

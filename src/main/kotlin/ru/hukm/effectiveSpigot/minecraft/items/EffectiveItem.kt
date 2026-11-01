@@ -402,15 +402,19 @@ abstract class EffectiveItem {
      * @param velocity speed multiplier along the player's look direction
      * @param consumeOnThrow whether to remove one from the stack on throw
      * @param throwSound sound played on throw, or null for silence
+     * @param cooldownData optional cooldown between throws (per-player ones show the grey sweep on the icon)
+     * @param canThrow optional check before each throw; false lets the click through without throwing
      * @param onHit callback receiving the [ProjectileHitEvent] of the framework's projectile
      */
     fun makeThrowable(
         velocity: Double = 1.5,
         consumeOnThrow: Boolean = true,
         throwSound: Sound? = Sound.ENTITY_SNOWBALL_THROW,
+        cooldownData: EffectiveAbstractInteract.CooldownData<EffectiveClickable.EventsCallOptions>? = null,
+        canThrow: ((Player) -> Boolean)? = null,
         onHit: (ProjectileHitEvent) -> Unit,
     ) {
-        EffectiveThrowable.makeThrowable(this, velocity, consumeOnThrow, throwSound, onHit)
+        EffectiveThrowable.makeThrowable(this, velocity, consumeOnThrow, throwSound, cooldownData, canThrow, onHit)
     }
 
     /** Prevents this item from being dropped, and keeps it in the inventory on death. */
