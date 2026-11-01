@@ -85,8 +85,8 @@ addClickHandler(Click.RIGHT, { e -> … }, cooldownData = CooldownData(
     conditionForSkipCall = { e -> e.player.isOp },
 ))`,
       note: {
-        ru: 'Click: LEFT, RIGHT, LEFT_SHIFT, RIGHT_SHIFT, LEFT_PLAIN, RIGHT_PLAIN (PLAIN — только без шифта). В e: player, item, hand, clickedBlock, blockFace, clickedEntity. Result решает, отменять ли Bukkit-событие. Кулдаун ON_CURRENT_PLAYER — на игрока для всех стаков этого предмета, ON_THIS_INSTANCE — на конкретный стак. ifRightClickOpenContainer — не перехватывать ПКМ по сундуку/бочке.',
-        en: 'Click: LEFT, RIGHT, LEFT_SHIFT, RIGHT_SHIFT, LEFT_PLAIN, RIGHT_PLAIN (PLAIN — only without sneaking). In e: player, item, hand, clickedBlock, blockFace, clickedEntity. Result decides whether the Bukkit event is cancelled. Cooldown ON_CURRENT_PLAYER — per player for all stacks of this item, ON_THIS_INSTANCE — per stack. ifRightClickOpenContainer — do not intercept right-click on a chest/barrel.',
+        ru: 'Click: LEFT, RIGHT, LEFT_SHIFT, RIGHT_SHIFT, LEFT_PLAIN, RIGHT_PLAIN (PLAIN — только без шифта). В e: player, item, hand, clickedBlock, blockFace, clickedEntity. Result решает, отменять ли Bukkit-событие. Кулдаун ON_CURRENT_PLAYER — на игрока для всех стаков этого предмета, с ванильной серой заливкой на иконке (у стака своя группа кулдауна, другие предметы на той же базе не сереют); ON_THIS_INSTANCE — на конкретный стак, без заливки. ifRightClickOpenContainer — не перехватывать ПКМ по сундуку/бочке.',
+        en: 'Click: LEFT, RIGHT, LEFT_SHIFT, RIGHT_SHIFT, LEFT_PLAIN, RIGHT_PLAIN (PLAIN — only without sneaking). In e: player, item, hand, clickedBlock, blockFace, clickedEntity. Result decides whether the Bukkit event is cancelled. Cooldown ON_CURRENT_PLAYER — per player for all stacks of this item, with the vanilla grey sweep on the icon (the stack gets its own cooldown group, other items on the same base stay clear); ON_THIS_INSTANCE — per stack, no sweep. ifRightClickOpenContainer — do not intercept right-click on a chest/barrel.',
       },
     },
     {

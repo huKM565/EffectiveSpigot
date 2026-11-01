@@ -237,6 +237,15 @@ abstract class EffectiveItem {
                 )
             })
         }
+        if (clickCooldownTicks > 0 && !meta.hasUseCooldown()) {
+            meta.setUseCooldown(meta.useCooldown.apply {
+                cooldownSeconds = maxOf(clickCooldownTicks / 20f, 0.05f)
+                cooldownGroup = NamespacedKey(
+                    EffectiveMinecraftUtils.getNamespace(getNamespacedData().first),
+                    getNamespacedData().second
+                )
+            })
+        }
 
         item.itemMeta = meta
         EffectiveDataContainerUtils.setContainerValue(item, ITEM_KEY, PersistentDataType.STRING, getNamespacedName())
@@ -299,8 +308,19 @@ abstract class EffectiveItem {
         ifRightClickOpenContainer: Boolean = false,
         cooldownData: EffectiveAbstractInteract.CooldownData<EffectiveClickable.EventsCallOptions>? = null
     ) {
+        if (cooldownData != null && cooldownData.cooldownType == EffectiveAbstractInteract.CooldownType.ON_CURRENT_PLAYER) {
+            clickCooldownTicks = maxOf(clickCooldownTicks, cooldownData.cooldownToUseInTicks)
+        }
         EffectiveClickable.addClickHandler(createItemStack(), click, callback, ifRightClickOpenContainer, cooldownData)
     }
+
+    /**
+     * Longest per-player ([EffectiveAbstractInteract.CooldownType.ON_CURRENT_PLAYER]) click cooldown registered for this
+     * item, in ticks; 0 if none. Non-zero makes [createItemStack] give the stack its own use-cooldown group
+     * `<namespace>:<id>`, so the vanilla grey sweep shows on this item only and not on every item of the same base material.
+     */
+    var clickCooldownTicks = 0
+        private set
 
     /**
      * Registers a shapeless recipe that yields this item.

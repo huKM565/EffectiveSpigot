@@ -77,6 +77,11 @@ interface EffectiveAbstractInteract {
      *   is skipped entirely and the event is allowed to proceed (so neither the interaction nor the
      *   cooldown fires)
      * @property cooldownType scope the cooldown is tracked against
+     *
+     * A per-player ([CooldownType.ON_CURRENT_PLAYER]) cooldown on a custom item also shows the vanilla grey sweep on the
+     * item's icon: the stack gets its own use-cooldown group, the sweep starts with the cooldown and is re-synced on a
+     * click that hits the cooldown (e.g. after a rejoin, when the client forgot it). Per-instance cooldowns and animated
+     * items get no sweep.
      */
     data class CooldownData<T : EventsCallOptions<out Target>>(
         val cooldownToUseInTicks: Int = 0,
@@ -160,6 +165,9 @@ interface EffectiveAbstractInteract {
                 if (millisPassed < cooldownToUseInMillis) {
                     val remainingMillis = cooldownToUseInMillis - millisPassed
                     val remainingSeconds = remainingMillis / 1000.0
+                    if (cd.cooldownType == CooldownType.ON_CURRENT_PLAYER) {
+                        showItemCooldown(eventsCallOptions.player, target, (remainingMillis / 50).toInt())
+                    }
                     EffectiveMinecraftUtils.sendMessageToActionBar(
                         eventsCallOptions.player,
                         Locale.getComponent("errors.cooldown.wait", remainingSeconds)
@@ -174,6 +182,7 @@ interface EffectiveAbstractInteract {
 
                 when (cd.cooldownType) {
                     CooldownType.ON_CURRENT_PLAYER -> {
+                        showItemCooldown(eventsCallOptions.player, target, cd.cooldownToUseInTicks)
                         EffectiveDataContainerUtils.setContainer(eventsCallOptions.player, COOLDOWN_KEY) {
                             EffectiveDataContainerUtils.setContainerValue(
                                 it,
@@ -188,6 +197,21 @@ interface EffectiveAbstractInteract {
                     }
                 }
             }
+        }
+
+        /**
+         * Shows the vanilla grey cooldown sweep for a per-player item cooldown. Only stacks that carry their own
+         * use-cooldown group get it (see [EffectiveItem.clickCooldownTicks]): without one the client would grey out every
+         * item of the base material. Animated items are skipped, their cooldown drives the frames.
+         */
+        private fun showItemCooldown(player: Player, target: Target, ticks: Int) {
+            if (target !is Target.Item || ticks <= 0) return
+            val stack = target.itemStack
+            val meta = stack.itemMeta ?: return
+            if (!meta.hasUseCooldown() || meta.useCooldown.cooldownGroup == null) return
+            val effectiveItem = EffectiveItem.getNamespacedKeyByItem(stack)?.let(EffectiveItem::getEffectiveItemByNamespacedKey)
+            if (effectiveItem?.getResourcePackData()?.isAnimated == true) return
+            player.setCooldown(stack, ticks)
         }
 
         private fun setLatestTimeUsed(target: Target) {
