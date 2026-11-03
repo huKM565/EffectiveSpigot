@@ -53,6 +53,7 @@ class EffectiveSpigot : JavaPlugin() {
 		EffectiveMenuCommand.init()
 		EffectiveScreenCommand.init()
 		EffectiveZoneCommand.init()
+		EffectiveWorldCommand.init()
 		EffectiveCompositeCommand.init()
 	}
 

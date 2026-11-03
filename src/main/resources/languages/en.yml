@@ -50,6 +50,12 @@ commands:
     no_selection: "<red>Use zone selector to select an area before creating a zone!"
     not_player: "<red>Only players can execute this command!"
     create_success: "<green>Creating zone type: %s (stub)"
+  eworld:
+    usage: "<red>Usage: /eworld tp <world> [player]"
+    world_not_found: "<red>World %s not found."
+    player_not_found: "<red>Player %s is not online."
+    need_player: "<red>From the console, name a player: /eworld tp <world> <player>"
+    teleported: "<green>%s teleported to world %s."
 
 items:
   zone_selector:

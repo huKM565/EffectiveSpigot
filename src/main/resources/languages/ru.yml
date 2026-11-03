@@ -50,6 +50,12 @@ commands:
     create_success: "<green>Создание зоны типа: %s (заглушка)"
     no_selection: "<red>Используйте селектор зоны для выбора области перед созданием зоны!"
     not_player: "<red>Только игроки могут выполнять эту команду!"
+  eworld:
+    usage: "<red>Использование: /eworld tp <мир> [игрок]"
+    world_not_found: "<red>Мир %s не найден."
+    player_not_found: "<red>Игрок %s не в сети."
+    need_player: "<red>Из консоли укажи игрока: /eworld tp <мир> <игрок>"
+    teleported: "<green>%s телепортирован в мир %s."
 
 items:
   zone_selector:
