@@ -72,7 +72,7 @@ class GameWorld(private val id: String) : EffectiveWorld() {
 
 ## Поиск блоков (бывший internal EffectiveWorld)
 
-Логика поиска (`ChunkMaterialCache`, синхронный и async-поиск, `markDirty` и т.д.) переезжает в этот класс без изменений поведения. Экземпляр — один на мир, для объявленных и внутренних одинаково. Внутренние ключи — `world.key` вместо `world.name`. Статические функции компаньона, которые зовут `EffectiveBlock`, `EffectiveZone` и `EffectiveWorldEvents`, остаются и помечаются `internal` явно: класс становится публичным, а поиск в публичный API не входит. `EffectiveWorldParser` больше не нужен для имён миров; его использование для `materialToMaterialIndex` не трогается.
+Логика поиска (`ChunkMaterialCache`, синхронный и async-поиск, `markDirty` и т.д.) переезжает в этот класс без изменений поведения. Экземпляр — один на мир, для объявленных и внутренних одинаково. Внутренние ключи — `world.key` вместо `world.name`. Статические функции компаньона, которые зовут `EffectiveBlock`, `EffectiveZone` и `EffectiveWorldEvents`, остаются и помечаются `internal` явно: класс становится публичным, а поиск в публичный API не входит. `EffectiveWorldParser` больше нигде не используется и удаляется.
 
 ## Команда `/eworld`
 
@@ -96,9 +96,11 @@ KDoc на `EffectiveWorld` и его публичные члены: где ле�
 
 ## Проверка
 
-- `TestEffectiveSpigot` (`~/Docs/TestEffectiveSpigot`): `object Lobby` с пустым генератором и два `GameWorld("one")`, `GameWorld("two")`.
-- Тест-сервер `/mnt/sda2/mc-test-server` на 26.3: папки `world/dimensions/testeffectivespigot/{lobby,game_one,game_two}/`, `/eworld tp` во все три и в `minecraft:overworld`, поиск кастомных блоков в своём мире, повторный старт загружает те же миры.
-- Один прогон на 1.21.4 (`server-jars`): папки `server/testeffectivespigot_lobby/` и т.д.
+`TestEffectiveSpigot` собран под Java 25 и API 26.2 и на 1.21.4 не грузится, поэтому проверка — отдельный плагин-пробник `EWorldProbe` (paper-api 1.21.4, Java 21), который грузится на обеих версиях, сам пишет результаты в лог и гасит сервер. Отдельная папка сервера `/mnt/sda2/mc-test-server/eworld-test`, в плагинах только EffectiveSpigot и пробник.
+
+- 26.3 с нуля: папки `world/dimensions/eworldprobe/{lobby,game_one,game_two}/`, поиск блоков в своём мире, сообщения `/eworld tp` из консоли, ошибка второго `game_one`, после рестарта блок на месте.
+- 1.21.4 → 26.3: на 1.21.4 папки `eworldprobe_lobby/` и т.д. в корне, после переключения ядра на 26.3 Paper импортирует их в `dimensions` и поставленный на 1.21.4 блок на месте.
+- Телепорт игрока — один ручной заход клиентом 26.3.
 
 ## Вне рамок
 
