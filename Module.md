@@ -81,7 +81,7 @@ textured menus): without it no pack is built for the plugin. Call it **after** t
 | `EffectiveScreenEffects` (fade, shake) | stable |
 | `EffectiveScreenImage`, `EffectiveScreenText` | **experimental** — core-shader technique; API and behaviour may change, not guaranteed with shader packs |
 | `EffectiveBlock`, `EffectiveBlockWithEntity` | **work in progress** — mining/drops/sounds less tested; API may change |
-| `EffectiveWorld` (internal block cache) | **known bugs** — may drift from the real world; affects `ZoneBox.getBlocksInside()` and `EffectiveBlock.getCustomBlocks()` |
+| `EffectiveWorld` | **new** — persistent plugin worlds with their own folder (1.21.4–26.3), `/eworld tp`; the internal block search inside may drift from the real world (`ZoneBox.getBlocksInside()`, `EffectiveBlock.getCustomBlocks()`) |
 
 ---
 
